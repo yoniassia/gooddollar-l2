@@ -1,5 +1,7 @@
 'use client'
 
+import { WalletButton } from './WalletButton'
+
 export function Header() {
   return (
     <header className="w-full border-b border-dark-50/50 bg-dark-100/80 backdrop-blur-md">
@@ -17,12 +19,7 @@ export function Header() {
           <span className="cursor-not-allowed opacity-40">Bridge</span>
         </nav>
 
-        <button
-          className="px-4 py-2 rounded-xl bg-goodgreen/10 border border-goodgreen/30 text-goodgreen text-sm font-medium hover:bg-goodgreen/20 transition-colors"
-          disabled
-        >
-          Connect Wallet
-        </button>
+        <WalletButton />
       </div>
     </header>
   )

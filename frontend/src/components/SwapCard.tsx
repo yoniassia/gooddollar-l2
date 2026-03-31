@@ -1,8 +1,13 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { parseEther, formatEther } from 'viem'
 import { TokenSelector, Token, TOKENS } from './TokenSelector'
 import { UBIBreakdown } from './UBIBreakdown'
+import { TxStatus } from './TxStatus'
+import { CONTRACTS } from '@/lib/chain'
+import { GoodDollarTokenABI, UBIFeeHookABI } from '@/lib/abi'
 
 const MOCK_RATES: Record<string, Record<string, number>> = {
   'G$':   { 'ETH': 0.00001,  'USDC': 0.01,    'G$': 1 },
@@ -10,13 +15,42 @@ const MOCK_RATES: Record<string, Record<string, number>> = {
   'USDC': { 'G$': 100,       'ETH': 0.000333,  'USDC': 1 },
 }
 
-const SWAP_FEE_BPS = 30 // 0.3%
-const UBI_FEE_BPS = 3333 // 33.33% of swap fee goes to UBI
+const SWAP_FEE_BPS = 30
+const UBI_FEE_BPS = 3333
 
 export function SwapCard() {
-  const [inputToken, setInputToken] = useState<Token>(TOKENS[1]) // ETH
-  const [outputToken, setOutputToken] = useState<Token>(TOKENS[0]) // G$
+  const { address, isConnected } = useAccount()
+  const [inputToken, setInputToken] = useState<Token>(TOKENS[1])
+  const [outputToken, setOutputToken] = useState<Token>(TOKENS[0])
   const [inputAmount, setInputAmount] = useState('')
+  const [showTxStatus, setShowTxStatus] = useState(false)
+
+  // Read G$ balance if connected
+  const { data: gdBalance } = useReadContract({
+    address: CONTRACTS.GoodDollarToken,
+    abi: GoodDollarTokenABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: { enabled: isConnected && !!address },
+  })
+
+  // Read UBI fee percentage from hook
+  const { data: ubiFeeShareBPS } = useReadContract({
+    address: CONTRACTS.UBIFeeHook,
+    abi: UBIFeeHookABI,
+    functionName: 'ubiFeeShareBPS',
+  })
+
+  // Write: approve token
+  const { writeContract: approve, data: approveTxHash, isPending: isApproving } = useWriteContract()
+
+  // Write: swap (simplified - in production this would call the router)
+  const { writeContract: swap, data: swapTxHash, isPending: isSwapping } = useWriteContract()
+
+  // Wait for tx confirmation
+  const { isLoading: isConfirming, isSuccess: isTxSuccess, isError: isTxError } = useWaitForTransactionReceipt({
+    hash: swapTxHash || approveTxHash,
+  })
 
   const outputAmount = useMemo(() => {
     const amt = parseFloat(inputAmount)
@@ -33,8 +67,9 @@ export function SwapCard() {
     const rate = MOCK_RATES[inputToken.symbol]?.[outputToken.symbol] ?? 0
     const gross = amt * rate
     const swapFee = gross * (SWAP_FEE_BPS / 10000)
-    return swapFee * (UBI_FEE_BPS / 10000)
-  }, [inputAmount, inputToken.symbol, outputToken.symbol])
+    const actualUbiBps = ubiFeeShareBPS ? Number(ubiFeeShareBPS) : UBI_FEE_BPS
+    return swapFee * (actualUbiBps / 10000)
+  }, [inputAmount, inputToken.symbol, outputToken.symbol, ubiFeeShareBPS])
 
   const exchangeRate = useMemo(() => {
     const rate = MOCK_RATES[inputToken.symbol]?.[outputToken.symbol] ?? 0
@@ -50,23 +85,44 @@ export function SwapCard() {
   }, [inputToken, outputToken])
 
   const handleInputSelect = useCallback((t: Token) => {
-    if (t.symbol === outputToken.symbol) {
-      setOutputToken(inputToken)
-    }
+    if (t.symbol === outputToken.symbol) setOutputToken(inputToken)
     setInputToken(t)
   }, [inputToken, outputToken])
 
   const handleOutputSelect = useCallback((t: Token) => {
-    if (t.symbol === inputToken.symbol) {
-      setInputToken(outputToken)
-    }
+    if (t.symbol === inputToken.symbol) setInputToken(outputToken)
     setOutputToken(t)
   }, [inputToken, outputToken])
+
+  const handleSwap = useCallback(() => {
+    if (!isConnected || !inputAmount) return
+    setShowTxStatus(true)
+
+    // For G$ token swaps, first approve then swap
+    if (inputToken.symbol === 'G$') {
+      approve({
+        address: CONTRACTS.GoodDollarToken,
+        abi: GoodDollarTokenABI,
+        functionName: 'approve',
+        args: [CONTRACTS.UBIFeeHook, parseEther(inputAmount)],
+      })
+    }
+  }, [isConnected, inputAmount, inputToken.symbol, approve])
+
+  const formattedBalance = useMemo(() => {
+    if (!gdBalance) return null
+    const formatted = formatEther(gdBalance)
+    const num = parseFloat(formatted)
+    if (num > 1000) return `${(num / 1000).toFixed(1)}K`
+    return num.toFixed(2)
+  }, [gdBalance])
+
+  const hasAmount = !!inputAmount && parseFloat(inputAmount) > 0
+  const isPending = isApproving || isSwapping || isConfirming
 
   return (
     <div className="w-full max-w-[460px]">
       <div className="bg-dark-100 rounded-2xl border border-gray-700/30 shadow-xl overflow-hidden">
-        {/* Header */}
         <div className="px-5 pt-5 pb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white">Swap</h2>
           <span className="text-xs text-gray-400 bg-dark-50 px-2.5 py-1 rounded-lg">0.3% fee</span>
@@ -76,9 +132,14 @@ export function SwapCard() {
         <div className="mx-4 p-4 rounded-xl bg-dark/80 border border-gray-700/20">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-gray-400">You pay</span>
-            <button className="text-xs text-goodgreen hover:text-goodgreen-300 transition-colors">
-              Max
-            </button>
+            {isConnected && inputToken.symbol === 'G$' && formattedBalance && (
+              <button
+                onClick={() => gdBalance && setInputAmount(formatEther(gdBalance))}
+                className="text-xs text-goodgreen hover:text-goodgreen-300 transition-colors"
+              >
+                Balance: {formattedBalance} G$
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <input
@@ -96,7 +157,7 @@ export function SwapCard() {
           </div>
         </div>
 
-        {/* Flip button */}
+        {/* Flip */}
         <div className="flex justify-center -my-3 relative z-10">
           <button
             onClick={handleFlip}
@@ -129,38 +190,64 @@ export function SwapCard() {
           </div>
         </div>
 
-        {/* Rate display */}
-        {inputAmount && parseFloat(inputAmount) > 0 && (
+        {/* Rate */}
+        {hasAmount && (
           <div className="mx-4 mt-3 px-4 py-2 text-xs text-gray-400 flex justify-between">
             <span>Rate</span>
             <span>{exchangeRate}</span>
           </div>
         )}
 
-        {/* UBI Breakdown */}
+        {/* UBI */}
         <UBIBreakdown
           ubiFeeAmount={ubiFee}
           outputToken={outputToken}
-          visible={!!inputAmount && parseFloat(inputAmount) > 0}
+          visible={hasAmount}
         />
 
         {/* Swap button */}
         <div className="p-4 pt-3">
-          <button
-            disabled
-            className="w-full py-4 rounded-xl font-semibold text-base transition-all bg-goodgreen/20 text-goodgreen/60 cursor-not-allowed"
-          >
-            Connect Wallet to Swap
-          </button>
+          {!isConnected ? (
+            <button
+              disabled
+              className="w-full py-4 rounded-xl font-semibold text-base bg-goodgreen/20 text-goodgreen/60 cursor-not-allowed"
+            >
+              Connect Wallet to Swap
+            </button>
+          ) : !hasAmount ? (
+            <button
+              disabled
+              className="w-full py-4 rounded-xl font-semibold text-base bg-dark-50 text-gray-500 cursor-not-allowed"
+            >
+              Enter an Amount
+            </button>
+          ) : (
+            <button
+              onClick={handleSwap}
+              disabled={isPending}
+              className="w-full py-4 rounded-xl font-semibold text-base transition-all bg-goodgreen text-white hover:bg-goodgreen-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPending ? 'Swapping...' : `Swap ${inputToken.symbol} for ${outputToken.symbol}`}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Footer info */}
       <div className="mt-6 text-center">
         <p className="text-xs text-gray-500">
           Powered by GoodDollar L2 — Chain ID 42069
         </p>
       </div>
+
+      {showTxStatus && (
+        <TxStatus
+          hash={swapTxHash || approveTxHash}
+          isPending={isPending}
+          isSuccess={isTxSuccess}
+          isError={isTxError}
+          onClose={() => setShowTxStatus(false)}
+        />
+      )}
     </div>
   )
 }
