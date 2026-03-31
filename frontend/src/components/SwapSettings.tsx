@@ -66,10 +66,16 @@ export function SwapSettings() {
                   value={customSlippage}
                   onChange={e => {
                     const val = sanitizeNumericInput(e.target.value)
-                    setCustomSlippage(val)
-                    setShowMaxWarning(false)
                     const num = parseFloat(val)
-                    if (!isNaN(num) && num > 0) setSlippage(num)
+                    if (!isNaN(num) && num > 50) {
+                      setCustomSlippage('50')
+                      setShowMaxWarning(true)
+                      setSlippage(50)
+                    } else {
+                      setCustomSlippage(val)
+                      setShowMaxWarning(false)
+                      if (!isNaN(num) && num > 0) setSlippage(num)
+                    }
                   }}
                   onBlur={() => {
                     const num = parseFloat(customSlippage)
@@ -103,15 +109,19 @@ export function SwapSettings() {
               <input
                 type="text"
                 inputMode="numeric"
+                placeholder="1–180"
                 value={deadline}
                 onChange={e => {
-                  const num = parseInt(e.target.value, 10)
+                  const raw = e.target.value.replace(/[^0-9]/g, '')
+                  if (!raw) return
+                  const num = parseInt(raw, 10)
                   if (!isNaN(num)) setDeadline(num)
                 }}
                 className="w-16 py-1.5 px-2 rounded-lg text-sm text-center bg-dark-50 border border-gray-700/50 text-white outline-none focus:border-goodgreen/40 focus-visible:ring-2 focus-visible:ring-goodgreen/50 transition-colors"
               />
               <span className="text-xs text-gray-400">minutes</span>
             </div>
+            <p className="text-xs text-gray-600 mt-1">Min 1, max 180 minutes</p>
           </div>
         </div>
       )}

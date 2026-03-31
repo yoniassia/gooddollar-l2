@@ -49,12 +49,11 @@ describe('SwapSettings', () => {
     expect(screen.queryByText('Slippage Tolerance')).not.toBeInTheDocument()
   })
 
-  it('clamps custom slippage to 50% on blur when value exceeds max', () => {
+  it('clamps custom slippage to 50% in real-time when value exceeds max', () => {
     render(<SwapSettings />)
     fireEvent.click(screen.getByRole('button', { name: /settings/i }))
     const customInput = screen.getByPlaceholderText('Custom')
     fireEvent.change(customInput, { target: { value: '100' } })
-    fireEvent.blur(customInput)
     expect(customInput).toHaveValue('50')
     expect(screen.getByText(/maximum slippage/i)).toBeInTheDocument()
   })
@@ -67,6 +66,12 @@ describe('SwapSettings', () => {
     fireEvent.blur(customInput)
     expect(customInput).toHaveValue('25')
     expect(screen.queryByText(/maximum slippage/i)).not.toBeInTheDocument()
+  })
+
+  it('shows deadline bounds hint', () => {
+    render(<SwapSettings />)
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }))
+    expect(screen.getByText(/min 1, max 180/i)).toBeInTheDocument()
   })
 
   it('shows high slippage warning for values above 5%', () => {
