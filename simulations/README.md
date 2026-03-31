@@ -90,11 +90,31 @@ Or add new scenarios to the `sensitivity_analysis()` function.
 
 5. **Validator economics scale dangerously** — At 100M+ users, validator APR becomes unrealistically high, suggesting the reward model needs dynamic adjustment
 
+## Visualizations
+
+Generate charts:
+
+```bash
+pip install -r simulations/requirements.txt
+python3 simulations/visualize.py
+```
+
+Charts saved to `simulations/charts/`:
+
+- **ubi_per_person_by_scale.png** — UBI value per person across 1M–1B users
+- **fee_breakdown_by_scale.png** — Fee pool composition (DEX, lending, gas)
+- **sustainability_vs_dex_volume.png** — Break-even analysis varying DEX volume
+- **sensitivity_heatmap.png** — 2D heatmap: DEX volume × UBI fee share
+- **inflation_vs_sustainability.png** — Trade-off between UBI amount and inflation
+
 ## Architecture
 
 ```
 simulations/
-├── token_sim.py    # Main simulation engine
-├── results.md      # Latest simulation output
-└── README.md       # This file
+├── token_sim.py       # Main simulation engine
+├── visualize.py       # Chart generation (matplotlib)
+├── results.md         # Latest simulation output
+├── requirements.txt   # Python dependencies
+├── charts/            # Generated PNG charts
+└── README.md          # This file
 ```
