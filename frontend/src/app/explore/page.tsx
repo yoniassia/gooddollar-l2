@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, memo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { TokenIcon } from '@/components/TokenIcon'
-import { getTokenMarketData, formatPrice, formatVolume, formatMarketCap } from '@/lib/marketData'
+import { getTokenMarketData, formatPrice, formatVolume, formatMarketCap, type TokenMarketData } from '@/lib/marketData'
 
 type SortField = 'price' | 'change24h' | 'volume24h' | 'marketCap'
 type SortDir = 'asc' | 'desc'
@@ -12,6 +12,57 @@ function SortArrow({ active, dir }: { active: boolean; dir: SortDir }) {
   if (!active) return <span className="text-gray-600 ml-1">&#8597;</span>
   return <span className="text-goodgreen ml-1">{dir === 'asc' ? '↑' : '↓'}</span>
 }
+
+interface TokenRowProps {
+  token: TokenMarketData
+  idx: number
+  onRowClick: (symbol: string) => void
+}
+
+const TokenRow = memo(function TokenRow({ token, idx, onRowClick }: TokenRowProps) {
+  return (
+    <tr
+      onClick={() => onRowClick(token.symbol)}
+      className={`group border-b border-gray-700/10 hover:bg-dark-50/50 cursor-pointer transition-colors ${idx % 2 === 1 ? 'bg-dark-50/15' : ''}`}
+    >
+      <td className="py-3 px-3 text-gray-500 text-right">{idx + 1}</td>
+      <td className="py-3 px-3">
+        <div className="flex items-center gap-2.5">
+          <TokenIcon symbol={token.symbol} size={28} />
+          <div>
+            <span className="font-semibold text-white">{token.symbol}</span>
+            <span className="text-gray-500 ml-1.5 hidden sm:inline text-xs">{token.name}</span>
+          </div>
+        </div>
+      </td>
+      <td className="py-3 px-3 text-right text-white font-medium">
+        {formatPrice(token.price)}
+      </td>
+      <td className={`py-3 px-3 text-right font-medium ${
+        token.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+      }`}>
+        <span className="inline-flex items-center gap-0.5">
+          {token.change24h >= 0 ? '▲' : '▼'}
+          {Math.abs(token.change24h).toFixed(2)}%
+        </span>
+      </td>
+      <td className="py-3 px-3 text-right text-gray-300 hidden sm:table-cell">
+        {formatVolume(token.volume24h)}
+      </td>
+      <td className="py-3 px-3 text-right text-gray-300 hidden md:table-cell">
+        {formatMarketCap(token.marketCap)}
+      </td>
+      <td className="py-3 px-1 text-right w-20 hidden sm:table-cell">
+        <button
+          onClick={(e) => { e.stopPropagation(); onRowClick(token.symbol) }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity px-3 py-1 text-xs font-medium rounded-lg bg-goodgreen/10 text-goodgreen hover:bg-goodgreen/20"
+        >
+          Swap
+        </button>
+      </td>
+    </tr>
+  )
+})
 
 export default function ExplorePage() {
   const router = useRouter()
@@ -44,9 +95,9 @@ export default function ExplorePage() {
     })
   }, [data, query, sortField, sortDir])
 
-  const handleRowClick = (symbol: string) => {
+  const handleRowClick = useCallback((symbol: string) => {
     router.push(`/?buy=${symbol}`)
-  }
+  }, [router])
 
   return (
     <div className="w-full max-w-4xl mx-auto">
@@ -108,47 +159,7 @@ export default function ExplorePage() {
                 </tr>
               ) : (
                 filtered.map((token, idx) => (
-                  <tr
-                    key={token.symbol}
-                    onClick={() => handleRowClick(token.symbol)}
-                    className={`group border-b border-gray-700/10 hover:bg-dark-50/50 cursor-pointer transition-colors ${idx % 2 === 1 ? 'bg-dark-50/15' : ''}`}
-                  >
-                    <td className="py-3 px-3 text-gray-500 text-right">{idx + 1}</td>
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-2.5">
-                        <TokenIcon symbol={token.symbol} size={28} />
-                        <div>
-                          <span className="font-semibold text-white">{token.symbol}</span>
-                          <span className="text-gray-500 ml-1.5 hidden sm:inline text-xs">{token.name}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 text-right text-white font-medium">
-                      {formatPrice(token.price)}
-                    </td>
-                    <td className={`py-3 px-3 text-right font-medium ${
-                      token.change24h >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      <span className="inline-flex items-center gap-0.5">
-                        {token.change24h >= 0 ? '▲' : '▼'}
-                        {Math.abs(token.change24h).toFixed(2)}%
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-right text-gray-300 hidden sm:table-cell">
-                      {formatVolume(token.volume24h)}
-                    </td>
-                    <td className="py-3 px-3 text-right text-gray-300 hidden md:table-cell">
-                      {formatMarketCap(token.marketCap)}
-                    </td>
-                    <td className="py-3 px-1 text-right w-20 hidden sm:table-cell">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleRowClick(token.symbol) }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity px-3 py-1 text-xs font-medium rounded-lg bg-goodgreen/10 text-goodgreen hover:bg-goodgreen/20"
-                      >
-                        Swap
-                      </button>
-                    </td>
-                  </tr>
+                  <TokenRow key={token.symbol} token={token} idx={idx} onRowClick={handleRowClick} />
                 ))
               )}
             </tbody>

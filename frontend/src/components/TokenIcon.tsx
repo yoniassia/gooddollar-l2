@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import { TOKEN_COLORS } from '@/lib/tokens'
 
 interface TokenIconProps {
@@ -124,22 +125,27 @@ function GenericTokenIcon({ symbol, size }: { symbol: string; size: number }) {
   )
 }
 
-export function TokenIcon({ symbol, size = 20, className }: TokenIconProps) {
-  const iconMap: Record<string, JSX.Element> = {
-    'G$': <GoodDollarIcon size={size} />,
-    'ETH': <EthIcon size={size} />,
-    'WETH': <EthIcon size={size} />,
-    'USDC': <UsdcIcon size={size} />,
-    'WBTC': <WbtcIcon size={size} />,
-    'DAI': <DaiIcon size={size} />,
-    'USDT': <UsdtIcon size={size} />,
-    'LINK': <LinkIcon size={size} />,
-    'UNI': <UniIcon size={size} />,
-  }
+const ICON_COMPONENTS: Record<string, (props: { size: number }) => JSX.Element> = {
+  'G$': GoodDollarIcon,
+  'ETH': EthIcon,
+  'WETH': EthIcon,
+  'USDC': UsdcIcon,
+  'WBTC': WbtcIcon,
+  'DAI': DaiIcon,
+  'USDT': UsdtIcon,
+  'LINK': LinkIcon,
+  'UNI': UniIcon,
+}
+
+export const TokenIcon = memo(function TokenIcon({ symbol, size = 20, className }: TokenIconProps) {
+  const icon = useMemo(() => {
+    const Component = ICON_COMPONENTS[symbol]
+    return Component ? <Component size={size} /> : <GenericTokenIcon symbol={symbol} size={size} />
+  }, [symbol, size])
 
   return (
     <span className={`inline-flex items-center justify-center shrink-0 ${className ?? ''}`}>
-      {iconMap[symbol] ?? <GenericTokenIcon symbol={symbol} size={size} />}
+      {icon}
     </span>
   )
-}
+})

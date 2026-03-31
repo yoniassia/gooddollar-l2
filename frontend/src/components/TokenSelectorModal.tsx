@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { TokenIcon } from './TokenIcon'
 import { TOKENS, POPULAR_TOKENS, type Token } from '@/lib/tokens'
 
@@ -20,11 +20,11 @@ export function TokenSelectorModal({ open, onClose, onSelect, selected, exclude 
 
   const trimmedQuery = query.trim()
 
-  const filtered = TOKENS.filter(t => {
+  const filtered = useMemo(() => TOKENS.filter(t => {
     if (!trimmedQuery) return true
     const q = trimmedQuery.toLowerCase()
     return t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q)
-  })
+  }), [trimmedQuery])
 
   useEffect(() => {
     if (open) {
