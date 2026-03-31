@@ -6,6 +6,10 @@ vi.mock('../WalletButton', () => ({
   WalletButton: () => <button>Connect Wallet</button>,
 }))
 
+vi.mock('../ActivityButton', () => ({
+  ActivityButton: () => <button aria-label="Recent activity">Activity</button>,
+}))
+
 vi.mock('next/link', () => ({
   default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
     <a href={href} className={className}>{children}</a>

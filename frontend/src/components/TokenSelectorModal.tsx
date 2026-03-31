@@ -19,7 +19,6 @@ export function TokenSelectorModal({ open, onClose, onSelect, selected, exclude 
   const listRef = useRef<HTMLDivElement>(null)
 
   const filtered = TOKENS.filter(t => {
-    if (t.symbol === exclude) return false
     if (!query) return true
     const q = query.toLowerCase()
     return t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q)
