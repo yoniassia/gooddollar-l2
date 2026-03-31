@@ -10,6 +10,7 @@ export function SwapSettings() {
   const { slippage, deadline, setSlippage, setDeadline } = useSwapSettings()
   const [open, setOpen] = useState(false)
   const [customSlippage, setCustomSlippage] = useState('')
+  const [showMaxWarning, setShowMaxWarning] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -66,8 +67,18 @@ export function SwapSettings() {
                   onChange={e => {
                     const val = sanitizeNumericInput(e.target.value)
                     setCustomSlippage(val)
+                    setShowMaxWarning(false)
                     const num = parseFloat(val)
                     if (!isNaN(num) && num > 0) setSlippage(num)
+                  }}
+                  onBlur={() => {
+                    const num = parseFloat(customSlippage)
+                    if (!isNaN(num) && num > 50) {
+                      setCustomSlippage('50')
+                      setShowMaxWarning(true)
+                    } else if (!isNaN(num) && num > 0) {
+                      setShowMaxWarning(false)
+                    }
                   }}
                   className={`w-full py-1.5 px-2 rounded-lg text-sm text-right bg-dark-50 border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-goodgreen/50 ${
                     !isPreset && slippage > 0
@@ -78,7 +89,10 @@ export function SwapSettings() {
                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">%</span>
               </div>
             </div>
-            {slippage > 5 && (
+            {showMaxWarning && (
+              <p className="text-xs text-orange-400 mt-1.5">Maximum slippage is 50%</p>
+            )}
+            {!showMaxWarning && slippage > 5 && (
               <p className="text-xs text-yellow-400 mt-1.5">High slippage increases risk of front-running</p>
             )}
           </div>

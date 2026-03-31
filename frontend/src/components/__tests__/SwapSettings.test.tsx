@@ -48,4 +48,32 @@ describe('SwapSettings', () => {
     fireEvent.click(btn)
     expect(screen.queryByText('Slippage Tolerance')).not.toBeInTheDocument()
   })
+
+  it('clamps custom slippage to 50% on blur when value exceeds max', () => {
+    render(<SwapSettings />)
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }))
+    const customInput = screen.getByPlaceholderText('Custom')
+    fireEvent.change(customInput, { target: { value: '100' } })
+    fireEvent.blur(customInput)
+    expect(customInput).toHaveValue('50')
+    expect(screen.getByText(/maximum slippage/i)).toBeInTheDocument()
+  })
+
+  it('does not clamp custom slippage when value is within range', () => {
+    render(<SwapSettings />)
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }))
+    const customInput = screen.getByPlaceholderText('Custom')
+    fireEvent.change(customInput, { target: { value: '25' } })
+    fireEvent.blur(customInput)
+    expect(customInput).toHaveValue('25')
+    expect(screen.queryByText(/maximum slippage/i)).not.toBeInTheDocument()
+  })
+
+  it('shows high slippage warning for values above 5%', () => {
+    render(<SwapSettings />)
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }))
+    const customInput = screen.getByPlaceholderText('Custom')
+    fireEvent.change(customInput, { target: { value: '10' } })
+    expect(screen.getByText(/high slippage/i)).toBeInTheDocument()
+  })
 })
