@@ -1,6 +1,7 @@
 'use client'
 
 import { Token } from './TokenSelector'
+import { TokenIcon } from './TokenIcon'
 import { formatAmount } from '@/lib/format'
 
 interface UBIBreakdownProps {
@@ -17,8 +18,8 @@ export function UBIBreakdown({ ubiFeeAmount, outputToken, visible }: UBIBreakdow
   return (
     <div className="mx-4 mt-3 p-3 rounded-xl bg-goodgreen/5 border border-goodgreen/20">
       <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded-full bg-goodgreen/20 flex items-center justify-center text-xs">
-          💚
+        <div className="w-6 h-6 rounded-full bg-goodgreen/20 flex items-center justify-center">
+          <TokenIcon symbol="G$" size={16} />
         </div>
         <div className="flex-1">
           <p className="text-sm font-medium text-goodgreen">

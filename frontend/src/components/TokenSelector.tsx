@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react'
+import { TokenIcon } from './TokenIcon'
 
 export interface Token {
   symbol: string
@@ -86,7 +87,7 @@ export function TokenSelector({ selected, onSelect, exclude }: TokenSelectorProp
         aria-expanded={open}
         className="flex items-center gap-2 px-3 py-2 rounded-xl bg-dark-50 hover:bg-dark-50/80 border border-gray-700/50 transition-colors min-w-[120px]"
       >
-        <span className="text-lg">{selected.icon}</span>
+        <TokenIcon symbol={selected.symbol} size={20} />
         <span className="font-semibold text-white">{selected.symbol}</span>
         <svg className={`w-4 h-4 text-gray-400 ml-auto transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -114,7 +115,7 @@ export function TokenSelector({ selected, onSelect, exclude }: TokenSelectorProp
                     : 'hover:bg-dark-50'
               }`}
             >
-              <span className="text-lg">{token.icon}</span>
+              <TokenIcon symbol={token.symbol} size={24} />
               <div className="text-left">
                 <div className="font-medium text-white text-sm">{token.symbol}</div>
                 <div className="text-xs text-gray-400">{token.name}</div>
