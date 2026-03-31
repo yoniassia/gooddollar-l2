@@ -255,11 +255,6 @@ export function SwapCard() {
         </div>
       </div>
 
-      <div className="mt-6 text-center">
-        <p className="text-xs text-gray-500">
-          Powered by GoodDollar L2 — Chain ID 42069
-        </p>
-      </div>
     </div>
   )
 }

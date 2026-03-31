@@ -1,0 +1,28 @@
+const links = [
+  { label: 'Docs', href: '#' },
+  { label: 'GitHub', href: '#' },
+  { label: 'Community', href: '#' },
+]
+
+export function LandingFooter() {
+  return (
+    <footer className="w-full max-w-2xl mx-auto mt-14 mb-4 px-4">
+      <div className="border-t border-gray-700/20 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p className="text-xs text-gray-500">
+          Powered by GoodDollar L2
+        </p>
+        <nav className="flex items-center gap-4">
+          {links.map((link) => (
+            <a
+              key={link.label}
+              href={link.href}
+              className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              {link.label}
+            </a>
+          ))}
+        </nav>
+      </div>
+    </footer>
+  )
+}

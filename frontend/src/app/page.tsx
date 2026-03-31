@@ -1,4 +1,7 @@
 import { SwapCard } from '@/components/SwapCard'
+import { HowItWorks } from '@/components/HowItWorks'
+import { StatsRow } from '@/components/StatsRow'
+import { LandingFooter } from '@/components/LandingFooter'
 
 export default function Home() {
   return (
@@ -12,6 +15,9 @@ export default function Home() {
         </p>
       </div>
       <SwapCard />
+      <HowItWorks />
+      <StatsRow />
+      <LandingFooter />
     </div>
   )
 }
