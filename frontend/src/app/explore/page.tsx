@@ -90,29 +90,29 @@ export default function ExplorePage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-700/20 text-gray-400">
-                <th className="text-left py-3 px-3 font-medium w-10">#</th>
-                <th className="text-left py-3 px-3 font-medium">Token</th>
+              <tr className="border-b border-gray-700/30 text-gray-400 bg-dark-50/25">
+                <th className="text-right py-3 px-3 font-semibold w-10">#</th>
+                <th className="text-left py-3 px-3 font-semibold">Token</th>
                 <th
-                  className="text-right py-3 px-3 font-medium cursor-pointer hover:text-white transition-colors"
+                  className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors"
                   onClick={() => handleSort('price')}
                 >
                   Price <SortArrow active={sortField === 'price'} dir={sortDir} />
                 </th>
                 <th
-                  className="text-right py-3 px-3 font-medium cursor-pointer hover:text-white transition-colors"
+                  className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors"
                   onClick={() => handleSort('change24h')}
                 >
                   <span className="hidden sm:inline">24h </span>Change <SortArrow active={sortField === 'change24h'} dir={sortDir} />
                 </th>
                 <th
-                  className="text-right py-3 px-3 font-medium cursor-pointer hover:text-white transition-colors hidden sm:table-cell"
+                  className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors hidden sm:table-cell"
                   onClick={() => handleSort('volume24h')}
                 >
                   Volume <SortArrow active={sortField === 'volume24h'} dir={sortDir} />
                 </th>
                 <th
-                  className="text-right py-3 px-3 font-medium cursor-pointer hover:text-white transition-colors hidden md:table-cell"
+                  className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors hidden md:table-cell"
                   onClick={() => handleSort('marketCap')}
                 >
                   Market Cap <SortArrow active={sortField === 'marketCap'} dir={sortDir} />
@@ -134,9 +134,9 @@ export default function ExplorePage() {
                   <tr
                     key={token.symbol}
                     onClick={() => handleRowClick(token.symbol)}
-                    className="group border-b border-gray-700/10 hover:bg-dark-50/40 cursor-pointer transition-colors"
+                    className={`group border-b border-gray-700/10 hover:bg-dark-50/50 cursor-pointer transition-colors ${idx % 2 === 1 ? 'bg-dark-50/15' : ''}`}
                   >
-                    <td className="py-3 px-3 text-gray-500">{idx + 1}</td>
+                    <td className="py-3 px-3 text-gray-500 text-right">{idx + 1}</td>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2.5">
                         <TokenIcon symbol={token.symbol} size={28} />
