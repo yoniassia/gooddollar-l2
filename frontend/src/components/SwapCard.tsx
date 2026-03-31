@@ -8,7 +8,7 @@ import { UBIBreakdown } from './UBIBreakdown'
 import { TxStatus } from './TxStatus'
 import { CONTRACTS } from '@/lib/chain'
 import { GoodDollarTokenABI, UBIFeeHookABI } from '@/lib/abi'
-import { formatAmount, sanitizeNumericInput } from '@/lib/format'
+import { formatAmount, compactAmount, sanitizeNumericInput } from '@/lib/format'
 
 const MOCK_RATES: Record<string, Record<string, number>> = {
   'G$':   { 'ETH': 0.00001,  'USDC': 0.01,    'G$': 1 },
@@ -67,6 +67,11 @@ export function SwapCard() {
     return formatAmount(rawOutputAmount, outputToken.symbol === 'USDC' ? 2 : 6)
   }, [rawOutputAmount, outputToken.symbol])
 
+  const compactOutputAmount = useMemo(() => {
+    if (!rawOutputAmount) return ''
+    return compactAmount(rawOutputAmount, 6)
+  }, [rawOutputAmount])
+
   const ubiFee = useMemo(() => {
     const amt = parseFloat(inputAmount)
     if (!amt || isNaN(amt)) return 0
@@ -84,10 +89,12 @@ export function SwapCard() {
     return `1 ${inputToken.symbol} = ${rate.toFixed(6)} ${outputToken.symbol}`
   }, [inputToken.symbol, outputToken.symbol])
 
+  const [flipRotation, setFlipRotation] = useState(0)
+
   const handleFlip = useCallback(() => {
     setInputToken(outputToken)
     setOutputToken(inputToken)
-    setInputAmount('')
+    setFlipRotation(r => r + 180)
   }, [inputToken, outputToken])
 
   const handleInputSelect = useCallback((t: Token) => {
@@ -170,7 +177,13 @@ export function SwapCard() {
             onClick={handleFlip}
             className="w-10 h-10 rounded-xl bg-dark-100 border border-gray-700/50 flex items-center justify-center hover:border-goodgreen/50 hover:text-goodgreen transition-colors text-gray-400"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-5 h-5 transition-transform duration-200"
+              style={{ transform: `rotate(${flipRotation}deg)` }}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
             </svg>
           </button>
@@ -182,14 +195,14 @@ export function SwapCard() {
             <span className="text-xs text-gray-400">You receive</span>
           </div>
           <div className="flex items-center gap-3">
-            <input
-              type="text"
-              placeholder="0"
-              value={outputAmount}
-              readOnly
+            <span
               title={rawOutputAmount ? rawOutputAmount.toString() : ''}
-              className="flex-1 bg-transparent text-3xl font-medium text-white outline-none placeholder:text-gray-600 min-w-0 overflow-hidden text-ellipsis"
-            />
+              className="flex-1 text-3xl sm:text-3xl font-medium min-w-0 cursor-default select-text"
+              style={{ fontSize: outputAmount.length > 10 ? 'clamp(1.125rem, 5vw, 1.875rem)' : undefined }}
+            >
+              <span className="text-white sm:hidden">{compactOutputAmount || <span className="text-gray-600">0</span>}</span>
+              <span className="text-white hidden sm:inline">{outputAmount || <span className="text-gray-600">0</span>}</span>
+            </span>
             <TokenSelector
               selected={outputToken}
               onSelect={handleOutputSelect}

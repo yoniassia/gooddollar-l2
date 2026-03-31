@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sanitizeNumericInput, formatAmount } from '../format'
+import { sanitizeNumericInput, formatAmount, compactAmount } from '../format'
 
 describe('sanitizeNumericInput', () => {
   it('strips non-numeric characters', () => {
@@ -65,5 +65,34 @@ describe('formatAmount', () => {
   it('formats small decimals', () => {
     expect(formatAmount(0.123456)).toBe('0.123456')
     expect(formatAmount(1.5)).toBe('1.5')
+  })
+})
+
+describe('compactAmount', () => {
+  it('returns full format for short numbers', () => {
+    expect(compactAmount(1234, 6)).toBe('1,234')
+    expect(compactAmount(42.5, 6)).toBe('42.5')
+  })
+
+  it('abbreviates numbers that exceed maxChars', () => {
+    const result = compactAmount(997000, 6)
+    expect(result).toBe('997K')
+  })
+
+  it('abbreviates large numbers', () => {
+    expect(compactAmount(1500000, 8)).toBe('1.5M')
+  })
+
+  it('returns 0 for zero', () => {
+    expect(compactAmount(0, 6)).toBe('0')
+  })
+
+  it('handles numbers just under threshold', () => {
+    expect(compactAmount(9999, 6)).toBe('9,999')
+  })
+
+  it('compacts 6-digit numbers when maxChars is small', () => {
+    const result = compactAmount(149550, 5)
+    expect(result).toBe('150K')
   })
 })

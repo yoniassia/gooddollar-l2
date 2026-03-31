@@ -44,6 +44,32 @@ function trimTrailingZeros(s: string): string {
   return s.replace(/0+$/, '').replace(/\.$/, '')
 }
 
+const COMPACT_THRESHOLDS: [number, string][] = [
+  [1e12, 'T'],
+  [1e9, 'B'],
+  [1e6, 'M'],
+  [1e3, 'K'],
+]
+
+export function compactAmount(value: number, maxChars: number): string {
+  if (value === 0 || isNaN(value)) return '0'
+
+  const full = formatAmount(value)
+  if (full.length <= maxChars) return full
+
+  for (const [threshold, suffix] of COMPACT_THRESHOLDS) {
+    if (Math.abs(value) >= threshold) {
+      const abbreviated = value / threshold
+      const decimals = abbreviated >= 100 ? 0 : abbreviated >= 10 ? 1 : 2
+      let fixed = abbreviated.toFixed(decimals)
+      if (fixed.includes('.')) fixed = fixed.replace(/0+$/, '').replace(/\.$/, '')
+      return `${fixed}${suffix}`
+    }
+  }
+
+  return full
+}
+
 export function sanitizeNumericInput(value: string): string {
   let sanitized = value.replace(/[^0-9.]/g, '')
 
