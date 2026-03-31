@@ -52,6 +52,14 @@ export function sanitizeNumericInput(value: string): string {
     sanitized = sanitized.slice(0, dotIndex + 1) + sanitized.slice(dotIndex + 1).replace(/\./g, '')
   }
 
+  if (dotIndex !== -1) {
+    const intPart = sanitized.slice(0, dotIndex)
+    const stripped = intPart.replace(/^0+/, '') || '0'
+    sanitized = stripped + sanitized.slice(dotIndex)
+  } else if (sanitized.length > 1) {
+    sanitized = sanitized.replace(/^0+/, '') || '0'
+  }
+
   if (sanitized.length > 20) {
     sanitized = sanitized.slice(0, 20)
   }
