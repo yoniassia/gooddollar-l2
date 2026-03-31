@@ -18,9 +18,11 @@ export function TokenSelectorModal({ open, onClose, onSelect, selected, exclude 
   const searchRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
+  const trimmedQuery = query.trim()
+
   const filtered = TOKENS.filter(t => {
-    if (!query) return true
-    const q = query.toLowerCase()
+    if (!trimmedQuery) return true
+    const q = trimmedQuery.toLowerCase()
     return t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q)
   })
 
@@ -108,7 +110,7 @@ export function TokenSelectorModal({ open, onClose, onSelect, selected, exclude 
           />
         </div>
 
-        {!query && (
+        {!trimmedQuery && (
           <div className="px-5 pb-3 flex flex-wrap gap-2">
             {popularFiltered.map(token => (
               <button

@@ -52,8 +52,9 @@ export default function ExplorePage() {
 
   const filtered = useMemo(() => {
     let tokens = data
-    if (query) {
-      const q = query.toLowerCase()
+    const trimmed = query.trim()
+    if (trimmed) {
+      const q = trimmed.toLowerCase()
       tokens = tokens.filter(t =>
         t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q)
       )

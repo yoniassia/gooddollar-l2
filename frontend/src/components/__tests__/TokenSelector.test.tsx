@@ -63,6 +63,23 @@ describe('TokenSelector', () => {
     expect(usdcOption).toBeDisabled()
   })
 
+  it('shows all tokens when search is whitespace only', () => {
+    render(<TokenSelector {...defaultProps} />)
+    fireEvent.click(screen.getByText('ETH'))
+    const search = screen.getByPlaceholderText('Search by name or symbol')
+    fireEvent.change(search, { target: { value: '   ' } })
+    expect(screen.getByRole('option', { name: /USDC/i })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: /WBTC/i })).toBeInTheDocument()
+  })
+
+  it('trims whitespace around search queries', () => {
+    render(<TokenSelector {...defaultProps} />)
+    fireEvent.click(screen.getByText('ETH'))
+    const search = screen.getByPlaceholderText('Search by name or symbol')
+    fireEvent.change(search, { target: { value: '  ETH  ' } })
+    expect(screen.getByRole('option', { name: /^ETH/i })).toBeInTheDocument()
+  })
+
   it('shows popular tokens as quick-pick pills', () => {
     render(<TokenSelector {...defaultProps} />)
     fireEvent.click(screen.getByText('ETH'))
