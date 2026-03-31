@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { SwapCard } from '@/components/SwapCard'
 import { HowItWorks } from '@/components/HowItWorks'
+import { StartSwappingCTA } from '@/components/StartSwappingCTA'
 import { StatsRow } from '@/components/StatsRow'
 import { LandingFooter } from '@/components/LandingFooter'
 
@@ -19,6 +20,7 @@ export default function Home() {
         <SwapCard />
       </Suspense>
       <HowItWorks />
+      <StartSwappingCTA />
       <StatsRow />
       <LandingFooter />
     </div>

@@ -154,7 +154,7 @@ export function SwapCard() {
   const hasAmount = !!inputAmount && parseFloat(inputAmount) > 0
 
   return (
-    <div className="w-full max-w-[460px]">
+    <div id="swap-card" className="w-full max-w-[460px]">
       <div className="bg-dark-100 rounded-2xl border border-gray-700/30 shadow-xl overflow-hidden">
         <div className="px-5 pt-5 pb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white">Swap</h2>
