@@ -113,6 +113,13 @@ export function SwapCard() {
     return formatUsdValue(rawOutputAmount * (MOCK_USD_PRICES[outputToken.symbol] ?? 0))
   }, [rawOutputAmount, outputToken.symbol])
 
+  const inputFontSize = useMemo(() => {
+    const len = inputAmount.length
+    if (len <= 8) return undefined
+    const size = Math.max(16, 30 - (len - 8) * 1.5)
+    return `${size}px`
+  }, [inputAmount])
+
   const [flipRotation, setFlipRotation] = useState(0)
 
   const handleFlip = useCallback(() => {
@@ -163,7 +170,8 @@ export function SwapCard() {
               placeholder="0"
               value={inputAmount}
               onChange={e => setInputAmount(sanitizeNumericInput(e.target.value))}
-              className="flex-1 bg-transparent text-3xl font-medium text-white outline-none placeholder:text-gray-500 min-w-0 focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:ring-offset-1 focus-visible:ring-offset-dark rounded-lg"
+              style={inputFontSize ? { fontSize: inputFontSize } : undefined}
+              className={`flex-1 bg-transparent font-medium text-white outline-none placeholder:text-gray-500 min-w-0 focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:ring-offset-1 focus-visible:ring-offset-dark rounded-lg transition-[font-size] duration-100 ${inputFontSize ? '' : 'text-3xl'}`}
             />
             <TokenSelector
               selected={inputToken}
