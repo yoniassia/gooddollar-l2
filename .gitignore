@@ -9,3 +9,4 @@ playwright-report/
 .autobuilder/stop
 .autobuilder/daemon.pid
 .autobuilder/PRODUCTION_READY.md
+node_modules/
