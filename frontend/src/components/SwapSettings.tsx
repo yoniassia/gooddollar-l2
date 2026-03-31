@@ -38,7 +38,7 @@ export function SwapSettings() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-72 bg-dark-100 border border-gray-700/50 rounded-xl shadow-2xl z-50 p-4">
+        <div className="absolute right-0 top-full mt-2 w-80 bg-dark-100 border border-gray-700/50 rounded-xl shadow-2xl z-50 p-4">
           <h3 className="text-sm font-semibold text-white mb-3">Transaction Settings</h3>
 
           <div className="mb-4">
