@@ -1,9 +1,33 @@
 'use client'
 
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { WalletButton } from './WalletButton'
 
 export function Header() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMobileMenuOpen(false)
+    }
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMobileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [mobileMenuOpen])
+
   return (
     <header className="w-full border-b border-dark-50/50 bg-dark-100/80 backdrop-blur-md">
       <div className="max-w-5xl mx-auto flex items-center justify-between px-4 h-16">
@@ -30,8 +54,51 @@ export function Header() {
           </span>
         </nav>
 
-        <WalletButton />
+        <div className="flex items-center gap-2">
+          <button
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            onClick={() => setMobileMenuOpen(o => !o)}
+            className="sm:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-dark-50 transition-colors focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:outline-none"
+          >
+            {mobileMenuOpen ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+          <WalletButton />
+        </div>
       </div>
+
+      {mobileMenuOpen && (
+        <div
+          ref={menuRef}
+          data-testid="mobile-nav"
+          className="sm:hidden border-t border-dark-50/50 bg-dark-100/95 backdrop-blur-md animate-in slide-in-from-top-2 duration-200"
+        >
+          <nav className="flex flex-col px-4 py-3 gap-1">
+            <Link
+              href="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between px-3 py-2.5 rounded-lg text-white font-medium bg-dark-50/50"
+            >
+              Swap
+            </Link>
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg text-gray-400">
+              <span className="opacity-60">Pool</span>
+              <span className="text-xs text-goodgreen/60 bg-goodgreen/10 px-2 py-0.5 rounded-full">Coming Soon</span>
+            </div>
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg text-gray-400">
+              <span className="opacity-60">Bridge</span>
+              <span className="text-xs text-goodgreen/60 bg-goodgreen/10 px-2 py-0.5 rounded-full">Coming Soon</span>
+            </div>
+          </nav>
+        </div>
+      )}
     </header>
   )
 }
