@@ -5,7 +5,7 @@ import { TokenSelector, Token, TOKENS } from './TokenSelector'
 import { UBIBreakdown } from './UBIBreakdown'
 import { SwapSettings } from './SwapSettings'
 import { SwapDetails } from './SwapDetails'
-import { formatAmount, compactAmount, sanitizeNumericInput } from '@/lib/format'
+import { formatAmount, compactAmount, sanitizeNumericInput, formatUsdValue } from '@/lib/format'
 import { useSwapSettings } from '@/lib/useSwapSettings'
 import { useWalletReady } from '@/lib/WalletReadyContext'
 import { SwapWalletActions } from './SwapWalletActions'
@@ -18,6 +18,12 @@ const MOCK_RATES: Record<string, Record<string, number>> = {
 
 const SWAP_FEE_BPS = 30
 const UBI_FEE_BPS = 3333
+
+const MOCK_USD_PRICES: Record<string, number> = {
+  'ETH': 3000,
+  'G$': 0.01,
+  'USDC': 1,
+}
 
 export function SwapCard() {
   const { slippage } = useSwapSettings()
@@ -75,6 +81,17 @@ export function SwapCard() {
     if (rate >= 1) return `1 ${inputToken.symbol} = ${rate.toFixed(2)} ${outputToken.symbol}`
     return `1 ${inputToken.symbol} = ${rate.toFixed(6)} ${outputToken.symbol}`
   }, [inputToken.symbol, outputToken.symbol])
+
+  const inputUsd = useMemo(() => {
+    const amt = parseFloat(inputAmount)
+    if (!amt || isNaN(amt)) return ''
+    return formatUsdValue(amt * (MOCK_USD_PRICES[inputToken.symbol] ?? 0))
+  }, [inputAmount, inputToken.symbol])
+
+  const outputUsd = useMemo(() => {
+    if (!rawOutputAmount) return ''
+    return formatUsdValue(rawOutputAmount * (MOCK_USD_PRICES[outputToken.symbol] ?? 0))
+  }, [rawOutputAmount, outputToken.symbol])
 
   const [flipRotation, setFlipRotation] = useState(0)
 
@@ -134,6 +151,9 @@ export function SwapCard() {
               exclude={outputToken.symbol}
             />
           </div>
+          {inputUsd && (
+            <p className="text-xs text-gray-500 mt-1.5" data-testid="input-usd">{inputUsd}</p>
+          )}
         </div>
 
         {/* Flip */}
@@ -174,6 +194,9 @@ export function SwapCard() {
               exclude={inputToken.symbol}
             />
           </div>
+          {outputUsd && (
+            <p className="text-xs text-gray-500 mt-1.5" data-testid="output-usd">{outputUsd}</p>
+          )}
         </div>
 
         {/* Rate */}

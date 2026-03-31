@@ -70,6 +70,46 @@ export function compactAmount(value: number, maxChars: number): string {
   return full
 }
 
+const USD_COMPACT: [number, string][] = [
+  [1e12, 'T'],
+  [1e9, 'B'],
+  [1e6, 'M'],
+]
+
+export function formatUsdValue(usd: number): string {
+  if (!usd || isNaN(usd)) return ''
+  if (usd < 0.01) return '< $0.01'
+
+  for (const [threshold, suffix] of USD_COMPACT) {
+    if (usd >= threshold) {
+      const abbr = usd / threshold
+      const fixed = abbr >= 100 ? abbr.toFixed(0) : abbr >= 10 ? abbr.toFixed(1) : abbr.toFixed(2)
+      const clean = fixed.includes('.') ? fixed.replace(/0+$/, '').replace(/\.$/, '') : fixed
+      return `~$${clean}${suffix}`
+    }
+  }
+
+  if (usd >= 100_000) {
+    const k = usd / 1000
+    const fixed = k >= 100 ? k.toFixed(0) : k.toFixed(1)
+    const clean = fixed.includes('.') ? fixed.replace(/0+$/, '').replace(/\.$/, '') : fixed
+    return `~$${clean}K`
+  }
+
+  if (usd >= 1000) {
+    const intPart = Math.floor(usd)
+    const decPart = usd - intPart
+    const formatted = intPart.toLocaleString('en-US')
+    if (decPart >= 0.005) {
+      return `~$${formatted}.${decPart.toFixed(2).slice(2)}`
+    }
+    return `~$${formatted}`
+  }
+
+  if (Number.isInteger(usd)) return `~$${usd}`
+  return `~$${usd.toFixed(2)}`
+}
+
 export function sanitizeNumericInput(value: string): string {
   let sanitized = value.replace(/[^0-9.]/g, '')
 

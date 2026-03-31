@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sanitizeNumericInput, formatAmount, compactAmount } from '../format'
+import { sanitizeNumericInput, formatAmount, compactAmount, formatUsdValue } from '../format'
 
 describe('sanitizeNumericInput', () => {
   it('strips non-numeric characters', () => {
@@ -94,5 +94,42 @@ describe('compactAmount', () => {
   it('compacts 6-digit numbers when maxChars is small', () => {
     const result = compactAmount(149550, 5)
     expect(result).toBe('150K')
+  })
+})
+
+describe('formatUsdValue', () => {
+  it('returns empty string for zero or NaN', () => {
+    expect(formatUsdValue(0)).toBe('')
+    expect(formatUsdValue(NaN)).toBe('')
+  })
+
+  it('shows < $0.01 for very small values', () => {
+    expect(formatUsdValue(0.001)).toBe('< $0.01')
+    expect(formatUsdValue(0.009)).toBe('< $0.01')
+  })
+
+  it('formats small dollar values with 2 decimals', () => {
+    expect(formatUsdValue(1.5)).toBe('~$1.50')
+    expect(formatUsdValue(99.99)).toBe('~$99.99')
+    expect(formatUsdValue(0.5)).toBe('~$0.50')
+  })
+
+  it('formats values in thousands with compact notation', () => {
+    expect(formatUsdValue(1500)).toBe('~$1,500')
+    expect(formatUsdValue(300000)).toBe('~$300K')
+  })
+
+  it('formats values in millions', () => {
+    expect(formatUsdValue(1500000)).toBe('~$1.5M')
+    expect(formatUsdValue(25000000)).toBe('~$25M')
+  })
+
+  it('formats values in billions', () => {
+    expect(formatUsdValue(9970000000)).toBe('~$9.97B')
+  })
+
+  it('formats exact dollar amounts without trailing zeros', () => {
+    expect(formatUsdValue(100)).toBe('~$100')
+    expect(formatUsdValue(3000)).toBe('~$3,000')
   })
 })
