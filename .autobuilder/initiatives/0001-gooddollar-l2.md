@@ -3,9 +3,9 @@ id: gooddollar-l2
 title: "GoodDollar L2 — The UBI Chain"
 parent: null
 deps: []
-split: null
+split: true
 depth: 0
-planned: false
+planned: true
 executed: false
 ---
 
