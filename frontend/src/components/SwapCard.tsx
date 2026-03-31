@@ -5,10 +5,13 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { parseEther, formatEther } from 'viem'
 import { TokenSelector, Token, TOKENS } from './TokenSelector'
 import { UBIBreakdown } from './UBIBreakdown'
+import { SwapSettings } from './SwapSettings'
+import { SwapDetails } from './SwapDetails'
 import { TxStatus } from './TxStatus'
 import { CONTRACTS } from '@/lib/chain'
 import { GoodDollarTokenABI, UBIFeeHookABI } from '@/lib/abi'
 import { formatAmount, compactAmount, sanitizeNumericInput } from '@/lib/format'
+import { useSwapSettings } from '@/lib/useSwapSettings'
 
 const MOCK_RATES: Record<string, Record<string, number>> = {
   'G$':   { 'ETH': 0.00001,  'USDC': 0.01,    'G$': 1 },
@@ -21,6 +24,7 @@ const UBI_FEE_BPS = 3333
 
 export function SwapCard() {
   const { address, isConnected } = useAccount()
+  const { slippage } = useSwapSettings()
   const [inputToken, setInputToken] = useState<Token>(TOKENS[1])
   const [outputToken, setOutputToken] = useState<Token>(TOKENS[0])
   const [inputAmount, setInputAmount] = useState('')
@@ -82,6 +86,21 @@ export function SwapCard() {
     return swapFee * (actualUbiBps / 10000)
   }, [inputAmount, inputToken.symbol, outputToken.symbol, ubiFeeShareBPS])
 
+  const priceImpact = useMemo(() => {
+    const amt = parseFloat(inputAmount)
+    if (!amt || isNaN(amt)) return 0
+    if (amt < 1) return 0.01
+    if (amt < 10) return 0.1 + (amt / 10) * 0.2
+    if (amt < 100) return 0.3 + (amt / 100) * 1.5
+    return Math.min(0.3 + (amt / 100) * 1.5, 15)
+  }, [inputAmount])
+
+  const minimumReceived = useMemo(() => {
+    if (!rawOutputAmount) return ''
+    const min = rawOutputAmount * (1 - slippage / 100)
+    return formatAmount(min, outputToken.symbol === 'USDC' ? 2 : 6)
+  }, [rawOutputAmount, slippage, outputToken.symbol])
+
   const exchangeRate = useMemo(() => {
     const rate = MOCK_RATES[inputToken.symbol]?.[outputToken.symbol] ?? 0
     if (rate >= 1000) return `1 ${inputToken.symbol} = ${rate.toLocaleString()} ${outputToken.symbol}`
@@ -138,7 +157,10 @@ export function SwapCard() {
       <div className="bg-dark-100 rounded-2xl border border-gray-700/30 shadow-xl overflow-hidden">
         <div className="px-5 pt-5 pb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white">Swap</h2>
-          <span className="text-xs text-gray-400 bg-dark-50 px-2.5 py-1 rounded-lg">0.3% fee</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400 bg-dark-50 px-2.5 py-1 rounded-lg">0.3% fee</span>
+            <SwapSettings />
+          </div>
         </div>
 
         {/* Input */}
@@ -223,6 +245,15 @@ export function SwapCard() {
         <UBIBreakdown
           ubiFeeAmount={ubiFee}
           outputToken={outputToken}
+          visible={hasAmount}
+        />
+
+        {/* Swap Details */}
+        <SwapDetails
+          priceImpact={priceImpact}
+          minimumReceived={minimumReceived}
+          outputSymbol={outputToken.symbol}
+          networkFee="< $0.01"
           visible={hasAmount}
         />
 

@@ -1,0 +1,106 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
+import { useSwapSettings } from '@/lib/useSwapSettings'
+import { sanitizeNumericInput } from '@/lib/format'
+
+const PRESETS = [0.1, 0.5, 1.0]
+
+export function SwapSettings() {
+  const { slippage, deadline, setSlippage, setDeadline } = useSwapSettings()
+  const [open, setOpen] = useState(false)
+  const [customSlippage, setCustomSlippage] = useState('')
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    if (open) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  const isPreset = PRESETS.includes(slippage)
+
+  return (
+    <div className="relative" ref={panelRef}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-label="Settings"
+        className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-dark-50 transition-colors"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-72 bg-dark-100 border border-gray-700/50 rounded-xl shadow-2xl z-50 p-4">
+          <h3 className="text-sm font-semibold text-white mb-3">Transaction Settings</h3>
+
+          <div className="mb-4">
+            <label className="text-xs text-gray-400 mb-2 block">Slippage Tolerance</label>
+            <div className="flex gap-2">
+              {PRESETS.map(p => (
+                <button
+                  key={p}
+                  onClick={() => { setSlippage(p); setCustomSlippage('') }}
+                  className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    slippage === p && isPreset
+                      ? 'bg-goodgreen/20 text-goodgreen border border-goodgreen/40'
+                      : 'bg-dark-50 text-gray-300 border border-gray-700/50 hover:border-gray-600'
+                  }`}
+                >
+                  {p}%
+                </button>
+              ))}
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Custom"
+                  value={customSlippage}
+                  onChange={e => {
+                    const val = sanitizeNumericInput(e.target.value)
+                    setCustomSlippage(val)
+                    const num = parseFloat(val)
+                    if (!isNaN(num) && num > 0) setSlippage(num)
+                  }}
+                  className={`w-full py-1.5 px-2 rounded-lg text-sm text-right bg-dark-50 border outline-none transition-colors ${
+                    !isPreset && slippage > 0
+                      ? 'border-goodgreen/40 text-goodgreen'
+                      : 'border-gray-700/50 text-gray-300'
+                  }`}
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">%</span>
+              </div>
+            </div>
+            {slippage > 5 && (
+              <p className="text-xs text-yellow-400 mt-1.5">High slippage increases risk of front-running</p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-400 mb-2 block">Transaction Deadline</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={deadline}
+                onChange={e => {
+                  const num = parseInt(e.target.value, 10)
+                  if (!isNaN(num)) setDeadline(num)
+                }}
+                className="w-16 py-1.5 px-2 rounded-lg text-sm text-center bg-dark-50 border border-gray-700/50 text-white outline-none focus:border-goodgreen/40 transition-colors"
+              />
+              <span className="text-xs text-gray-400">minutes</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
