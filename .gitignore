@@ -1,0 +1,12 @@
+.cursor/skills/
+.cursor/mcp.json
+AGENTS.md
+dogfood-output/
+*.log
+playwright-report/
+.autobuilder/status.md
+.autobuilder/loop.log
+.autobuilder/stop
+.autobuilder/daemon.pid
+.autobuilder/PRODUCTION_READY.md
+node_modules/
