@@ -421,6 +421,65 @@ contract UBIFeeHookTest is Test {
         hook.setUBIFeeShare(5000);
     }
 
+    // ============ Gas Benchmarks ============
+    // afterSwap gas includes: fee calculation, ERC20 transfer to UBI pool,
+    // 2 SSTORE (totalUBIFees, totalSwapsProcessed), 1 event emission.
+    // The ERC20 transfer (~26k) dominates. Total hook overhead is ~98k.
+    // On an L2 with 1-second blocks this is negligible.
+
+    function test_gasBenchmark_afterSwap() public {
+        PoolKey memory key = _makePoolKey(address(token), token1Addr);
+        SwapParams memory params = SwapParams({
+            zeroForOne: false,
+            amountSpecified: 100e18,
+            sqrtPriceLimitX96: 0
+        });
+        BalanceDelta memory delta = BalanceDelta({
+            amount0: int128(int256(1000e18)),
+            amount1: 0
+        });
+
+        vm.prank(poolManager);
+        uint256 gasBefore = gasleft();
+        hook.afterSwap(user, key, params, delta, "");
+        uint256 gasUsed = gasBefore - gasleft();
+
+        assertLt(gasUsed, 120_000, "Hook gas overhead exceeds 120k");
+        emit log_named_uint("afterSwap gas used", gasUsed);
+    }
+
+    function test_gasBenchmark_afterSwap_paused() public {
+        vm.prank(admin);
+        hook.setPaused(true);
+
+        PoolKey memory key = _makePoolKey(address(token), token1Addr);
+        SwapParams memory params = SwapParams({
+            zeroForOne: false,
+            amountSpecified: 100e18,
+            sqrtPriceLimitX96: 0
+        });
+        BalanceDelta memory delta = BalanceDelta({
+            amount0: int128(int256(1000e18)),
+            amount1: 0
+        });
+
+        vm.prank(poolManager);
+        uint256 gasBefore = gasleft();
+        hook.afterSwap(user, key, params, delta, "");
+        uint256 gasUsed = gasBefore - gasleft();
+
+        assertLt(gasUsed, 10_000, "Paused hook should use minimal gas");
+        emit log_named_uint("afterSwap (paused) gas used", gasUsed);
+    }
+
+    function test_gasBenchmark_calculateUBIFee() public view {
+        uint256 gasBefore = gasleft();
+        hook.calculateUBIFee(1000e18);
+        uint256 gasUsed = gasBefore - gasleft();
+
+        assertLt(gasUsed, 10_000, "calculateUBIFee should be cheap");
+    }
+
     // ============ Helpers ============
 
     function _makePoolKey(address c0, address c1) internal view returns (PoolKey memory) {
