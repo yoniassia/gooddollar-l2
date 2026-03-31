@@ -1,6 +1,7 @@
 'use client'
 
 import { Token } from './TokenSelector'
+import { formatAmount } from '@/lib/format'
 
 interface UBIBreakdownProps {
   ubiFeeAmount: number
@@ -11,9 +12,7 @@ interface UBIBreakdownProps {
 export function UBIBreakdown({ ubiFeeAmount, outputToken, visible }: UBIBreakdownProps) {
   if (!visible || ubiFeeAmount <= 0) return null
 
-  const formatted = ubiFeeAmount >= 1
-    ? ubiFeeAmount.toFixed(2)
-    : ubiFeeAmount.toFixed(6)
+  const formatted = formatAmount(ubiFeeAmount)
 
   return (
     <div className="mx-4 mt-3 p-3 rounded-xl bg-goodgreen/5 border border-goodgreen/20">

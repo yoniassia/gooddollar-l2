@@ -8,6 +8,7 @@ import { UBIBreakdown } from './UBIBreakdown'
 import { TxStatus } from './TxStatus'
 import { CONTRACTS } from '@/lib/chain'
 import { GoodDollarTokenABI, UBIFeeHookABI } from '@/lib/abi'
+import { formatAmount, sanitizeNumericInput } from '@/lib/format'
 
 const MOCK_RATES: Record<string, Record<string, number>> = {
   'G$':   { 'ETH': 0.00001,  'USDC': 0.01,    'G$': 1 },
@@ -52,14 +53,19 @@ export function SwapCard() {
     hash: swapTxHash || approveTxHash,
   })
 
-  const outputAmount = useMemo(() => {
+  const rawOutputAmount = useMemo(() => {
     const amt = parseFloat(inputAmount)
-    if (!amt || isNaN(amt)) return ''
+    if (!amt || isNaN(amt)) return 0
     const rate = MOCK_RATES[inputToken.symbol]?.[outputToken.symbol] ?? 0
     const gross = amt * rate
     const fee = gross * (SWAP_FEE_BPS / 10000)
-    return (gross - fee).toFixed(inputToken.symbol === 'USDC' ? 2 : 6)
+    return gross - fee
   }, [inputAmount, inputToken.symbol, outputToken.symbol])
+
+  const outputAmount = useMemo(() => {
+    if (!rawOutputAmount) return ''
+    return formatAmount(rawOutputAmount, outputToken.symbol === 'USDC' ? 2 : 6)
+  }, [rawOutputAmount, outputToken.symbol])
 
   const ubiFee = useMemo(() => {
     const amt = parseFloat(inputAmount)
@@ -143,10 +149,11 @@ export function SwapCard() {
           </div>
           <div className="flex items-center gap-3">
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               placeholder="0"
               value={inputAmount}
-              onChange={e => setInputAmount(e.target.value)}
+              onChange={e => setInputAmount(sanitizeNumericInput(e.target.value))}
               className="flex-1 bg-transparent text-3xl font-medium text-white outline-none placeholder:text-gray-600 min-w-0"
             />
             <TokenSelector
@@ -176,11 +183,12 @@ export function SwapCard() {
           </div>
           <div className="flex items-center gap-3">
             <input
-              type="number"
+              type="text"
               placeholder="0"
               value={outputAmount}
               readOnly
-              className="flex-1 bg-transparent text-3xl font-medium text-white outline-none placeholder:text-gray-600 min-w-0"
+              title={rawOutputAmount ? rawOutputAmount.toString() : ''}
+              className="flex-1 bg-transparent text-3xl font-medium text-white outline-none placeholder:text-gray-600 min-w-0 overflow-hidden text-ellipsis"
             />
             <TokenSelector
               selected={outputToken}
