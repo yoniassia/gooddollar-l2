@@ -66,7 +66,7 @@ export default function ExplorePage() {
   }, [data, query, sortField, sortDir])
 
   const handleRowClick = (symbol: string) => {
-    router.push(`/?token=${symbol}`)
+    router.push(`/?buy=${symbol}`)
   }
 
   return (
@@ -117,6 +117,7 @@ export default function ExplorePage() {
                 >
                   Market Cap <SortArrow active={sortField === 'marketCap'} dir={sortDir} />
                 </th>
+                <th className="w-20 hidden sm:table-cell" />
               </tr>
             </thead>
             <tbody>
@@ -124,7 +125,7 @@ export default function ExplorePage() {
                 [...Array(8)].map((_, i) => <SkeletonRow key={i} />)
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-gray-500">
+                  <td colSpan={7} className="py-12 text-center text-gray-500">
                     No tokens match your search
                   </td>
                 </tr>
@@ -133,7 +134,7 @@ export default function ExplorePage() {
                   <tr
                     key={token.symbol}
                     onClick={() => handleRowClick(token.symbol)}
-                    className="border-b border-gray-700/10 hover:bg-dark-50/40 cursor-pointer transition-colors"
+                    className="group border-b border-gray-700/10 hover:bg-dark-50/40 cursor-pointer transition-colors"
                   >
                     <td className="py-3 px-3 text-gray-500">{idx + 1}</td>
                     <td className="py-3 px-3">
@@ -161,6 +162,14 @@ export default function ExplorePage() {
                     </td>
                     <td className="py-3 px-3 text-right text-gray-300 hidden md:table-cell">
                       {formatMarketCap(token.marketCap)}
+                    </td>
+                    <td className="py-3 px-1 text-right w-20 hidden sm:table-cell">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRowClick(token.symbol) }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity px-3 py-1 text-xs font-medium rounded-lg bg-goodgreen/10 text-goodgreen hover:bg-goodgreen/20"
+                      >
+                        Swap
+                      </button>
                     </td>
                   </tr>
                 ))

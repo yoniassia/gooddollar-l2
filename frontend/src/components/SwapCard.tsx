@@ -41,6 +41,19 @@ export function SwapCard() {
   const [inputAmount, setInputAmount] = useState('')
 
   useEffect(() => {
+    const buyParam = searchParams.get('buy')
+    if (buyParam) {
+      const found = TOKENS.find(t => t.symbol.toUpperCase() === buyParam.toUpperCase())
+      if (found) {
+        setOutputToken(prev => {
+          if (prev.symbol === found.symbol) return prev
+          setInputToken(inp => inp.symbol === found.symbol ? (TOKENS.find(t => t.symbol !== found.symbol) ?? TOKENS[1]) : inp)
+          return found
+        })
+      }
+      return
+    }
+
     const tokenParam = searchParams.get('token')
     if (!tokenParam) return
     const found = TOKENS.find(t => t.symbol.toUpperCase() === tokenParam.toUpperCase())
