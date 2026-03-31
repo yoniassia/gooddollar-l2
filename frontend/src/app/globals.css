@@ -3,8 +3,9 @@
 @tailwind utilities;
 
 body {
-  background: #0f1729;
+  background: linear-gradient(180deg, #131d33 0%, #0f1729 30%, #0f1729 100%);
   color: #f5f5f5;
+  min-height: 100vh;
 }
 
 input[type="number"]::-webkit-inner-spin-button,
