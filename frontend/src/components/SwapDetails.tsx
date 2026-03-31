@@ -25,7 +25,7 @@ export function SwapDetails({ priceImpact, minimumReceived, outputSymbol, networ
     <div className="mx-4 mt-2">
       <button
         onClick={() => setExpanded(e => !e)}
-        className="w-full flex items-center justify-between py-2 px-1 text-xs text-gray-400 hover:text-gray-300 transition-colors"
+        className="w-full flex items-center justify-between py-2 px-1 text-xs text-gray-400 hover:text-gray-300 transition-colors rounded-lg focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:outline-none"
       >
         <span>Swap Details</span>
         <svg

@@ -85,7 +85,7 @@ export function TokenSelector({ selected, onSelect, exclude }: TokenSelectorProp
         onClick={() => open ? handleClose() : handleOpen()}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-dark-50 hover:bg-dark-50/80 border border-gray-700/50 transition-colors min-w-[120px]"
+        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-dark-50 hover:bg-dark-50/80 border border-gray-700/50 transition-colors min-w-[120px] focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:outline-none"
       >
         <TokenIcon symbol={selected.symbol} size={20} />
         <span className="font-semibold text-white">{selected.symbol}</span>

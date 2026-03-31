@@ -29,7 +29,7 @@ export function SwapSettings() {
       <button
         onClick={() => setOpen(o => !o)}
         aria-label="Settings"
-        className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-dark-50 transition-colors"
+        className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-dark-50 transition-colors focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:outline-none"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -48,7 +48,7 @@ export function SwapSettings() {
                 <button
                   key={p}
                   onClick={() => { setSlippage(p); setCustomSlippage('') }}
-                  className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:outline-none ${
                     slippage === p && isPreset
                       ? 'bg-goodgreen/20 text-goodgreen border border-goodgreen/40'
                       : 'bg-dark-50 text-gray-300 border border-gray-700/50 hover:border-gray-600'
@@ -69,7 +69,7 @@ export function SwapSettings() {
                     const num = parseFloat(val)
                     if (!isNaN(num) && num > 0) setSlippage(num)
                   }}
-                  className={`w-full py-1.5 px-2 rounded-lg text-sm text-right bg-dark-50 border outline-none transition-colors ${
+                  className={`w-full py-1.5 px-2 rounded-lg text-sm text-right bg-dark-50 border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-goodgreen/50 ${
                     !isPreset && slippage > 0
                       ? 'border-goodgreen/40 text-goodgreen'
                       : 'border-gray-700/50 text-gray-300'
@@ -94,7 +94,7 @@ export function SwapSettings() {
                   const num = parseInt(e.target.value, 10)
                   if (!isNaN(num)) setDeadline(num)
                 }}
-                className="w-16 py-1.5 px-2 rounded-lg text-sm text-center bg-dark-50 border border-gray-700/50 text-white outline-none focus:border-goodgreen/40 transition-colors"
+                className="w-16 py-1.5 px-2 rounded-lg text-sm text-center bg-dark-50 border border-gray-700/50 text-white outline-none focus:border-goodgreen/40 focus-visible:ring-2 focus-visible:ring-goodgreen/50 transition-colors"
               />
               <span className="text-xs text-gray-400">minutes</span>
             </div>

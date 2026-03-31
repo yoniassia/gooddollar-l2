@@ -183,7 +183,7 @@ export function SwapCard() {
               placeholder="0"
               value={inputAmount}
               onChange={e => setInputAmount(sanitizeNumericInput(e.target.value))}
-              className="flex-1 bg-transparent text-3xl font-medium text-white outline-none placeholder:text-gray-600 min-w-0"
+              className="flex-1 bg-transparent text-3xl font-medium text-white outline-none placeholder:text-gray-500 min-w-0 focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:ring-offset-1 focus-visible:ring-offset-dark rounded-lg"
             />
             <TokenSelector
               selected={inputToken}
@@ -197,7 +197,7 @@ export function SwapCard() {
         <div className="flex justify-center -my-3 relative z-10">
           <button
             onClick={handleFlip}
-            className="w-10 h-10 rounded-xl bg-dark-100 border border-gray-700/50 flex items-center justify-center hover:border-goodgreen/50 hover:text-goodgreen transition-colors text-gray-400"
+            className="w-10 h-10 rounded-xl bg-dark-100 border border-gray-700/50 flex items-center justify-center hover:border-goodgreen/50 hover:text-goodgreen transition-colors text-gray-400 focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:outline-none"
           >
             <svg
               className="w-5 h-5 transition-transform duration-200"
@@ -262,14 +262,14 @@ export function SwapCard() {
           {!isConnected ? (
             <button
               disabled
-              className="w-full py-4 rounded-xl font-semibold text-base bg-goodgreen/20 text-goodgreen/60 cursor-not-allowed"
+              className="w-full py-4 rounded-xl font-semibold text-base bg-goodgreen/30 text-goodgreen border border-goodgreen/40 cursor-not-allowed"
             >
               Connect Wallet to Swap
             </button>
           ) : !hasAmount ? (
             <button
               disabled
-              className="w-full py-4 rounded-xl font-semibold text-base bg-dark-50 text-gray-500 cursor-not-allowed"
+              className="w-full py-4 rounded-xl font-semibold text-base bg-dark-50 text-gray-400 cursor-not-allowed"
             >
               Enter an Amount
             </button>
@@ -277,7 +277,7 @@ export function SwapCard() {
             <button
               onClick={handleSwap}
               disabled={isPending}
-              className="w-full py-4 rounded-xl font-semibold text-base transition-all bg-goodgreen text-white hover:bg-goodgreen-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 rounded-xl font-semibold text-base transition-all bg-goodgreen text-white hover:bg-goodgreen-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:outline-none"
             >
               {isPending ? 'Swapping...' : `Swap ${inputToken.symbol} for ${outputToken.symbol}`}
             </button>
