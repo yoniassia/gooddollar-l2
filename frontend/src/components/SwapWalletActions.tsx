@@ -5,6 +5,7 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { parseEther, formatEther } from 'viem'
 import { Token } from './TokenSelector'
 import { TxStatus } from './TxStatus'
+import { SwapConfirmModal } from './SwapConfirmModal'
 import { CONTRACTS } from '@/lib/chain'
 import { GoodDollarTokenABI } from '@/lib/abi'
 import { formatAmount } from '@/lib/format'
@@ -22,6 +23,13 @@ type SwapButtonProps = {
   inputAmount: string
   hasAmount: boolean
   priceImpact?: number
+  outputAmount?: string
+  inputUsd?: string
+  outputUsd?: string
+  exchangeRate?: string
+  minimumReceived?: string
+  networkFee?: string
+  ubiFee?: string
 }
 
 type SwapWalletActionsProps = BalanceProps | SwapButtonProps
@@ -37,6 +45,13 @@ export function SwapWalletActions(props: SwapWalletActionsProps) {
       inputAmount={props.inputAmount}
       hasAmount={props.hasAmount}
       priceImpact={props.priceImpact}
+      outputAmount={props.outputAmount}
+      inputUsd={props.inputUsd}
+      outputUsd={props.outputUsd}
+      exchangeRate={props.exchangeRate}
+      minimumReceived={props.minimumReceived}
+      networkFee={props.networkFee}
+      ubiFee={props.ubiFee}
     />
   )
 }
@@ -78,15 +93,30 @@ function SwapButton({
   inputAmount,
   hasAmount,
   priceImpact = 0,
+  outputAmount = '',
+  inputUsd = '',
+  outputUsd = '',
+  exchangeRate = '',
+  minimumReceived = '',
+  networkFee = '< $0.01',
+  ubiFee = '',
 }: {
   inputToken: Token
   outputToken: Token
   inputAmount: string
   hasAmount: boolean
   priceImpact?: number
+  outputAmount?: string
+  inputUsd?: string
+  outputUsd?: string
+  exchangeRate?: string
+  minimumReceived?: string
+  networkFee?: string
+  ubiFee?: string
 }) {
   const { isConnected } = useAccount()
   const [showTxStatus, setShowTxStatus] = useState(false)
+  const [showReview, setShowReview] = useState(false)
 
   const { writeContract: approve, data: approveTxHash, isPending: isApproving } = useWriteContract()
   const { writeContract: _swap, data: swapTxHash, isPending: isSwapping } = useWriteContract()
@@ -97,8 +127,9 @@ function SwapButton({
 
   const isPending = isApproving || isSwapping || isConfirming
 
-  const handleSwap = useCallback(() => {
+  const executeSwap = useCallback(() => {
     if (!isConnected || !inputAmount) return
+    setShowReview(false)
     setShowTxStatus(true)
 
     if (inputToken.symbol === 'G$') {
@@ -110,6 +141,10 @@ function SwapButton({
       })
     }
   }, [isConnected, inputAmount, inputToken.symbol, approve])
+
+  const handleSwapClick = useCallback(() => {
+    setShowReview(true)
+  }, [])
 
   return (
     <>
@@ -129,7 +164,7 @@ function SwapButton({
         </button>
       ) : (
         <button
-          onClick={handleSwap}
+          onClick={handleSwapClick}
           disabled={isPending}
           className={`w-full py-4 rounded-xl font-semibold text-base transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:outline-none ${
             priceImpact >= 10
@@ -144,6 +179,23 @@ function SwapButton({
               : `Swap ${inputToken.symbol} for ${outputToken.symbol}`}
         </button>
       )}
+
+      <SwapConfirmModal
+        open={showReview}
+        onClose={() => setShowReview(false)}
+        onConfirm={executeSwap}
+        inputAmount={inputAmount}
+        outputAmount={outputAmount}
+        inputSymbol={inputToken.symbol}
+        outputSymbol={outputToken.symbol}
+        inputUsd={inputUsd}
+        outputUsd={outputUsd}
+        exchangeRate={exchangeRate}
+        priceImpact={priceImpact}
+        minimumReceived={minimumReceived}
+        networkFee={networkFee}
+        ubiFee={ubiFee}
+      />
 
       {showTxStatus && (
         <TxStatus

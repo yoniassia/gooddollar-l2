@@ -236,6 +236,13 @@ export function SwapCard() {
               inputAmount={inputAmount}
               hasAmount={hasAmount}
               priceImpact={priceImpact}
+              outputAmount={outputAmount}
+              inputUsd={inputUsd}
+              outputUsd={outputUsd}
+              exchangeRate={exchangeRate}
+              minimumReceived={`${minimumReceived} ${outputToken.symbol}`}
+              networkFee="< $0.01"
+              ubiFee={ubiFee > 0 ? `${formatAmount(ubiFee)} ${outputToken.symbol}` : ''}
             />
           ) : (
             <button
