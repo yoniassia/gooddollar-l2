@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { TokenIcon } from '@/components/TokenIcon'
-import { getTokenMarketData, formatPrice, formatVolume, formatMarketCap, type TokenMarketData } from '@/lib/marketData'
+import { getTokenMarketData, formatPrice, formatVolume, formatMarketCap } from '@/lib/marketData'
 
 type SortField = 'price' | 'change24h' | 'volume24h' | 'marketCap'
 type SortDir = 'asc' | 'desc'
@@ -13,33 +13,12 @@ function SortArrow({ active, dir }: { active: boolean; dir: SortDir }) {
   return <span className="text-goodgreen ml-1">{dir === 'asc' ? '↑' : '↓'}</span>
 }
 
-function SkeletonRow() {
-  return (
-    <tr className="border-b border-gray-700/10">
-      {[...Array(6)].map((_, i) => (
-        <td key={i} className="py-4 px-3">
-          <div className="h-4 bg-dark-50 rounded animate-pulse" style={{ width: i === 1 ? '120px' : '60px' }} />
-        </td>
-      ))}
-    </tr>
-  )
-}
-
 export default function ExplorePage() {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [sortField, setSortField] = useState<SortField>('marketCap')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
-  const [loading, setLoading] = useState(true)
-  const [data, setData] = useState<TokenMarketData[]>([])
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setData(getTokenMarketData())
-      setLoading(false)
-    }, 400)
-    return () => clearTimeout(timer)
-  }, [])
+  const [data] = useState(() => getTokenMarketData())
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -121,9 +100,7 @@ export default function ExplorePage() {
               </tr>
             </thead>
             <tbody>
-              {loading ? (
-                [...Array(8)].map((_, i) => <SkeletonRow key={i} />)
-              ) : filtered.length === 0 ? (
+              {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-gray-500">
                     No tokens match your search
