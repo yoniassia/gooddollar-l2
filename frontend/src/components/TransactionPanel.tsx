@@ -1,6 +1,7 @@
 'use client'
 
 import { useTransactionContext } from '@/lib/TransactionContext'
+import { useWalletReady } from '@/lib/WalletReadyContext'
 import { TokenIcon } from './TokenIcon'
 import type { Transaction } from '@/lib/useTransactions'
 
@@ -61,8 +62,43 @@ interface TransactionPanelProps {
   onClose: () => void
 }
 
+function EmptyStateDisconnected() {
+  return (
+    <div className="py-8 px-4 text-center">
+      <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-goodgreen/10 flex items-center justify-center">
+        <svg className="w-5 h-5 text-goodgreen" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      </div>
+      <p className="text-sm font-medium text-white mb-1">Connect your wallet</p>
+      <p className="text-xs text-gray-500">Your swap history and pending transactions will appear here</p>
+    </div>
+  )
+}
+
+function EmptyStateConnected({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="py-8 px-4 text-center">
+      <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-goodgreen/10 flex items-center justify-center">
+        <svg className="w-5 h-5 text-goodgreen" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+        </svg>
+      </div>
+      <p className="text-sm font-medium text-white mb-1">No swaps yet</p>
+      <p className="text-xs text-gray-500 mb-3">Complete your first swap and it&apos;ll show up here</p>
+      <button
+        onClick={onClose}
+        className="px-4 py-1.5 text-xs font-medium rounded-lg bg-goodgreen/10 text-goodgreen hover:bg-goodgreen/20 transition-colors"
+      >
+        Start Swapping
+      </button>
+    </div>
+  )
+}
+
 export function TransactionPanel({ onClose }: TransactionPanelProps) {
   const { transactions, clearAll } = useTransactionContext()
+  const walletReady = useWalletReady()
 
   return (
     <div
@@ -83,12 +119,11 @@ export function TransactionPanel({ onClose }: TransactionPanelProps) {
 
       <div className="max-h-80 overflow-y-auto">
         {transactions.length === 0 ? (
-          <div className="py-10 text-center">
-            <svg className="w-8 h-8 mx-auto text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm text-gray-500">No recent transactions</p>
-          </div>
+          walletReady ? (
+            <EmptyStateConnected onClose={onClose} />
+          ) : (
+            <EmptyStateDisconnected />
+          )
         ) : (
           transactions.map(tx => <TransactionRow key={tx.id} tx={tx} />)
         )}
