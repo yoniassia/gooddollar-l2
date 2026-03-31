@@ -1,0 +1,48 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
+import { useTransactionContext } from '@/lib/TransactionContext'
+import { TransactionPanel } from './TransactionPanel'
+
+export function ActivityButton() {
+  const [open, setOpen] = useState(false)
+  const { pendingCount } = useTransactionContext()
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-label="Recent activity"
+        className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-dark-50 transition-colors focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:outline-none"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        {pendingCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-goodgreen text-[10px] font-bold text-dark flex items-center justify-center animate-pulse">
+            {pendingCount}
+          </span>
+        )}
+      </button>
+
+      {open && <TransactionPanel onClose={() => setOpen(false)} />}
+    </div>
+  )
+}

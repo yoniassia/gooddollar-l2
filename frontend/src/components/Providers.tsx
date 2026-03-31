@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState, useSyncExternalStore, lazy, Suspense } from 'react'
 import { WalletReadyContext } from '@/lib/WalletReadyContext'
+import { TransactionProvider } from '@/lib/TransactionContext'
 
 const WalletProviders = lazy(() => import('./WalletProviders'))
 
@@ -22,23 +23,25 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {mounted ? (
-        <Suspense fallback={
+      <TransactionProvider>
+        {mounted ? (
+          <Suspense fallback={
+            <WalletReadyContext.Provider value={false}>
+              {children}
+            </WalletReadyContext.Provider>
+          }>
+            <WalletProviders>
+              <WalletReadyWrapper>
+                {children}
+              </WalletReadyWrapper>
+            </WalletProviders>
+          </Suspense>
+        ) : (
           <WalletReadyContext.Provider value={false}>
             {children}
           </WalletReadyContext.Provider>
-        }>
-          <WalletProviders>
-            <WalletReadyWrapper>
-              {children}
-            </WalletReadyWrapper>
-          </WalletProviders>
-        </Suspense>
-      ) : (
-        <WalletReadyContext.Provider value={false}>
-          {children}
-        </WalletReadyContext.Provider>
-      )}
+        )}
+      </TransactionProvider>
     </QueryClientProvider>
   )
 }

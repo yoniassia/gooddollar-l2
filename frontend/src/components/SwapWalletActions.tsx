@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { parseEther, formatEther } from 'viem'
 import { type Token } from '@/lib/tokens'
@@ -9,6 +9,7 @@ import { SwapConfirmModal } from './SwapConfirmModal'
 import { CONTRACTS } from '@/lib/chain'
 import { GoodDollarTokenABI } from '@/lib/abi'
 import { formatAmount } from '@/lib/format'
+import { useTransactionContext } from '@/lib/TransactionContext'
 
 type BalanceProps = {
   variant: 'balance'
@@ -117,6 +118,8 @@ function SwapButton({
   const { isConnected } = useAccount()
   const [showTxStatus, setShowTxStatus] = useState(false)
   const [showReview, setShowReview] = useState(false)
+  const { addTransaction, updateStatus } = useTransactionContext()
+  const pendingTxId = useRef<string | null>(null)
 
   const { writeContract: approve, data: approveTxHash, isPending: isApproving } = useWriteContract()
   const { writeContract: _swap, data: swapTxHash, isPending: isSwapping } = useWriteContract()
@@ -127,10 +130,37 @@ function SwapButton({
 
   const isPending = isApproving || isSwapping || isConfirming
 
+  useEffect(() => {
+    if (!pendingTxId.current) return
+    if (isTxSuccess) {
+      updateStatus(pendingTxId.current, 'confirmed')
+      pendingTxId.current = null
+    } else if (isTxError) {
+      updateStatus(pendingTxId.current, 'failed')
+      pendingTxId.current = null
+    }
+  }, [isTxSuccess, isTxError, updateStatus])
+
   const executeSwap = useCallback(() => {
     if (!isConnected || !inputAmount) return
     setShowReview(false)
     setShowTxStatus(true)
+
+    const txId = addTransaction({
+      inputSymbol: inputToken.symbol,
+      outputSymbol: outputToken.symbol,
+      inputAmount,
+      outputAmount: outputAmount || '0',
+      status: 'pending',
+    })
+    pendingTxId.current = txId
+
+    setTimeout(() => {
+      if (pendingTxId.current === txId) {
+        updateStatus(txId, 'confirmed')
+        pendingTxId.current = null
+      }
+    }, 3000)
 
     if (inputToken.symbol === 'G$') {
       approve({
@@ -140,7 +170,7 @@ function SwapButton({
         args: [CONTRACTS.UBIFeeHook, parseEther(inputAmount)],
       })
     }
-  }, [isConnected, inputAmount, inputToken.symbol, approve])
+  }, [isConnected, inputAmount, inputToken.symbol, outputToken.symbol, outputAmount, approve, addTransaction, updateStatus])
 
   const handleSwapClick = useCallback(() => {
     setShowReview(true)

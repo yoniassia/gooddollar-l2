@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { WalletButton } from './WalletButton'
+import { ActivityButton } from './ActivityButton'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -55,6 +56,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <ActivityButton />
           <button
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             onClick={() => setMobileMenuOpen(o => !o)}
