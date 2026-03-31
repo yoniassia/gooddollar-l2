@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { WalletButton } from './WalletButton'
 
 export function Header() {
@@ -14,9 +15,19 @@ export function Header() {
         </div>
 
         <nav className="hidden sm:flex items-center gap-6 text-sm text-gray-400">
-          <a href="/" className="text-white font-medium">Swap</a>
-          <span className="cursor-not-allowed opacity-40">Pool</span>
-          <span className="cursor-not-allowed opacity-40">Bridge</span>
+          <Link href="/" className="text-white font-medium">Swap</Link>
+          <span className="relative group cursor-default">
+            <span className="opacity-40">Pool</span>
+            <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-2.5 py-1 rounded-lg bg-dark-50 border border-gray-700/50 text-xs text-gray-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Coming Soon
+            </span>
+          </span>
+          <span className="relative group cursor-default">
+            <span className="opacity-40">Bridge</span>
+            <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-2.5 py-1 rounded-lg bg-dark-50 border border-gray-700/50 text-xs text-gray-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Coming Soon
+            </span>
+          </span>
         </nav>
 
         <WalletButton />
