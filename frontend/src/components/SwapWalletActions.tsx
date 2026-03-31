@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { parseEther, formatEther } from 'viem'
-import { Token } from './TokenSelector'
+import { type Token } from '@/lib/tokens'
 import { TxStatus } from './TxStatus'
 import { SwapConfirmModal } from './SwapConfirmModal'
 import { CONTRACTS } from '@/lib/chain'

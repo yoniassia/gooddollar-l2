@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { TokenSelector, Token, TOKENS } from './TokenSelector'
+import { TokenSelector } from './TokenSelector'
+import { TOKENS, type Token } from '@/lib/tokens'
 import { UBIBreakdown } from './UBIBreakdown'
 import { SwapSettings } from './SwapSettings'
 import { SwapDetails } from './SwapDetails'
@@ -12,20 +13,23 @@ import { useSwapSettings } from '@/lib/useSwapSettings'
 import { useWalletReady } from '@/lib/WalletReadyContext'
 import { SwapWalletActions } from './SwapWalletActions'
 
-const MOCK_RATES: Record<string, Record<string, number>> = {
-  'G$':   { 'ETH': 0.00001,  'USDC': 0.01,    'G$': 1 },
-  'ETH':  { 'G$': 100000,    'USDC': 3000,     'ETH': 1 },
-  'USDC': { 'G$': 100,       'ETH': 0.000333,  'USDC': 1 },
+const MOCK_USD_PRICES: Record<string, number> = {
+  'ETH': 3000, 'WETH': 3000, 'G$': 0.01, 'USDC': 1, 'USDT': 1,
+  'WBTC': 60000, 'DAI': 1, 'LINK': 15, 'UNI': 8, 'AAVE': 90,
+  'ARB': 1.2, 'OP': 2.5, 'MKR': 2800, 'COMP': 50, 'SNX': 3,
+  'CRV': 0.6, 'LDO': 2.2, 'MATIC': 0.7,
+}
+
+function getMockRate(from: string, to: string): number {
+  if (from === to) return 1
+  const fromPrice = MOCK_USD_PRICES[from] ?? 0
+  const toPrice = MOCK_USD_PRICES[to] ?? 0
+  if (!fromPrice || !toPrice) return 0
+  return fromPrice / toPrice
 }
 
 const SWAP_FEE_BPS = 30
 const UBI_FEE_BPS = 3333
-
-const MOCK_USD_PRICES: Record<string, number> = {
-  'ETH': 3000,
-  'G$': 0.01,
-  'USDC': 1,
-}
 
 export function SwapCard() {
   const { slippage } = useSwapSettings()
@@ -37,7 +41,7 @@ export function SwapCard() {
   const rawOutputAmount = useMemo(() => {
     const amt = parseFloat(inputAmount)
     if (!amt || isNaN(amt)) return 0
-    const rate = MOCK_RATES[inputToken.symbol]?.[outputToken.symbol] ?? 0
+    const rate = getMockRate(inputToken.symbol, outputToken.symbol)
     const gross = amt * rate
     const fee = gross * (SWAP_FEE_BPS / 10000)
     return gross - fee
@@ -56,7 +60,7 @@ export function SwapCard() {
   const ubiFee = useMemo(() => {
     const amt = parseFloat(inputAmount)
     if (!amt || isNaN(amt)) return 0
-    const rate = MOCK_RATES[inputToken.symbol]?.[outputToken.symbol] ?? 0
+    const rate = getMockRate(inputToken.symbol, outputToken.symbol)
     const gross = amt * rate
     const swapFee = gross * (SWAP_FEE_BPS / 10000)
     return swapFee * (UBI_FEE_BPS / 10000)
@@ -78,7 +82,7 @@ export function SwapCard() {
   }, [rawOutputAmount, slippage, outputToken.symbol])
 
   const exchangeRate = useMemo(() => {
-    const rate = MOCK_RATES[inputToken.symbol]?.[outputToken.symbol] ?? 0
+    const rate = getMockRate(inputToken.symbol, outputToken.symbol)
     if (rate >= 1000) return `1 ${inputToken.symbol} = ${rate.toLocaleString()} ${outputToken.symbol}`
     if (rate >= 1) return `1 ${inputToken.symbol} = ${rate.toFixed(2)} ${outputToken.symbol}`
     return `1 ${inputToken.symbol} = ${rate.toFixed(6)} ${outputToken.symbol}`

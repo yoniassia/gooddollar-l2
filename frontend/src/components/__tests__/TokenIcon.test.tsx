@@ -24,13 +24,11 @@ describe('TokenIcon', () => {
     expect(svg).toBeInTheDocument()
   })
 
-  it('renders fallback for unknown tokens', () => {
+  it('renders SVG fallback for unknown tokens', () => {
     const { container } = render(<TokenIcon symbol="DOGE" />)
     const svg = container.querySelector('svg')
-    expect(svg).toBeNull()
-    const fallback = container.querySelector('span > span')
-    expect(fallback).toBeInTheDocument()
-    expect(fallback?.textContent).toBe('D')
+    expect(svg).toBeInTheDocument()
+    expect(svg?.textContent).toContain('DOG')
   })
 
   it('applies custom size', () => {

@@ -9,64 +9,66 @@ describe('TokenSelector', () => {
     exclude: 'G$',
   }
 
-  it('opens dropdown on click', () => {
+  it('opens modal on click', () => {
     render(<TokenSelector {...defaultProps} />)
     fireEvent.click(screen.getByText('ETH'))
-    expect(screen.getByText('USDC')).toBeInTheDocument()
+    expect(screen.getByText('Select a token')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Search by name or symbol')).toBeInTheDocument()
   })
 
-  it('closes dropdown on Escape key', () => {
-    const { container } = render(<TokenSelector {...defaultProps} />)
-    const trigger = screen.getByText('ETH').closest('button')!
-    fireEvent.click(trigger)
-    expect(screen.getByText('USD Coin')).toBeInTheDocument()
-
-    const wrapper = container.firstElementChild as HTMLElement
-    fireEvent.keyDown(wrapper, { key: 'Escape' })
-    expect(screen.queryByText('USD Coin')).not.toBeInTheDocument()
-  })
-
-  it('navigates with ArrowDown and selects with Enter', () => {
-    const onSelect = vi.fn()
-    const { container } = render(<TokenSelector {...defaultProps} onSelect={onSelect} />)
-
-    const trigger = screen.getByText('ETH').closest('button')!
-    fireEvent.click(trigger)
-
-    const wrapper = container.firstElementChild as HTMLElement
-    fireEvent.keyDown(wrapper, { key: 'ArrowDown' })
-    fireEvent.keyDown(wrapper, { key: 'Enter' })
-
-    expect(onSelect).toHaveBeenCalled()
-  })
-
-  it('wraps ArrowDown at end of list', () => {
-    const onSelect = vi.fn()
-    const { container } = render(<TokenSelector {...defaultProps} onSelect={onSelect} />)
-
-    const trigger = screen.getByText('ETH').closest('button')!
-    fireEvent.click(trigger)
-
-    const wrapper = container.firstElementChild as HTMLElement
-    fireEvent.keyDown(wrapper, { key: 'ArrowDown' })
-    fireEvent.keyDown(wrapper, { key: 'ArrowDown' })
-    fireEvent.keyDown(wrapper, { key: 'ArrowDown' })
-    fireEvent.keyDown(wrapper, { key: 'Enter' })
-
-    expect(onSelect).toHaveBeenCalled()
-  })
-
-  it('closes dropdown on outside click', () => {
-    render(
-      <div>
-        <div data-testid="outside">outside</div>
-        <TokenSelector {...defaultProps} />
-      </div>
-    )
+  it('shows token list including USDC in modal', () => {
+    render(<TokenSelector {...defaultProps} />)
     fireEvent.click(screen.getByText('ETH'))
-    expect(screen.getByText('USD Coin')).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: /USDC/i })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: /WBTC/i })).toBeInTheDocument()
+  })
 
-    fireEvent.mouseDown(screen.getByTestId('outside'))
-    expect(screen.queryByText('USD Coin')).not.toBeInTheDocument()
+  it('filters tokens by search query', () => {
+    render(<TokenSelector {...defaultProps} />)
+    fireEvent.click(screen.getByText('ETH'))
+    const search = screen.getByPlaceholderText('Search by name or symbol')
+    fireEvent.change(search, { target: { value: 'bit' } })
+    expect(screen.getByRole('option', { name: /WBTC/i })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: /USDC/i })).not.toBeInTheDocument()
+  })
+
+  it('closes modal on close button click', () => {
+    render(<TokenSelector {...defaultProps} />)
+    fireEvent.click(screen.getByText('ETH'))
+    expect(screen.getByText('Select a token')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Close'))
+    expect(screen.queryByText('Select a token')).not.toBeInTheDocument()
+  })
+
+  it('selects a token and closes modal', () => {
+    const onSelect = vi.fn()
+    render(<TokenSelector {...defaultProps} onSelect={onSelect} />)
+    fireEvent.click(screen.getByText('ETH'))
+    fireEvent.click(screen.getByRole('option', { name: /USDC/i }))
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'USDC' }))
+    expect(screen.queryByText('Select a token')).not.toBeInTheDocument()
+  })
+
+  it('shows checkmark on currently selected token', () => {
+    render(<TokenSelector {...defaultProps} />)
+    fireEvent.click(screen.getByText('ETH'))
+    const ethOption = screen.getByRole('option', { name: /^ETH/i })
+    expect(ethOption.querySelector('svg')).toBeTruthy()
+  })
+
+  it('dims and disables excluded token', () => {
+    render(<TokenSelector {...defaultProps} exclude="USDC" />)
+    fireEvent.click(screen.getByText('ETH'))
+    const usdcOption = screen.getByRole('option', { name: /USDC/i })
+    expect(usdcOption).toBeDisabled()
+  })
+
+  it('shows popular tokens as quick-pick pills', () => {
+    render(<TokenSelector {...defaultProps} />)
+    fireEvent.click(screen.getByText('ETH'))
+    const pills = screen.getAllByRole('button').filter(
+      btn => btn.classList.contains('rounded-full')
+    )
+    expect(pills.length).toBeGreaterThanOrEqual(3)
   })
 })

@@ -1,6 +1,6 @@
 'use client'
 
-import { Token } from './TokenSelector'
+import { type Token } from '@/lib/tokens'
 import { TokenIcon } from './TokenIcon'
 import { formatAmount } from '@/lib/format'
 
