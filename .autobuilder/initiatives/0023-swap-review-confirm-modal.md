@@ -6,7 +6,7 @@ deps: [gooddollar-l2-swap-usd-equivalents, gooddollar-l2-swap-price-impact-warni
 split: false
 depth: 1
 planned: true
-executed: false
+executed: true
 ---
 
 ## Problem Statement
