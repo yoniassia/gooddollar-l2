@@ -6,6 +6,7 @@ import { UBIBreakdown } from './UBIBreakdown'
 import { SwapSettings } from './SwapSettings'
 import { SwapDetails } from './SwapDetails'
 import { PriceImpactWarning } from './PriceImpactWarning'
+import { FeeBreakdownBadge } from './FeeBreakdownBadge'
 import { formatAmount, compactAmount, sanitizeNumericInput, formatUsdValue } from '@/lib/format'
 import { useSwapSettings } from '@/lib/useSwapSettings'
 import { useWalletReady } from '@/lib/WalletReadyContext'
@@ -120,7 +121,7 @@ export function SwapCard() {
         <div className="px-5 pt-5 pb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white">Swap</h2>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 bg-dark-50 px-2.5 py-1 rounded-lg">0.3% fee</span>
+            <FeeBreakdownBadge />
             <SwapSettings />
           </div>
         </div>
