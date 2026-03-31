@@ -1,7 +1,7 @@
 const links = [
-  { label: 'Docs', href: '#' },
-  { label: 'GitHub', href: '#' },
-  { label: 'Community', href: '#' },
+  { label: 'Docs', href: 'https://docs.gooddollar.org' },
+  { label: 'GitHub', href: 'https://github.com/GoodDollar' },
+  { label: 'Community', href: 'https://community.gooddollar.org' },
 ]
 
 export function LandingFooter() {
@@ -16,6 +16,8 @@ export function LandingFooter() {
             <a
               key={link.label}
               href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
             >
               {link.label}
