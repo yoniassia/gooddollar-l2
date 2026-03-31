@@ -1,0 +1,157 @@
+version: "3.8"
+
+# GoodDollar L2 Devnet
+# Boot order: anvil (L1) → deploy-l1 → op-geth (init + run) → op-node → op-batcher → op-proposer
+
+services:
+  # L1: Local Anvil instance simulating Ethereum
+  l1-anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    entrypoint: ["anvil"]
+    command:
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8546"
+      - "--chain-id"
+      - "31337"
+      - "--block-time"
+      - "12"
+      - "--accounts"
+      - "10"
+      - "--balance"
+      - "10000"
+    ports:
+      - "8546:8546"
+    healthcheck:
+      test: ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:8546"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - gooddollar
+
+  # L2: op-geth sequencer
+  op-geth:
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-geth:v1.101315.2
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ ! -d /data/geth ]; then
+          echo "Initializing genesis..."
+          geth init --datadir /data /config/genesis.json
+        fi
+        exec geth \
+          --datadir /data \
+          --http \
+          --http.addr 0.0.0.0 \
+          --http.port 8545 \
+          --http.corsdomain "*" \
+          --http.vhosts "*" \
+          --http.api web3,debug,eth,txpool,net,engine \
+          --ws \
+          --ws.addr 0.0.0.0 \
+          --ws.port 8546 \
+          --ws.origins "*" \
+          --ws.api debug,eth,txpool,net,engine \
+          --syncmode full \
+          --gcmode archive \
+          --nodiscover \
+          --maxpeers 0 \
+          --networkid 42069 \
+          --authrpc.addr 0.0.0.0 \
+          --authrpc.port 8551 \
+          --authrpc.vhosts "*" \
+          --authrpc.jwtsecret /config/jwt.txt \
+          --rollup.disabletxpoolgossip=true
+    volumes:
+      - geth-data:/data
+      - ./genesis.json:/config/genesis.json:ro
+      - ./jwt.txt:/config/jwt.txt:ro
+    ports:
+      - "8545:8545"
+      - "8551:8551"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8545 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - gooddollar
+
+  # op-node: rollup consensus / derivation
+  op-node:
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:v1.7.7
+    command:
+      - op-node
+      - --l2=http://op-geth:8551
+      - --l2.jwt-secret=/config/jwt.txt
+      - --sequencer.enabled
+      - --sequencer.l1-confs=0
+      - --verifier.l1-confs=0
+      - --rollup.config=/config/rollup.json
+      - --rpc.addr=0.0.0.0
+      - --rpc.port=9545
+      - --p2p.disable
+      - --l1=http://l1-anvil:8546
+      - --l1.rpckind=basic
+    volumes:
+      - ./rollup.json:/config/rollup.json:ro
+      - ./jwt.txt:/config/jwt.txt:ro
+    ports:
+      - "9545:9545"
+    depends_on:
+      op-geth:
+        condition: service_healthy
+      l1-anvil:
+        condition: service_healthy
+    networks:
+      - gooddollar
+
+  # op-batcher: submits L2 batches to L1
+  op-batcher:
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-batcher:v1.7.7
+    command:
+      - op-batcher
+      - --l2-eth-rpc=http://op-geth:8545
+      - --rollup-rpc=http://op-node:9545
+      - --poll-interval=1s
+      - --sub-safety-margin=6
+      - --num-confirmations=1
+      - --safe-abort-nonce-too-low-count=3
+      - --resubmission-timeout=30s
+      - --rpc.addr=0.0.0.0
+      - --rpc.port=8548
+      - --max-channel-duration=1
+      - --l1-eth-rpc=http://l1-anvil:8546
+      - --private-key=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+    ports:
+      - "8548:8548"
+    depends_on:
+      - op-node
+    networks:
+      - gooddollar
+
+  # op-proposer: proposes L2 output roots to L1
+  op-proposer:
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-proposer:v1.7.7
+    command:
+      - op-proposer
+      - --poll-interval=12s
+      - --rpc.port=8560
+      - --rollup-rpc=http://op-node:9545
+      - --l1-eth-rpc=http://l1-anvil:8546
+      - --private-key=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+    ports:
+      - "8560:8560"
+    depends_on:
+      - op-node
+    networks:
+      - gooddollar
+
+volumes:
+  geth-data:
+
+networks:
+  gooddollar:
+    driver: bridge
