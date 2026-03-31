@@ -21,6 +21,7 @@ type SwapButtonProps = {
   outputToken: Token
   inputAmount: string
   hasAmount: boolean
+  priceImpact?: number
 }
 
 type SwapWalletActionsProps = BalanceProps | SwapButtonProps
@@ -35,6 +36,7 @@ export function SwapWalletActions(props: SwapWalletActionsProps) {
       outputToken={props.outputToken}
       inputAmount={props.inputAmount}
       hasAmount={props.hasAmount}
+      priceImpact={props.priceImpact}
     />
   )
 }
@@ -75,11 +77,13 @@ function SwapButton({
   outputToken,
   inputAmount,
   hasAmount,
+  priceImpact = 0,
 }: {
   inputToken: Token
   outputToken: Token
   inputAmount: string
   hasAmount: boolean
+  priceImpact?: number
 }) {
   const { isConnected } = useAccount()
   const [showTxStatus, setShowTxStatus] = useState(false)
@@ -127,9 +131,17 @@ function SwapButton({
         <button
           onClick={handleSwap}
           disabled={isPending}
-          className="w-full py-4 rounded-xl font-semibold text-base transition-all bg-goodgreen text-white hover:bg-goodgreen-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:outline-none"
+          className={`w-full py-4 rounded-xl font-semibold text-base transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:outline-none ${
+            priceImpact >= 10
+              ? 'bg-red-500 text-white hover:bg-red-600 focus-visible:ring-red-500/50'
+              : 'bg-goodgreen text-white hover:bg-goodgreen-600 focus-visible:ring-goodgreen/50'
+          }`}
         >
-          {isPending ? 'Swapping...' : `Swap ${inputToken.symbol} for ${outputToken.symbol}`}
+          {isPending
+            ? 'Swapping...'
+            : priceImpact >= 10
+              ? `Swap Anyway — High Price Impact`
+              : `Swap ${inputToken.symbol} for ${outputToken.symbol}`}
         </button>
       )}
 

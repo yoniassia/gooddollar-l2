@@ -5,6 +5,7 @@ import { TokenSelector, Token, TOKENS } from './TokenSelector'
 import { UBIBreakdown } from './UBIBreakdown'
 import { SwapSettings } from './SwapSettings'
 import { SwapDetails } from './SwapDetails'
+import { PriceImpactWarning } from './PriceImpactWarning'
 import { formatAmount, compactAmount, sanitizeNumericInput, formatUsdValue } from '@/lib/format'
 import { useSwapSettings } from '@/lib/useSwapSettings'
 import { useWalletReady } from '@/lib/WalletReadyContext'
@@ -223,6 +224,8 @@ export function SwapCard() {
           visible={hasAmount}
         />
 
+        <PriceImpactWarning priceImpact={priceImpact} visible={hasAmount} />
+
         {/* Swap button */}
         <div className="p-4 pt-3">
           {walletReady ? (
@@ -232,6 +235,7 @@ export function SwapCard() {
               outputToken={outputToken}
               inputAmount={inputAmount}
               hasAmount={hasAmount}
+              priceImpact={priceImpact}
             />
           ) : (
             <button
