@@ -2,12 +2,16 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { WalletButton } from './WalletButton'
 import { ActivityButton } from './ActivityButton'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const pathname = usePathname()
+  const isSwap = pathname === '/'
+  const isExplore = pathname === '/explore'
 
   useEffect(() => {
     if (!mobileMenuOpen) return
@@ -40,7 +44,8 @@ export function Header() {
         </div>
 
         <nav className="hidden sm:flex items-center gap-6 text-sm text-gray-400">
-          <Link href="/" className="text-white font-medium">Swap</Link>
+          <Link href="/" className={isSwap ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Swap</Link>
+          <Link href="/explore" className={isExplore ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Explore</Link>
           <span className="relative group cursor-default">
             <span className="opacity-40">Pool</span>
             <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-2.5 py-1 rounded-lg bg-dark-50 border border-gray-700/50 text-xs text-gray-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -86,9 +91,16 @@ export function Header() {
             <Link
               href="/"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-between px-3 py-2.5 rounded-lg text-white font-medium bg-dark-50/50"
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isSwap ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
             >
               Swap
+            </Link>
+            <Link
+              href="/explore"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isExplore ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
+            >
+              Explore
             </Link>
             <div className="flex items-center justify-between px-3 py-2.5 rounded-lg text-gray-400">
               <span className="opacity-60">Pool</span>

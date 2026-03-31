@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { SwapCard } from '@/components/SwapCard'
 import { HowItWorks } from '@/components/HowItWorks'
 import { StatsRow } from '@/components/StatsRow'
@@ -14,7 +15,9 @@ export default function Home() {
           Every trade on GoodSwap automatically funds universal basic income for verified humans worldwide.
         </p>
       </div>
-      <SwapCard />
+      <Suspense>
+        <SwapCard />
+      </Suspense>
       <HowItWorks />
       <StatsRow />
       <LandingFooter />

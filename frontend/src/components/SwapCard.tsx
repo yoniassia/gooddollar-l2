@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { TokenSelector } from './TokenSelector'
 import { TOKENS, type Token } from '@/lib/tokens'
 import { UBIBreakdown } from './UBIBreakdown'
@@ -34,9 +35,22 @@ const UBI_FEE_BPS = 3333
 export function SwapCard() {
   const { slippage } = useSwapSettings()
   const walletReady = useWalletReady()
+  const searchParams = useSearchParams()
   const [inputToken, setInputToken] = useState<Token>(TOKENS[1])
   const [outputToken, setOutputToken] = useState<Token>(TOKENS[0])
   const [inputAmount, setInputAmount] = useState('')
+
+  useEffect(() => {
+    const tokenParam = searchParams.get('token')
+    if (!tokenParam) return
+    const found = TOKENS.find(t => t.symbol.toUpperCase() === tokenParam.toUpperCase())
+    if (!found) return
+    setInputToken(prev => {
+      if (prev.symbol === found.symbol) return prev
+      setOutputToken(out => out.symbol === found.symbol ? (TOKENS.find(t => t.symbol !== found.symbol) ?? TOKENS[0]) : out)
+      return found
+    })
+  }, [searchParams])
 
   const rawOutputAmount = useMemo(() => {
     const amt = parseFloat(inputAmount)
