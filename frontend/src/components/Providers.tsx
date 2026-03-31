@@ -1,29 +1,44 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { WagmiProvider } from 'wagmi'
-import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
-import { config } from '@/lib/wagmi'
-import { useState } from 'react'
+import { useState, useSyncExternalStore, lazy, Suspense } from 'react'
+import { WalletReadyContext } from '@/lib/WalletReadyContext'
 
-import '@rainbow-me/rainbowkit/styles.css'
+const WalletProviders = lazy(() => import('./WalletProviders'))
+
+const noop = () => () => {}
+
+function WalletReadyWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <WalletReadyContext.Provider value={true}>
+      {children}
+    </WalletReadyContext.Provider>
+  )
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())
+  const mounted = useSyncExternalStore(noop, () => true, () => false)
 
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider
-          theme={darkTheme({
-            accentColor: '#00B0A0',
-            accentColorForeground: 'white',
-            borderRadius: 'medium',
-          })}
-        >
+    <QueryClientProvider client={queryClient}>
+      {mounted ? (
+        <Suspense fallback={
+          <WalletReadyContext.Provider value={false}>
+            {children}
+          </WalletReadyContext.Provider>
+        }>
+          <WalletProviders>
+            <WalletReadyWrapper>
+              {children}
+            </WalletReadyWrapper>
+          </WalletProviders>
+        </Suspense>
+      ) : (
+        <WalletReadyContext.Provider value={false}>
           {children}
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+        </WalletReadyContext.Provider>
+      )}
+    </QueryClientProvider>
   )
 }
