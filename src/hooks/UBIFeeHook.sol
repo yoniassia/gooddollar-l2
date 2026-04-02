@@ -191,11 +191,11 @@ contract UBIFeeHook {
         uint256 ubiShare = calculateUBIFee(outputAmount);
         if (ubiShare == 0) return this.afterSwap.selector;
 
-        // Transfer UBI share to the UBI pool
-        // In production, this would modify the PoolManager's delta
-        // For now, we transfer tokens directly
-        bool success = IERC20Minimal(feeToken).transfer(ubiPool, ubiShare);
-        if (!success) revert TransferFailed();
+        // Fund the UBI pool via fundUBIPool() so the ubiPool counter
+        // inside GoodDollarToken is incremented. The hook holds the fee
+        // tokens; fundUBIPool calls _transfer(msg.sender, address(this))
+        // which moves them from this hook into the token contract.
+        IUBIPool(ubiPool).fundUBIPool(ubiShare);
 
         totalUBIFees[feeToken] += ubiShare;
         totalSwapsProcessed++;

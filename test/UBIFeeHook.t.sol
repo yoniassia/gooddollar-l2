@@ -14,7 +14,6 @@ contract UBIFeeHookTest is Test {
     GoodDollarToken public token;
 
     address public poolManager = address(0x1111);
-    address public ubiPool = address(0x2222);
     address public admin = address(0x3333);
     address public user = address(0x4444);
     address public identityOracle = address(0x5555);
@@ -27,10 +26,11 @@ contract UBIFeeHookTest is Test {
         // Deploy G$ token
         token = new GoodDollarToken(admin, identityOracle, INITIAL_SUPPLY);
 
-        // Deploy hook
-        hook = new UBIFeeHook(poolManager, ubiPool, DEFAULT_UBI_FEE_BPS, admin);
+        // UBI pool IS the GoodDollarToken contract — fundUBIPool increments
+        // its internal ubiPool counter which is then distributed to claimants.
+        hook = new UBIFeeHook(poolManager, address(token), DEFAULT_UBI_FEE_BPS, admin);
 
-        // Fund the hook with tokens so it can pay UBI fees
+        // Fund the hook with G$ so it can pay UBI fees
         vm.prank(admin);
         token.transfer(address(hook), 100_000e18);
     }
@@ -39,7 +39,7 @@ contract UBIFeeHookTest is Test {
 
     function test_constructor_setsParameters() public view {
         assertEq(hook.poolManager(), poolManager);
-        assertEq(hook.ubiPool(), ubiPool);
+        assertEq(hook.ubiPool(), address(token));
         assertEq(hook.ubiFeeShareBPS(), DEFAULT_UBI_FEE_BPS);
         assertEq(hook.admin(), admin);
         assertEq(hook.paused(), false);
@@ -47,7 +47,7 @@ contract UBIFeeHookTest is Test {
 
     function test_constructor_revertsZeroPoolManager() public {
         vm.expectRevert(UBIFeeHook.ZeroAddress.selector);
-        new UBIFeeHook(address(0), ubiPool, DEFAULT_UBI_FEE_BPS, admin);
+        new UBIFeeHook(address(0), address(token), DEFAULT_UBI_FEE_BPS, admin);
     }
 
     function test_constructor_revertsZeroUBIPool() public {
@@ -57,16 +57,16 @@ contract UBIFeeHookTest is Test {
 
     function test_constructor_revertsZeroAdmin() public {
         vm.expectRevert(UBIFeeHook.ZeroAddress.selector);
-        new UBIFeeHook(poolManager, ubiPool, DEFAULT_UBI_FEE_BPS, address(0));
+        new UBIFeeHook(poolManager, address(token), DEFAULT_UBI_FEE_BPS, address(0));
     }
 
     function test_constructor_revertsFeeTooHigh() public {
         vm.expectRevert(UBIFeeHook.FeeTooHigh.selector);
-        new UBIFeeHook(poolManager, ubiPool, 5001, admin);
+        new UBIFeeHook(poolManager, address(token), 5001, admin);
     }
 
     function test_constructor_maxFeeAllowed() public {
-        UBIFeeHook maxHook = new UBIFeeHook(poolManager, ubiPool, 5000, admin);
+        UBIFeeHook maxHook = new UBIFeeHook(poolManager, address(token), 5000, admin);
         assertEq(maxHook.ubiFeeShareBPS(), 5000);
     }
 
@@ -121,41 +121,41 @@ contract UBIFeeHookTest is Test {
         });
 
         uint256 expectedUBIFee = hook.calculateUBIFee(1000e18);
-        uint256 poolBalanceBefore = token.balanceOf(ubiPool);
+        uint256 ubiPoolBefore = token.ubiPool();
+        uint256 tokenContractBalBefore = token.balanceOf(address(token));
 
         vm.prank(poolManager);
         bytes4 selector = hook.afterSwap(user, key, params, delta, "");
 
         assertEq(selector, hook.afterSwap.selector);
-        assertEq(token.balanceOf(ubiPool), poolBalanceBefore + expectedUBIFee);
+        // ubiPool counter incremented — tokens will be distributed to claimants
+        assertEq(token.ubiPool(), ubiPoolBefore + expectedUBIFee);
+        // GoodDollarToken contract holds the tokens
+        assertEq(token.balanceOf(address(token)), tokenContractBalBefore + expectedUBIFee);
         assertEq(hook.totalSwapsProcessed(), 1);
         assertEq(hook.totalUBIFees(address(token)), expectedUBIFee);
     }
 
     function test_afterSwap_zeroForOne_routesFee() public {
-        PoolKey memory key = _makePoolKey(address(token), token1Addr);
+        PoolKey memory key = _makePoolKey(token1Addr, address(token));
         SwapParams memory params = SwapParams({
-            zeroForOne: true, // output is token1
+            zeroForOne: true, // output is token1 = G$
             amountSpecified: 100e18,
             sqrtPriceLimitX96: 0
         });
-        // For zeroForOne, output is token1 — but we need token1 to be a real
-        // ERC20 the hook can transfer. Use G$ as token1 for this test.
-        key.currency0 = token1Addr;
-        key.currency1 = address(token);
-
         BalanceDelta memory delta = BalanceDelta({
             amount0: -int128(int256(100e18)),
             amount1: int128(int256(500e18)) // 500 G$ output
         });
 
         uint256 expectedUBIFee = hook.calculateUBIFee(500e18);
+        uint256 ubiPoolBefore = token.ubiPool();
 
         vm.prank(poolManager);
         hook.afterSwap(user, key, params, delta, "");
 
         assertEq(hook.totalUBIFees(address(token)), expectedUBIFee);
-        assertEq(token.balanceOf(ubiPool), expectedUBIFee);
+        assertEq(token.ubiPool(), ubiPoolBefore + expectedUBIFee);
     }
 
     function test_afterSwap_zeroOutputAmount_noFee() public {
@@ -227,13 +227,13 @@ contract UBIFeeHookTest is Test {
             amount1: 0
         });
 
-        uint256 poolBalanceBefore = token.balanceOf(ubiPool);
+        uint256 ubiPoolBefore = token.ubiPool();
 
         vm.prank(poolManager);
         hook.afterSwap(user, key, params, delta, "");
 
         // No fee should have been collected
-        assertEq(token.balanceOf(ubiPool), poolBalanceBefore);
+        assertEq(token.ubiPool(), ubiPoolBefore);
         assertEq(hook.totalSwapsProcessed(), 0);
     }
 
@@ -258,6 +258,7 @@ contract UBIFeeHookTest is Test {
         uint256 expectedPerSwap = hook.calculateUBIFee(200e18);
         assertEq(hook.totalSwapsProcessed(), 5);
         assertEq(hook.totalUBIFees(address(token)), expectedPerSwap * 5);
+        assertEq(token.ubiPool(), expectedPerSwap * 5);
     }
 
     // ============ Admin Tests ============
@@ -407,7 +408,7 @@ contract UBIFeeHookTest is Test {
         uint256 expectedFee = hook.calculateUBIFee(1000e18);
 
         vm.expectEmit(true, true, false, true);
-        emit UBIFeeHook.UBIFeeCollected(address(token), 1000e18, expectedFee, ubiPool);
+        emit UBIFeeHook.UBIFeeCollected(address(token), 1000e18, expectedFee, address(token));
 
         vm.prank(poolManager);
         hook.afterSwap(user, key, params, delta, "");
@@ -422,10 +423,6 @@ contract UBIFeeHookTest is Test {
     }
 
     // ============ Gas Benchmarks ============
-    // afterSwap gas includes: fee calculation, ERC20 transfer to UBI pool,
-    // 2 SSTORE (totalUBIFees, totalSwapsProcessed), 1 event emission.
-    // The ERC20 transfer (~26k) dominates. Total hook overhead is ~98k.
-    // On an L2 with 1-second blocks this is negligible.
 
     function test_gasBenchmark_afterSwap() public {
         PoolKey memory key = _makePoolKey(address(token), token1Addr);
@@ -444,7 +441,7 @@ contract UBIFeeHookTest is Test {
         hook.afterSwap(user, key, params, delta, "");
         uint256 gasUsed = gasBefore - gasleft();
 
-        assertLt(gasUsed, 120_000, "Hook gas overhead exceeds 120k");
+        assertLt(gasUsed, 150_000, "Hook gas overhead exceeds 150k");
         emit log_named_uint("afterSwap gas used", gasUsed);
     }
 
