@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { getPairs, getPairBySymbol, getAccountSummary, formatPerpsPrice, formatLargeValue, formatFundingRate, getFundingCountdown, type PerpPair } from '@/lib/perpsData'
+import { getPairs, getPairBySymbol, getAccountSummary, formatPerpsPrice, formatLargeValue, formatFundingRate, getFundingCountdown, type PerpPair, type AccountSummaryData } from '@/lib/perpsData'
 import { getChartData, type Timeframe } from '@/lib/chartData'
 import { PriceChart } from '@/components/PriceChart'
 import { OrderBook } from '@/components/OrderBook'
@@ -82,7 +82,15 @@ function LeverageSlider({ value, onChange, max }: { value: number; onChange: (v:
 
 type OrderType = 'market' | 'limit' | 'stop-limit'
 
-function OrderForm({ pair }: { pair: PerpPair }) {
+function sanitizePositiveInput(value: string): string {
+  if (value === '' || value === '.') return value
+  const num = parseFloat(value)
+  if (isNaN(num)) return ''
+  if (num < 0) return ''
+  return value
+}
+
+function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryData }) {
   const [side, setSide] = useState<'long' | 'short'>('long')
   const [orderType, setOrderType] = useState<OrderType>('market')
   const [size, setSize] = useState('')
@@ -103,9 +111,11 @@ function OrderForm({ pair }: { pair: PerpPair }) {
     ? effectivePrice * (1 - 0.9 / leverage)
     : effectivePrice * (1 + 0.9 / leverage)
 
+  const exceedsMargin = sizeNum > 0 && marginRequired > account.availableMargin
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (sizeNum <= 0) return
+    if (sizeNum <= 0 || exceedsMargin) return
     setSubmitted(true)
     setTimeout(() => setSubmitted(false), 3000)
   }
@@ -148,7 +158,8 @@ function OrderForm({ pair }: { pair: PerpPair }) {
       {orderType === 'stop-limit' && (
         <div>
           <label className="text-xs text-gray-400 mb-1 block">Trigger Price</label>
-          <input type="number" step="any" min="0" placeholder={formatPerpsPrice(pair.markPrice)} value={triggerPrice} onChange={e => setTriggerPrice(e.target.value)}
+          <input type="number" step="any" min="0" placeholder={formatPerpsPrice(pair.markPrice)}
+            value={triggerPrice} onChange={e => setTriggerPrice(sanitizePositiveInput(e.target.value))}
             className="w-full px-3 py-2 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
         </div>
       )}
@@ -156,15 +167,20 @@ function OrderForm({ pair }: { pair: PerpPair }) {
       {orderType !== 'market' && (
         <div>
           <label className="text-xs text-gray-400 mb-1 block">Limit Price</label>
-          <input type="number" step="any" min="0" placeholder={formatPerpsPrice(pair.markPrice)} value={limitPrice} onChange={e => setLimitPrice(e.target.value)}
+          <input type="number" step="any" min="0" placeholder={formatPerpsPrice(pair.markPrice)}
+            value={limitPrice} onChange={e => setLimitPrice(sanitizePositiveInput(e.target.value))}
             className="w-full px-3 py-2 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
         </div>
       )}
 
       <div>
         <label className="text-xs text-gray-400 mb-1 block">Size ({pair.baseAsset})</label>
-        <input type="number" step="any" min="0" placeholder="0.00" value={size} onChange={e => setSize(e.target.value)}
-          className="w-full px-3 py-2 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
+        <input type="number" step="any" min="0" placeholder="0.00"
+          value={size} onChange={e => setSize(sanitizePositiveInput(e.target.value))}
+          className={`w-full px-3 py-2 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 ${exceedsMargin ? 'border-yellow-500/50' : 'border-gray-700/30'}`} />
+        {exceedsMargin && (
+          <p className="text-yellow-400 text-[10px] mt-1">Exceeds available margin ({formatPerpsPrice(account.availableMargin)})</p>
+        )}
       </div>
 
       {sizeNum > 0 && (
@@ -177,12 +193,19 @@ function OrderForm({ pair }: { pair: PerpPair }) {
         </div>
       )}
 
-      <button type="submit" disabled={sizeNum <= 0}
+      <button type="submit" disabled={sizeNum <= 0 || exceedsMargin}
         className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
           side === 'long' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
         }`}>
         {submitted ? 'Order Placed!' : `${side === 'long' ? 'Long' : 'Short'} ${pair.baseAsset}`}
       </button>
+
+      {sizeNum <= 0 && size !== '' && (
+        <p className="text-center text-[10px] text-gray-500">Enter a valid size to place order</p>
+      )}
+      {sizeNum <= 0 && size === '' && (
+        <p className="text-center text-[10px] text-gray-500">Enter size to get started</p>
+      )}
 
       <div className="flex items-center justify-center gap-1.5 text-[10px] text-goodgreen/60">
         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
@@ -234,6 +257,7 @@ function AccountPanel() {
 
 export default function PerpsPage() {
   const pairs = useMemo(() => getPairs(), [])
+  const account = useMemo(() => getAccountSummary(), [])
   const [selectedSymbol, setSelectedSymbol] = useState('BTC-USD')
   const [timeframe, setTimeframe] = useState<Timeframe>('1M')
 
@@ -282,7 +306,7 @@ export default function PerpsPage() {
 
         <div className="lg:w-80 shrink-0 space-y-4">
           <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
-            <OrderForm pair={pair} />
+            <OrderForm pair={pair} account={account} />
           </div>
 
           <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
