@@ -110,11 +110,21 @@ export default function PredictPage() {
   const [category, setCategory] = useState<MarketCategory | 'All'>('All')
   const [sort, setSort] = useState<SortOption>('trending')
   const [query, setQuery] = useState('')
+  const [showExpired, setShowExpired] = useState(false)
   const [allMarkets] = useState(() => getMarkets())
 
   const filtered = useMemo(
     () => filterAndSortMarkets(allMarkets, category, sort, query),
     [allMarkets, category, sort, query],
+  )
+
+  const activeMarkets = useMemo(
+    () => filtered.filter(m => getMarketStatus(m.endDate) !== 'expired'),
+    [filtered],
+  )
+  const expiredMarkets = useMemo(
+    () => filtered.filter(m => getMarketStatus(m.endDate) === 'expired'),
+    [filtered],
   )
 
   return (
@@ -180,11 +190,44 @@ export default function PredictPage() {
           <p className="text-gray-600 text-xs">Try adjusting your search or filters</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(market => (
-            <MarketCard key={market.id} market={market} />
-          ))}
-        </div>
+        <>
+          {activeMarkets.length > 0 && (
+            <div className="mb-2">
+              <p className="text-xs text-gray-500 mb-3 font-medium">{activeMarkets.length} Active {activeMarkets.length === 1 ? 'Market' : 'Markets'}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {activeMarkets.map(market => (
+                  <MarketCard key={market.id} market={market} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {expiredMarkets.length > 0 && (
+            <div className="mt-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 h-px bg-gray-700/40" />
+                <button
+                  onClick={() => setShowExpired(v => !v)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-300 bg-dark-100 border border-gray-700/20 hover:border-gray-600/30 transition-colors focus-visible:ring-2 focus-visible:ring-goodgreen/40 focus-visible:outline-none"
+                  aria-expanded={showExpired}
+                >
+                  <svg className={`w-3.5 h-3.5 transition-transform ${showExpired ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  {showExpired ? 'Hide expired' : `Show expired (${expiredMarkets.length})`}
+                </button>
+                <div className="flex-1 h-px bg-gray-700/40" />
+              </div>
+              {showExpired && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 opacity-70">
+                  {expiredMarkets.map(market => (
+                    <MarketCard key={market.id} market={market} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       <p className="text-xs text-gray-600 text-center mt-6">

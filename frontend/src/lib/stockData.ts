@@ -9,6 +9,10 @@ export interface Stock {
   high52w: number
   low52w: number
   sparkline7d: number[]
+  peRatio: number
+  eps: number
+  dividendYield: number
+  avgVolume: number
 }
 
 function seededRandom(seed: number): () => number {
@@ -51,21 +55,25 @@ interface StockSeed {
   marketCap: number
   high52w: number
   low52w: number
+  peRatio: number
+  eps: number
+  dividendYield: number
+  avgVolume: number
 }
 
 const STOCK_SEEDS: StockSeed[] = [
-  { ticker: 'AAPL', name: 'Apple Inc.', sector: 'Technology', price: 178.72, change24h: 1.24, volume24h: 58_300_000, marketCap: 2_780_000_000_000, high52w: 199.62, low52w: 143.88 },
-  { ticker: 'TSLA', name: 'Tesla Inc.', sector: 'Automotive', price: 248.50, change24h: -2.18, volume24h: 112_500_000, marketCap: 790_000_000_000, high52w: 299.29, low52w: 138.80 },
-  { ticker: 'NVDA', name: 'NVIDIA Corp.', sector: 'Technology', price: 875.30, change24h: 3.45, volume24h: 42_800_000, marketCap: 2_160_000_000_000, high52w: 974.00, low52w: 373.56 },
-  { ticker: 'MSFT', name: 'Microsoft Corp.', sector: 'Technology', price: 415.60, change24h: 0.87, volume24h: 22_100_000, marketCap: 3_090_000_000_000, high52w: 430.82, low52w: 309.45 },
-  { ticker: 'AMZN', name: 'Amazon.com Inc.', sector: 'Consumer', price: 182.15, change24h: -0.54, volume24h: 48_600_000, marketCap: 1_900_000_000_000, high52w: 191.70, low52w: 118.35 },
-  { ticker: 'GOOGL', name: 'Alphabet Inc.', sector: 'Technology', price: 155.80, change24h: 1.92, volume24h: 25_300_000, marketCap: 1_940_000_000_000, high52w: 163.41, low52w: 115.83 },
-  { ticker: 'META', name: 'Meta Platforms', sector: 'Technology', price: 503.25, change24h: -1.35, volume24h: 17_800_000, marketCap: 1_280_000_000_000, high52w: 542.79, low52w: 274.38 },
-  { ticker: 'JPM', name: 'JPMorgan Chase', sector: 'Finance', price: 198.40, change24h: 0.68, volume24h: 9_200_000, marketCap: 572_000_000_000, high52w: 205.88, low52w: 144.34 },
-  { ticker: 'V', name: 'Visa Inc.', sector: 'Finance', price: 279.90, change24h: 0.42, volume24h: 6_800_000, marketCap: 574_000_000_000, high52w: 290.96, low52w: 227.68 },
-  { ticker: 'DIS', name: 'Walt Disney Co.', sector: 'Entertainment', price: 112.35, change24h: -0.91, volume24h: 11_400_000, marketCap: 205_000_000_000, high52w: 123.74, low52w: 78.73 },
-  { ticker: 'NFLX', name: 'Netflix Inc.', sector: 'Entertainment', price: 628.90, change24h: 2.67, volume24h: 5_100_000, marketCap: 272_000_000_000, high52w: 639.00, low52w: 344.73 },
-  { ticker: 'AMD', name: 'Advanced Micro Devices', sector: 'Technology', price: 164.80, change24h: -1.78, volume24h: 52_600_000, marketCap: 266_000_000_000, high52w: 227.30, low52w: 93.12 },
+  { ticker: 'AAPL', name: 'Apple Inc.', sector: 'Technology', price: 178.72, change24h: 1.24, volume24h: 58_300_000, marketCap: 2_780_000_000_000, high52w: 199.62, low52w: 143.88, peRatio: 29.4, eps: 6.08, dividendYield: 0.54, avgVolume: 55_200_000 },
+  { ticker: 'TSLA', name: 'Tesla Inc.', sector: 'Automotive', price: 248.50, change24h: -2.18, volume24h: 112_500_000, marketCap: 790_000_000_000, high52w: 299.29, low52w: 138.80, peRatio: 67.2, eps: 3.70, dividendYield: 0, avgVolume: 108_000_000 },
+  { ticker: 'NVDA', name: 'NVIDIA Corp.', sector: 'Technology', price: 875.30, change24h: 3.45, volume24h: 42_800_000, marketCap: 2_160_000_000_000, high52w: 974.00, low52w: 373.56, peRatio: 68.5, eps: 12.78, dividendYield: 0.04, avgVolume: 40_500_000 },
+  { ticker: 'MSFT', name: 'Microsoft Corp.', sector: 'Technology', price: 415.60, change24h: 0.87, volume24h: 22_100_000, marketCap: 3_090_000_000_000, high52w: 430.82, low52w: 309.45, peRatio: 36.8, eps: 11.30, dividendYield: 0.72, avgVolume: 21_400_000 },
+  { ticker: 'AMZN', name: 'Amazon.com Inc.', sector: 'Consumer', price: 182.15, change24h: -0.54, volume24h: 48_600_000, marketCap: 1_900_000_000_000, high52w: 191.70, low52w: 118.35, peRatio: 44.1, eps: 4.13, dividendYield: 0, avgVolume: 46_800_000 },
+  { ticker: 'GOOGL', name: 'Alphabet Inc.', sector: 'Technology', price: 155.80, change24h: 1.92, volume24h: 25_300_000, marketCap: 1_940_000_000_000, high52w: 163.41, low52w: 115.83, peRatio: 25.6, eps: 6.08, dividendYield: 0, avgVolume: 24_100_000 },
+  { ticker: 'META', name: 'Meta Platforms', sector: 'Technology', price: 503.25, change24h: -1.35, volume24h: 17_800_000, marketCap: 1_280_000_000_000, high52w: 542.79, low52w: 274.38, peRatio: 23.9, eps: 21.06, dividendYield: 0.40, avgVolume: 16_900_000 },
+  { ticker: 'JPM', name: 'JPMorgan Chase', sector: 'Finance', price: 198.40, change24h: 0.68, volume24h: 9_200_000, marketCap: 572_000_000_000, high52w: 205.88, low52w: 144.34, peRatio: 11.4, eps: 17.41, dividendYield: 2.32, avgVolume: 9_800_000 },
+  { ticker: 'V', name: 'Visa Inc.', sector: 'Finance', price: 279.90, change24h: 0.42, volume24h: 6_800_000, marketCap: 574_000_000_000, high52w: 290.96, low52w: 227.68, peRatio: 30.2, eps: 9.28, dividendYield: 0.80, avgVolume: 7_100_000 },
+  { ticker: 'DIS', name: 'Walt Disney Co.', sector: 'Entertainment', price: 112.35, change24h: -0.91, volume24h: 11_400_000, marketCap: 205_000_000_000, high52w: 123.74, low52w: 78.73, peRatio: 35.8, eps: 3.14, dividendYield: 0, avgVolume: 12_300_000 },
+  { ticker: 'NFLX', name: 'Netflix Inc.', sector: 'Entertainment', price: 628.90, change24h: 2.67, volume24h: 5_100_000, marketCap: 272_000_000_000, high52w: 639.00, low52w: 344.73, peRatio: 41.6, eps: 15.12, dividendYield: 0, avgVolume: 5_400_000 },
+  { ticker: 'AMD', name: 'Advanced Micro Devices', sector: 'Technology', price: 164.80, change24h: -1.78, volume24h: 52_600_000, marketCap: 266_000_000_000, high52w: 227.30, low52w: 93.12, peRatio: 184.3, eps: 0.89, dividendYield: 0, avgVolume: 50_100_000 },
 ]
 
 const MOCK_STOCKS: Stock[] = STOCK_SEEDS.map(s => ({

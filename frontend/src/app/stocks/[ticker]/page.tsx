@@ -197,6 +197,22 @@ export default function StockDetailPage() {
                   {stock.change24h >= 0 ? '+' : ''}{stock.change24h.toFixed(2)}%
                 </div>
               </div>
+              <div>
+                <div className="text-gray-500 text-xs mb-0.5">P/E Ratio</div>
+                <div className="text-white font-medium">{stock.peRatio.toFixed(1)}x</div>
+              </div>
+              <div>
+                <div className="text-gray-500 text-xs mb-0.5">EPS</div>
+                <div className={`font-medium ${stock.eps >= 0 ? 'text-green-400' : 'text-red-400'}`}>${stock.eps.toFixed(2)}</div>
+              </div>
+              <div>
+                <div className="text-gray-500 text-xs mb-0.5">Dividend Yield</div>
+                <div className="text-white font-medium">{stock.dividendYield > 0 ? `${stock.dividendYield.toFixed(2)}%` : '—'}</div>
+              </div>
+              <div>
+                <div className="text-gray-500 text-xs mb-0.5">Avg Volume</div>
+                <div className="text-white font-medium">{formatLargeNumber(stock.avgVolume).replace('$', '')}</div>
+              </div>
             </div>
           </div>
         </div>
