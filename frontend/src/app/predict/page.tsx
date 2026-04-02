@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { getMarkets, filterAndSortMarkets, formatVolume, ALL_CATEGORIES, getMarketStatus, getDaysLeftLabel, type MarketCategory, type SortOption } from '@/lib/predictData'
+import { InfoBanner } from '@/components/InfoBanner'
 
 function ProbabilityBar({ yesPrice }: { yesPrice: number }) {
   const yesPct = Math.round(yesPrice * 100)
@@ -92,6 +93,12 @@ export default function PredictPage() {
           <p className="text-sm text-gray-400">Bet on real-world events. Every trade funds UBI.</p>
         </div>
       </div>
+
+      <InfoBanner
+        title="How Prediction Markets Work"
+        description="Buy YES or NO shares on any event. If you're right, each share pays $1. If wrong, you lose your stake. Share prices (5¢–95¢) reflect the crowd's probability estimate."
+        storageKey="gd-banner-dismissed-predict"
+      />
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <input

@@ -3,6 +3,7 @@
 import { useState, useMemo, memo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { getStockData, formatStockPrice, formatLargeNumber, type Stock } from '@/lib/stockData'
+import { InfoBanner } from '@/components/InfoBanner'
 
 type SortField = 'price' | 'change24h' | 'volume24h' | 'marketCap'
 type SortDir = 'asc' | 'desc'
@@ -119,6 +120,12 @@ export default function StocksPage() {
           </div>
         </div>
       </div>
+
+      <InfoBanner
+        title="How Tokenized Stocks Work"
+        description="Synthetic stock tokens track real equity prices via Chainlink oracles. Trade 24/7 with fractional amounts starting at $1. Every trade routes 33% of fees to UBI."
+        storageKey="gd-banner-dismissed-stocks"
+      />
 
       <div className="mb-4">
         <input
