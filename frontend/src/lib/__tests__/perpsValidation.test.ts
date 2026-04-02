@@ -40,6 +40,58 @@ describe('sanitizePositiveInput', () => {
   })
 })
 
+function getLeveragePresets(max: number): number[] {
+  return [1, 2, 5, 10, 25, max].filter((v, i, a) => v <= max && a.indexOf(v) === i).sort((a, b) => a - b)
+}
+
+function clampLeverage(leverage: number, maxLeverage: number): number {
+  return leverage > maxLeverage ? maxLeverage : leverage
+}
+
+describe('leverage preset generation', () => {
+  it('filters out preset values exceeding max for G$-USD (max 20)', () => {
+    const presets = getLeveragePresets(20)
+    expect(presets).toEqual([1, 2, 5, 10, 20])
+    expect(presets.every(p => p <= 20)).toBe(true)
+  })
+
+  it('keeps all valid presets for BTC-USD (max 50)', () => {
+    const presets = getLeveragePresets(50)
+    expect(presets).toEqual([1, 2, 5, 10, 25, 50])
+  })
+
+  it('filters preset 25 for LINK-USD (max 30)', () => {
+    const presets = getLeveragePresets(30)
+    expect(presets).toEqual([1, 2, 5, 10, 25, 30])
+  })
+
+  it('handles max equal to a preset value (max 10)', () => {
+    const presets = getLeveragePresets(10)
+    expect(presets).toEqual([1, 2, 5, 10])
+  })
+
+  it('returns sorted presets', () => {
+    const presets = getLeveragePresets(20)
+    for (let i = 1; i < presets.length; i++) {
+      expect(presets[i]).toBeGreaterThan(presets[i - 1])
+    }
+  })
+})
+
+describe('leverage clamping on pair switch', () => {
+  it('clamps leverage when it exceeds new pair max', () => {
+    expect(clampLeverage(50, 20)).toBe(20)
+  })
+
+  it('keeps leverage when within new pair max', () => {
+    expect(clampLeverage(10, 50)).toBe(10)
+  })
+
+  it('keeps leverage when equal to new pair max', () => {
+    expect(clampLeverage(20, 20)).toBe(20)
+  })
+})
+
 describe('margin validation logic', () => {
   it('detects when notional exceeds available margin', () => {
     const availableMargin = 7285.32

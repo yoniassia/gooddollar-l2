@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { getPairs, getPairBySymbol, getAccountSummary, formatPerpsPrice, formatLargeValue, formatFundingRate, getFundingCountdown, type PerpPair, type AccountSummaryData } from '@/lib/perpsData'
 import { getChartData, type Timeframe } from '@/lib/chartData'
 import dynamic from 'next/dynamic'
@@ -69,7 +69,7 @@ function PairInfoBar({ pair }: { pair: PerpPair }) {
 }
 
 function LeverageSlider({ value, onChange, max }: { value: number; onChange: (v: number) => void; max: number }) {
-  const presets = [1, 2, 5, 10, 25, max].filter((v, i, a) => a.indexOf(v) === i)
+  const presets = [1, 2, 5, 10, 25, max].filter((v, i, a) => v <= max && a.indexOf(v) === i).sort((a, b) => a - b)
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
@@ -109,6 +109,12 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
   const [leverage, setLeverage] = useState(10)
   const [marginMode, setMarginMode] = useState<'cross' | 'isolated'>('cross')
   const [submitted, setSubmitted] = useState(false)
+
+  useEffect(() => {
+    if (leverage > pair.maxLeverage) {
+      setLeverage(pair.maxLeverage)
+    }
+  }, [pair.maxLeverage, leverage])
 
   const sizeNum = parseFloat(size) || 0
   const effectivePrice = orderType === 'market' ? pair.markPrice : (parseFloat(limitPrice) || pair.markPrice)
@@ -288,7 +294,7 @@ export default function PerpsPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">Perpetual Futures</h1>
-            <p className="text-xs text-gray-400">Trade with up to 50x leverage. Every fee funds UBI.</p>
+            <p className="text-xs text-gray-400">Trade with up to {pair.maxLeverage}x leverage. Every fee funds UBI.</p>
           </div>
         </div>
       </div>
