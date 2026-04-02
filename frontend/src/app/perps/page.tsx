@@ -4,6 +4,9 @@ import { useState, useMemo } from 'react'
 import { getPairs, getPairBySymbol, getAccountSummary, formatPerpsPrice, formatLargeValue, formatFundingRate, getFundingCountdown, type PerpPair } from '@/lib/perpsData'
 import { getChartData, type Timeframe } from '@/lib/chartData'
 import { PriceChart } from '@/components/PriceChart'
+import { OrderBook } from '@/components/OrderBook'
+import { RecentTrades } from '@/components/RecentTrades'
+import { OpenPositions } from '@/components/OpenPositions'
 
 const TIMEFRAMES: Timeframe[] = ['1D', '1W', '1M', '3M', '1Y']
 
@@ -77,20 +80,28 @@ function LeverageSlider({ value, onChange, max }: { value: number; onChange: (v:
   )
 }
 
-function MarketOrderForm({ pair }: { pair: PerpPair }) {
+type OrderType = 'market' | 'limit' | 'stop-limit'
+
+function OrderForm({ pair }: { pair: PerpPair }) {
   const [side, setSide] = useState<'long' | 'short'>('long')
+  const [orderType, setOrderType] = useState<OrderType>('market')
   const [size, setSize] = useState('')
+  const [limitPrice, setLimitPrice] = useState('')
+  const [triggerPrice, setTriggerPrice] = useState('')
   const [leverage, setLeverage] = useState(10)
+  const [marginMode, setMarginMode] = useState<'cross' | 'isolated'>('cross')
   const [submitted, setSubmitted] = useState(false)
 
   const sizeNum = parseFloat(size) || 0
-  const notional = sizeNum * pair.markPrice
+  const effectivePrice = orderType === 'market' ? pair.markPrice : (parseFloat(limitPrice) || pair.markPrice)
+  const notional = sizeNum * effectivePrice
   const marginRequired = notional / leverage
-  const fee = notional * 0.0005
+  const feeRate = orderType === 'market' ? 0.0005 : 0.0002
+  const fee = notional * feeRate
   const ubiFee = fee * 0.33
   const liqPrice = side === 'long'
-    ? pair.markPrice * (1 - 0.9 / leverage)
-    : pair.markPrice * (1 + 0.9 / leverage)
+    ? effectivePrice * (1 - 0.9 / leverage)
+    : effectivePrice * (1 + 0.9 / leverage)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -100,7 +111,7 @@ function MarketOrderForm({ pair }: { pair: PerpPair }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-3">
       <div className="flex gap-2">
         <button type="button" onClick={() => setSide('long')}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${side === 'long' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-dark-50/50 text-gray-400 border border-transparent'}`}>
@@ -112,41 +123,62 @@ function MarketOrderForm({ pair }: { pair: PerpPair }) {
         </button>
       </div>
 
+      <div className="flex gap-1">
+        {(['market', 'limit', 'stop-limit'] as OrderType[]).map(ot => (
+          <button key={ot} type="button" onClick={() => setOrderType(ot)}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium capitalize transition-colors ${orderType === ot ? 'bg-goodgreen/15 text-goodgreen' : 'text-gray-400 hover:text-white'}`}>
+            {ot}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-1">
+        <button type="button" onClick={() => setMarginMode('cross')}
+          className={`flex-1 py-1 rounded text-[10px] font-medium transition-colors ${marginMode === 'cross' ? 'bg-dark-50 text-white' : 'text-gray-500'}`}>
+          Cross
+        </button>
+        <button type="button" onClick={() => setMarginMode('isolated')}
+          className={`flex-1 py-1 rounded text-[10px] font-medium transition-colors ${marginMode === 'isolated' ? 'bg-dark-50 text-white' : 'text-gray-500'}`}>
+          Isolated
+        </button>
+      </div>
+
       <LeverageSlider value={leverage} onChange={setLeverage} max={pair.maxLeverage} />
+
+      {orderType === 'stop-limit' && (
+        <div>
+          <label className="text-xs text-gray-400 mb-1 block">Trigger Price</label>
+          <input type="number" step="any" min="0" placeholder={formatPerpsPrice(pair.markPrice)} value={triggerPrice} onChange={e => setTriggerPrice(e.target.value)}
+            className="w-full px-3 py-2 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
+        </div>
+      )}
+
+      {orderType !== 'market' && (
+        <div>
+          <label className="text-xs text-gray-400 mb-1 block">Limit Price</label>
+          <input type="number" step="any" min="0" placeholder={formatPerpsPrice(pair.markPrice)} value={limitPrice} onChange={e => setLimitPrice(e.target.value)}
+            className="w-full px-3 py-2 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
+        </div>
+      )}
 
       <div>
         <label className="text-xs text-gray-400 mb-1 block">Size ({pair.baseAsset})</label>
         <input type="number" step="any" min="0" placeholder="0.00" value={size} onChange={e => setSize(e.target.value)}
-          className="w-full px-3 py-2.5 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
+          className="w-full px-3 py-2 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
       </div>
 
       {sizeNum > 0 && (
-        <div className="space-y-1.5 text-xs">
-          <div className="flex justify-between text-gray-400">
-            <span>Notional</span>
-            <span className="text-white">{formatPerpsPrice(notional)}</span>
-          </div>
-          <div className="flex justify-between text-gray-400">
-            <span>Margin Required</span>
-            <span className="text-white">{formatPerpsPrice(marginRequired)}</span>
-          </div>
-          <div className="flex justify-between text-gray-400">
-            <span>Est. Liq. Price</span>
-            <span className="text-yellow-400">{formatPerpsPrice(liqPrice)}</span>
-          </div>
-          <div className="flex justify-between text-gray-400">
-            <span>Fee (0.05%)</span>
-            <span className="text-white">${fee.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-goodgreen/80">
-            <span>→ UBI Pool (33%)</span>
-            <span>${ubiFee.toFixed(2)}</span>
-          </div>
+        <div className="space-y-1 text-xs">
+          <div className="flex justify-between text-gray-400"><span>Notional</span><span className="text-white">{formatPerpsPrice(notional)}</span></div>
+          <div className="flex justify-between text-gray-400"><span>Margin</span><span className="text-white">{formatPerpsPrice(marginRequired)}</span></div>
+          <div className="flex justify-between text-gray-400"><span>Liq. Price</span><span className="text-yellow-400">{formatPerpsPrice(liqPrice)}</span></div>
+          <div className="flex justify-between text-gray-400"><span>Fee ({orderType === 'market' ? '0.05%' : '0.02%'})</span><span className="text-white">${fee.toFixed(2)}</span></div>
+          <div className="flex justify-between text-goodgreen/80"><span>→ UBI (33%)</span><span>${ubiFee.toFixed(2)}</span></div>
         </div>
       )}
 
       <button type="submit" disabled={sizeNum <= 0}
-        className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+        className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
           side === 'long' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
         }`}>
         {submitted ? 'Order Placed!' : `${side === 'long' ? 'Long' : 'Short'} ${pair.baseAsset}`}
@@ -154,7 +186,7 @@ function MarketOrderForm({ pair }: { pair: PerpPair }) {
 
       <div className="flex items-center justify-center gap-1.5 text-[10px] text-goodgreen/60">
         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-        <span>0.05% taker → 33% funds UBI</span>
+        <span>Fees → 33% funds UBI</span>
       </div>
     </form>
   )
@@ -250,13 +282,35 @@ export default function PerpsPage() {
 
         <div className="lg:w-80 shrink-0 space-y-4">
           <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
-            <h3 className="text-sm font-semibold text-white mb-4">Market Order</h3>
-            <MarketOrderForm pair={pair} />
+            <OrderForm pair={pair} />
           </div>
 
           <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
             <AccountPanel />
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+        <div className="bg-dark-100 rounded-2xl border border-gray-700/20 overflow-hidden">
+          <div className="px-3 py-2 border-b border-gray-700/20">
+            <h3 className="text-xs font-semibold text-white">Order Book</h3>
+          </div>
+          <OrderBook markPrice={pair.markPrice} />
+        </div>
+
+        <div className="bg-dark-100 rounded-2xl border border-gray-700/20 overflow-hidden">
+          <div className="px-3 py-2 border-b border-gray-700/20">
+            <h3 className="text-xs font-semibold text-white">Recent Trades</h3>
+          </div>
+          <RecentTrades markPrice={pair.markPrice} />
+        </div>
+
+        <div className="bg-dark-100 rounded-2xl border border-gray-700/20 overflow-hidden">
+          <div className="px-3 py-2 border-b border-gray-700/20">
+            <h3 className="text-xs font-semibold text-white">Open Positions</h3>
+          </div>
+          <OpenPositions />
         </div>
       </div>
     </div>
