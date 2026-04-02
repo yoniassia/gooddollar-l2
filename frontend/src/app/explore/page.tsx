@@ -24,7 +24,9 @@ const TokenRow = memo(function TokenRow({ token, idx, onRowClick }: TokenRowProp
   return (
     <tr
       onClick={() => onRowClick(token.symbol)}
-      className={`group border-b border-gray-700/10 hover:bg-white/[0.04] cursor-pointer transition-colors ${idx % 2 === 1 ? 'bg-dark-50/15' : ''}`}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRowClick(token.symbol) } }}
+      tabIndex={0}
+      className={`group border-b border-gray-700/10 hover:bg-white/[0.04] cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-goodgreen/40 ${idx % 2 === 1 ? 'bg-dark-50/15' : ''}`}
     >
       <td className="py-3 px-3 text-gray-500 text-right">{idx + 1}</td>
       <td className="py-3 px-3">
@@ -69,7 +71,7 @@ const TokenRow = memo(function TokenRow({ token, idx, onRowClick }: TokenRowProp
       <td className="py-3 px-3 text-right text-gray-300 hidden md:table-cell">
         {formatMarketCap(token.marketCap)}
       </td>
-      <td className="py-3 px-2 hidden lg:table-cell">
+      <td className="py-3 px-2 hidden lg:table-cell" aria-label={`7-day trend: ${token.change7d >= 0 ? 'up' : 'down'} ${Math.abs(token.change7d).toFixed(1)}%`}>
         <Sparkline data={token.sparkline7d} positive={token.change24h >= 0} />
       </td>
       <td className="py-3 px-1 text-right w-20 hidden sm:table-cell">
@@ -105,7 +107,8 @@ function MarketStatsBar({ tokens }: { tokens: TokenMarketData[] }) {
 
       <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-4">
         <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2 font-medium">
-          <span className="text-orange-400">🔥</span> Trending
+          <svg className="w-3.5 h-3.5 text-orange-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38C16.22 9.78 15.46 9.35 14.82 8.72C13.33 7.26 13 4.85 13.95 3C13 3.23 12.17 3.75 11.46 4.32C8.87 6.4 7.85 10.07 9.07 13.22C9.11 13.32 9.15 13.42 9.15 13.55C9.15 13.77 9 13.97 8.8 14.05C8.57 14.15 8.33 14.09 8.14 13.93C8.08 13.88 8.04 13.83 8 13.76C6.87 12.33 6.69 10.28 7.45 8.64C5.78 10 4.87 12.3 5 14.47C5.06 14.97 5.12 15.47 5.29 15.97C5.43 16.57 5.7 17.17 6 17.7C7.08 19.43 8.95 20.67 10.96 20.92C13.1 21.19 15.39 20.8 17.03 19.32C18.86 17.66 19.5 15 18.56 12.72L18.43 12.46C18.22 12 17.66 11.2 17.66 11.2Z"/></svg>
+          Trending
         </div>
         <div className="space-y-1.5">
           {stats.trending.map((t, i) => (
@@ -123,12 +126,19 @@ function MarketStatsBar({ tokens }: { tokens: TokenMarketData[] }) {
               </div>
             </div>
           ))}
+          {stats.trending.length < 3 && Array.from({ length: 3 - stats.trending.length }).map((_, i) => (
+            <div key={`t-e-${i}`} className="flex items-center text-xs text-gray-700 italic py-0.5">
+              <span className="w-3 mr-1.5">{stats.trending.length + i + 1}</span>
+              No more data
+            </div>
+          ))}
         </div>
       </div>
 
       <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-4">
         <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2 font-medium">
-          <span className="text-green-400">🚀</span> Top Gainers
+          <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+          Top Gainers
         </div>
         <div className="space-y-1.5">
           {stats.gainers.map((t, i) => (
@@ -144,6 +154,12 @@ function MarketStatsBar({ tokens }: { tokens: TokenMarketData[] }) {
                   ▲{t.change24h.toFixed(1)}%
                 </span>
               </div>
+            </div>
+          ))}
+          {stats.gainers.length < 3 && Array.from({ length: 3 - stats.gainers.length }).map((_, i) => (
+            <div key={`g-e-${i}`} className="flex items-center text-xs text-gray-700 italic py-0.5">
+              <span className="w-3 mr-1.5">{stats.gainers.length + i + 1}</span>
+              No more gainers today
             </div>
           ))}
         </div>
