@@ -25,7 +25,7 @@ export default function Home() {
       </div>
 
       {/* Swap card wrapper with glow */}
-      <div className="relative">
+      <div className="relative w-full max-w-[460px]">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 -m-4 opacity-[0.06] rounded-3xl blur-[60px]"
