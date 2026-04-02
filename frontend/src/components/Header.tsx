@@ -14,9 +14,9 @@ export function Header() {
   const isExplore = pathname === '/explore'
   const isPool = pathname === '/pool'
   const isBridge = pathname === '/bridge'
-  const isStocks = pathname.startsWith('/stocks')
-  const isPredict = pathname.startsWith('/predict')
-  const isPerps = pathname.startsWith('/perps')
+  const isStocks = pathname?.startsWith('/stocks')
+  const isPredict = pathname?.startsWith('/predict')
+  const isPerps = pathname?.startsWith('/perps')
 
   useEffect(() => {
     if (!mobileMenuOpen) return
