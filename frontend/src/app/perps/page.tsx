@@ -1,0 +1,264 @@
+'use client'
+
+import { useState, useMemo } from 'react'
+import { getPairs, getPairBySymbol, getAccountSummary, formatPerpsPrice, formatLargeValue, formatFundingRate, getFundingCountdown, type PerpPair } from '@/lib/perpsData'
+import { getChartData, type Timeframe } from '@/lib/chartData'
+import { PriceChart } from '@/components/PriceChart'
+
+const TIMEFRAMES: Timeframe[] = ['1D', '1W', '1M', '3M', '1Y']
+
+function PairSelector({ pairs, selected, onSelect }: { pairs: PerpPair[]; selected: string; onSelect: (s: string) => void }) {
+  return (
+    <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+      {pairs.map(p => (
+        <button key={p.symbol} onClick={() => onSelect(p.symbol)}
+          className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selected === p.symbol ? 'bg-goodgreen/15 text-goodgreen border border-goodgreen/20' : 'text-gray-400 hover:text-white bg-dark-50/50 border border-transparent'}`}>
+          {p.symbol}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function PairInfoBar({ pair }: { pair: PerpPair }) {
+  return (
+    <div className="flex flex-wrap gap-4 sm:gap-6 text-xs py-2">
+      <div>
+        <span className="text-gray-500">Mark</span>
+        <span className="text-white font-medium ml-1.5">{formatPerpsPrice(pair.markPrice)}</span>
+      </div>
+      <div>
+        <span className="text-gray-500">24h</span>
+        <span className={`font-medium ml-1.5 ${pair.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {pair.change24h >= 0 ? '+' : ''}{pair.change24h.toFixed(2)}%
+        </span>
+      </div>
+      <div>
+        <span className="text-gray-500">Vol</span>
+        <span className="text-white font-medium ml-1.5">{formatLargeValue(pair.volume24h)}</span>
+      </div>
+      <div>
+        <span className="text-gray-500">Funding</span>
+        <span className={`font-medium ml-1.5 ${pair.fundingRate >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {formatFundingRate(pair.fundingRate)}
+        </span>
+      </div>
+      <div>
+        <span className="text-gray-500">Next</span>
+        <span className="text-gray-300 ml-1.5">{getFundingCountdown(pair.nextFundingTime)}</span>
+      </div>
+      <div>
+        <span className="text-gray-500">OI</span>
+        <span className="text-white font-medium ml-1.5">{formatLargeValue(pair.openInterest)}</span>
+      </div>
+    </div>
+  )
+}
+
+function LeverageSlider({ value, onChange, max }: { value: number; onChange: (v: number) => void; max: number }) {
+  const presets = [1, 2, 5, 10, 25, max].filter((v, i, a) => a.indexOf(v) === i)
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-xs text-gray-400">Leverage</label>
+        <span className="text-sm font-bold text-goodgreen">{value}x</span>
+      </div>
+      <input type="range" min={1} max={max} step={1} value={value} onChange={e => onChange(parseInt(e.target.value))}
+        className="w-full h-1.5 bg-dark-50 rounded-full appearance-none cursor-pointer accent-goodgreen" />
+      <div className="flex justify-between mt-1">
+        {presets.map(p => (
+          <button key={p} onClick={() => onChange(p)}
+            className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${value === p ? 'text-goodgreen font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
+            {p}x
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function MarketOrderForm({ pair }: { pair: PerpPair }) {
+  const [side, setSide] = useState<'long' | 'short'>('long')
+  const [size, setSize] = useState('')
+  const [leverage, setLeverage] = useState(10)
+  const [submitted, setSubmitted] = useState(false)
+
+  const sizeNum = parseFloat(size) || 0
+  const notional = sizeNum * pair.markPrice
+  const marginRequired = notional / leverage
+  const fee = notional * 0.0005
+  const ubiFee = fee * 0.33
+  const liqPrice = side === 'long'
+    ? pair.markPrice * (1 - 0.9 / leverage)
+    : pair.markPrice * (1 + 0.9 / leverage)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (sizeNum <= 0) return
+    setSubmitted(true)
+    setTimeout(() => setSubmitted(false), 3000)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setSide('long')}
+          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${side === 'long' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-dark-50/50 text-gray-400 border border-transparent'}`}>
+          Long
+        </button>
+        <button type="button" onClick={() => setSide('short')}
+          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${side === 'short' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-dark-50/50 text-gray-400 border border-transparent'}`}>
+          Short
+        </button>
+      </div>
+
+      <LeverageSlider value={leverage} onChange={setLeverage} max={pair.maxLeverage} />
+
+      <div>
+        <label className="text-xs text-gray-400 mb-1 block">Size ({pair.baseAsset})</label>
+        <input type="number" step="any" min="0" placeholder="0.00" value={size} onChange={e => setSize(e.target.value)}
+          className="w-full px-3 py-2.5 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
+      </div>
+
+      {sizeNum > 0 && (
+        <div className="space-y-1.5 text-xs">
+          <div className="flex justify-between text-gray-400">
+            <span>Notional</span>
+            <span className="text-white">{formatPerpsPrice(notional)}</span>
+          </div>
+          <div className="flex justify-between text-gray-400">
+            <span>Margin Required</span>
+            <span className="text-white">{formatPerpsPrice(marginRequired)}</span>
+          </div>
+          <div className="flex justify-between text-gray-400">
+            <span>Est. Liq. Price</span>
+            <span className="text-yellow-400">{formatPerpsPrice(liqPrice)}</span>
+          </div>
+          <div className="flex justify-between text-gray-400">
+            <span>Fee (0.05%)</span>
+            <span className="text-white">${fee.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-goodgreen/80">
+            <span>→ UBI Pool (33%)</span>
+            <span>${ubiFee.toFixed(2)}</span>
+          </div>
+        </div>
+      )}
+
+      <button type="submit" disabled={sizeNum <= 0}
+        className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+          side === 'long' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
+        }`}>
+        {submitted ? 'Order Placed!' : `${side === 'long' ? 'Long' : 'Short'} ${pair.baseAsset}`}
+      </button>
+
+      <div className="flex items-center justify-center gap-1.5 text-[10px] text-goodgreen/60">
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+        <span>0.05% taker → 33% funds UBI</span>
+      </div>
+    </form>
+  )
+}
+
+function AccountPanel() {
+  const account = getAccountSummary()
+  return (
+    <div className="space-y-2.5 text-xs">
+      <h3 className="text-sm font-semibold text-white mb-3">Account</h3>
+      <div className="flex justify-between">
+        <span className="text-gray-400">Balance</span>
+        <span className="text-white font-medium">{formatPerpsPrice(account.balance)}</span>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-gray-400">Equity</span>
+        <span className="text-white font-medium">{formatPerpsPrice(account.equity)}</span>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-gray-400">Unrealized P&L</span>
+        <span className={`font-medium ${account.unrealizedPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {account.unrealizedPnl >= 0 ? '+' : ''}{formatPerpsPrice(account.unrealizedPnl)}
+        </span>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-gray-400">Margin Used</span>
+        <span className="text-white font-medium">{formatPerpsPrice(account.marginUsed)}</span>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-gray-400">Available</span>
+        <span className="text-goodgreen font-medium">{formatPerpsPrice(account.availableMargin)}</span>
+      </div>
+      <div className="pt-1">
+        <div className="flex justify-between mb-1">
+          <span className="text-gray-400">Margin Ratio</span>
+          <span className="text-white font-medium">{(account.marginRatio * 100).toFixed(1)}%</span>
+        </div>
+        <div className="h-1.5 bg-dark-50 rounded-full overflow-hidden">
+          <div className="h-full bg-goodgreen rounded-full transition-all" style={{ width: `${account.marginRatio * 100}%` }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function PerpsPage() {
+  const pairs = useMemo(() => getPairs(), [])
+  const [selectedSymbol, setSelectedSymbol] = useState('BTC-USD')
+  const [timeframe, setTimeframe] = useState<Timeframe>('1M')
+
+  const pair = getPairBySymbol(selectedSymbol) ?? pairs[0]
+
+  const chartData = useMemo(() => {
+    return getChartData(pair.symbol, timeframe, pair.markPrice)
+  }, [pair.symbol, pair.markPrice, timeframe])
+
+  return (
+    <div className="w-full max-w-6xl mx-auto">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-goodgreen/10 border border-goodgreen/20 flex items-center justify-center">
+            <svg className="w-5 h-5 text-goodgreen" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white">Perpetual Futures</h1>
+            <p className="text-xs text-gray-400">Trade with up to 50x leverage. Every fee funds UBI.</p>
+          </div>
+        </div>
+      </div>
+
+      <PairSelector pairs={pairs} selected={selectedSymbol} onSelect={setSelectedSymbol} />
+
+      <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-3 mt-3 mb-3">
+        <PairInfoBar pair={pair} />
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-4">
+            <div className="flex gap-1 mb-3">
+              {TIMEFRAMES.map(tf => (
+                <button key={tf} onClick={() => setTimeframe(tf)}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${timeframe === tf ? 'bg-goodgreen/15 text-goodgreen' : 'text-gray-400 hover:text-white'}`}>
+                  {tf}
+                </button>
+              ))}
+            </div>
+            <PriceChart data={chartData} height={400} />
+          </div>
+        </div>
+
+        <div className="lg:w-80 shrink-0 space-y-4">
+          <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
+            <h3 className="text-sm font-semibold text-white mb-4">Market Order</h3>
+            <MarketOrderForm pair={pair} />
+          </div>
+
+          <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
+            <AccountPanel />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
