@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getMarketById, formatVolume, getMarketStatus, getDaysLeftLabel } from '@/lib/predictData'
 import { generateProbabilityHistory } from '@/lib/chartData'
@@ -17,8 +17,8 @@ const ProbabilityChart = dynamic(
   }
 )
 
-function TradePanel({ market }: { market: ReturnType<typeof getMarketById> & {} }) {
-  const [side, setSide] = useState<'yes' | 'no'>('yes')
+function TradePanel({ market, initialSide }: { market: ReturnType<typeof getMarketById> & {}, initialSide?: 'yes' | 'no' }) {
+  const [side, setSide] = useState<'yes' | 'no'>(initialSide ?? 'yes')
   const [amount, setAmount] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
@@ -98,8 +98,11 @@ function TradePanel({ market }: { market: ReturnType<typeof getMarketById> & {} 
 
 export default function MarketDetailPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const marketId = params.marketId as string
   const market = getMarketById(marketId)
+  const sideParam = searchParams.get('side')
+  const initialSide = sideParam === 'yes' || sideParam === 'no' ? sideParam : undefined
 
   const probData = useMemo(() => {
     if (!market) return []
@@ -207,7 +210,7 @@ export default function MarketDetailPage() {
               </Link>
             </div>
           ) : (
-            <TradePanel market={market} />
+            <TradePanel market={market} initialSide={initialSide} />
           )}
         </div>
       </div>

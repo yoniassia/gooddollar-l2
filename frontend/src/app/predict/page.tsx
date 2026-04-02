@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { getMarkets, filterAndSortMarkets, formatVolume, ALL_CATEGORIES, getMarketStatus, getDaysLeftLabel, type MarketCategory, type SortOption } from '@/lib/predictData'
 import { InfoBanner } from '@/components/InfoBanner'
 
@@ -9,22 +9,19 @@ function ProbabilityBar({ yesPrice }: { yesPrice: number }) {
   const yesPct = Math.round(yesPrice * 100)
   const noPct = 100 - yesPct
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <div className="flex-1 flex h-2 rounded-full overflow-hidden bg-dark-50">
-        <div className="bg-green-500 transition-all" style={{ width: `${yesPct}%` }} />
-        <div className="bg-red-500/60 transition-all" style={{ width: `${noPct}%` }} />
-      </div>
-      <div className="flex gap-2 shrink-0">
-        <span className="text-green-400 font-medium">{yesPct}¢</span>
-        <span className="text-red-400 font-medium">{noPct}¢</span>
-      </div>
+    <div className="flex h-2 rounded-full overflow-hidden bg-dark-50">
+      <div className="bg-green-500 transition-all" style={{ width: `${yesPct}%` }} />
+      <div className="bg-red-500/60 transition-all" style={{ width: `${noPct}%` }} />
     </div>
   )
 }
 
 function MarketCard({ market }: { market: ReturnType<typeof getMarkets>[0] }) {
+  const router = useRouter()
   const yesPct = Math.round(market.yesPrice * 100)
+  const noPct = 100 - yesPct
   const status = getMarketStatus(market.endDate)
+  const isExpired = status === 'expired'
   const timeLabel = getDaysLeftLabel(market.endDate)
 
   const timeLabelClass = status === 'expired'
@@ -33,8 +30,23 @@ function MarketCard({ market }: { market: ReturnType<typeof getMarkets>[0] }) {
     ? 'text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded'
     : 'text-gray-500'
 
+  const handleCardClick = () => {
+    router.push(`/predict/${market.id}`)
+  }
+
+  const handleTradeClick = (side: 'yes' | 'no', e: React.MouseEvent) => {
+    e.stopPropagation()
+    router.push(`/predict/${market.id}?side=${side}`)
+  }
+
   return (
-    <Link href={`/predict/${market.id}`} className={`block bg-dark-100 rounded-2xl border border-gray-700/20 p-5 hover:border-goodgreen/30 transition-all group ${status === 'expired' ? 'opacity-60' : ''}`}>
+    <div
+      onClick={handleCardClick}
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter') handleCardClick() }}
+      className={`bg-dark-100 rounded-2xl border border-gray-700/20 p-5 hover:border-goodgreen/30 transition-all group cursor-pointer ${isExpired ? 'opacity-60' : ''}`}
+    >
       <div className="flex items-start justify-between mb-3">
         <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-goodgreen/10 text-goodgreen/80 border border-goodgreen/15">
           {market.category}
@@ -54,11 +66,28 @@ function MarketCard({ market }: { market: ReturnType<typeof getMarkets>[0] }) {
         <ProbabilityBar yesPrice={market.yesPrice} />
       </div>
 
+      {!isExpired && (
+        <div className="flex gap-2 mb-3">
+          <button
+            onClick={(e) => handleTradeClick('yes', e)}
+            className="flex-1 py-2 rounded-lg text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-colors"
+          >
+            Yes {yesPct}¢
+          </button>
+          <button
+            onClick={(e) => handleTradeClick('no', e)}
+            className="flex-1 py-2 rounded-lg text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+          >
+            No {noPct}¢
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-700/15">
         <span>Vol: {formatVolume(market.volume)}</span>
         <span>{formatVolume(market.liquidity)} liquidity</span>
       </div>
-    </Link>
+    </div>
   )
 }
 
