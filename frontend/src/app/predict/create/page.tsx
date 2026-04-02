@@ -4,6 +4,36 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ALL_CATEGORIES, type MarketCategory } from '@/lib/predictData'
 
+const QUESTION_MAX = 200
+const CRITERIA_MAX = 500
+const LIQUIDITY_MIN = 100
+const LIQUIDITY_MAX = 100_000
+
+function CharCounter({ current, max }: { current: number; max: number }) {
+  const ratio = max > 0 ? current / max : 0
+  const colorClass =
+    ratio >= 1 ? 'text-red-400' : ratio >= 0.8 ? 'text-amber-500' : 'text-gray-600'
+  return (
+    <span className={`text-xs shrink-0 ${colorClass}`} aria-live="polite">
+      {current}/{max}
+    </span>
+  )
+}
+
+function sanitizeLiquidityInput(raw: string): string {
+  let out = ''
+  let dotSeen = false
+  for (const ch of raw) {
+    if (ch >= '0' && ch <= '9') {
+      out += ch
+    } else if (ch === '.' && !dotSeen) {
+      dotSeen = true
+      out += ch
+    }
+  }
+  return out
+}
+
 export default function CreateMarketPage() {
   const [question, setQuestion] = useState('')
   const [criteria, setCriteria] = useState('')
@@ -19,8 +49,43 @@ export default function CreateMarketPage() {
     if (!criteria.trim()) errs.criteria = 'Resolution criteria is required'
     if (!endDate) errs.endDate = 'End date is required'
     else if (new Date(endDate) <= new Date()) errs.endDate = 'End date must be in the future'
-    if (!liquidity || parseFloat(liquidity) < 100) errs.liquidity = 'Minimum $100 initial liquidity'
+
+    const liq = liquidity.trim()
+    if (!liq) {
+      errs.liquidity = 'Initial liquidity is required'
+    } else {
+      const n = parseFloat(liq)
+      if (Number.isNaN(n)) {
+        errs.liquidity = 'Initial liquidity is required'
+      } else if (n < LIQUIDITY_MIN) {
+        errs.liquidity = 'Minimum $100 initial liquidity'
+      } else if (n > LIQUIDITY_MAX) {
+        errs.liquidity = 'Maximum $100,000 initial liquidity'
+      }
+    }
     return errs
+  }
+
+  const liquidityTrimmed = liquidity.trim()
+  const liquidityNum = liquidityTrimmed === '' ? NaN : parseFloat(liquidityTrimmed)
+  const liquidityInline =
+    liquidityTrimmed === '' || Number.isNaN(liquidityNum)
+      ? null
+      : liquidityNum < LIQUIDITY_MIN
+        ? 'Minimum $100 initial liquidity'
+        : liquidityNum > LIQUIDITY_MAX
+          ? 'Maximum $100,000 initial liquidity'
+          : null
+
+  const handleLiquidityChange = (raw: string) => {
+    setLiquidity(sanitizeLiquidityInput(raw))
+    if (errors.liquidity) {
+      setErrors(prev => {
+        const next = { ...prev }
+        delete next.liquidity
+        return next
+      })
+    }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -31,6 +96,8 @@ export default function CreateMarketPage() {
       setSubmitted(true)
     }
   }
+
+  const liquidityDisplayError = errors.liquidity ?? liquidityInline
 
   if (submitted) {
     return (
@@ -47,7 +114,7 @@ export default function CreateMarketPage() {
             <Link href="/predict" className="px-5 py-2.5 rounded-xl bg-goodgreen text-white font-semibold text-sm hover:bg-goodgreen-600 transition-colors">
               View Markets
             </Link>
-            <button onClick={() => { setSubmitted(false); setQuestion(''); setCriteria(''); setEndDate(''); setLiquidity('') }}
+            <button onClick={() => { setSubmitted(false); setQuestion(''); setCriteria(''); setEndDate(''); setLiquidity(''); setErrors({}) }}
               className="px-5 py-2.5 rounded-xl bg-dark-50 text-gray-300 font-semibold text-sm hover:bg-dark-50/80 transition-colors border border-gray-700/30">
               Create Another
             </button>
@@ -63,29 +130,39 @@ export default function CreateMarketPage() {
 
       <form onSubmit={handleSubmit} className="bg-dark-100 rounded-2xl border border-gray-700/20 p-6 space-y-4">
         <div>
-          <label className="text-xs text-gray-400 mb-1 block font-medium">Question *</label>
-          <input type="text" placeholder="Will X happen by Y?" value={question} onChange={e => setQuestion(e.target.value)}
+          <label htmlFor="create-market-question" className="text-xs text-gray-400 mb-1 block font-medium">Question *</label>
+          <input id="create-market-question" type="text" maxLength={QUESTION_MAX} placeholder="Will X happen by Y?" value={question} onChange={e => setQuestion(e.target.value)}
             className={`w-full px-3 py-2.5 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 ${errors.question ? 'border-red-500/50' : 'border-gray-700/30'}`} />
-          {errors.question && <p className="text-red-400 text-xs mt-1">{errors.question}</p>}
+          <div className="flex justify-between items-start gap-2 mt-1">
+            <div className="flex-1 min-w-0">
+              {errors.question && <p className="text-red-400 text-xs">{errors.question}</p>}
+            </div>
+            <CharCounter current={question.length} max={QUESTION_MAX} />
+          </div>
         </div>
 
         <div>
-          <label className="text-xs text-gray-400 mb-1 block font-medium">Resolution Criteria *</label>
-          <textarea placeholder="How will this market be resolved?" value={criteria} onChange={e => setCriteria(e.target.value)} rows={3}
+          <label htmlFor="create-market-criteria" className="text-xs text-gray-400 mb-1 block font-medium">Resolution Criteria *</label>
+          <textarea id="create-market-criteria" placeholder="How will this market be resolved?" value={criteria} onChange={e => setCriteria(e.target.value)} rows={3} maxLength={CRITERIA_MAX}
             className={`w-full px-3 py-2.5 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 resize-none ${errors.criteria ? 'border-red-500/50' : 'border-gray-700/30'}`} />
-          {errors.criteria && <p className="text-red-400 text-xs mt-1">{errors.criteria}</p>}
+          <div className="flex justify-between items-start gap-2 mt-1">
+            <div className="flex-1 min-w-0">
+              {errors.criteria && <p className="text-red-400 text-xs">{errors.criteria}</p>}
+            </div>
+            <CharCounter current={criteria.length} max={CRITERIA_MAX} />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-gray-400 mb-1 block font-medium">End Date *</label>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+            <label htmlFor="create-market-end-date" className="text-xs text-gray-400 mb-1 block font-medium">End Date *</label>
+            <input id="create-market-end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
               className={`w-full px-3 py-2.5 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 ${errors.endDate ? 'border-red-500/50' : 'border-gray-700/30'}`} />
             {errors.endDate && <p className="text-red-400 text-xs mt-1">{errors.endDate}</p>}
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-1 block font-medium">Category</label>
-            <select value={category} onChange={e => setCategory(e.target.value as MarketCategory)}
+            <label htmlFor="create-market-category" className="text-xs text-gray-400 mb-1 block font-medium">Category</label>
+            <select id="create-market-category" value={category} onChange={e => setCategory(e.target.value as MarketCategory)}
               className="w-full px-3 py-2.5 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50">
               {ALL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -93,11 +170,18 @@ export default function CreateMarketPage() {
         </div>
 
         <div>
-          <label className="text-xs text-gray-400 mb-1 block font-medium">Initial Liquidity (USD) *</label>
-          <input type="number" step="1" min="100" placeholder="Min $100" value={liquidity} onChange={e => setLiquidity(e.target.value)}
-            className={`w-full px-3 py-2.5 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 ${errors.liquidity ? 'border-red-500/50' : 'border-gray-700/30'}`} />
-          {errors.liquidity && <p className="text-red-400 text-xs mt-1">{errors.liquidity}</p>}
-          <p className="text-xs text-gray-600 mt-1">Liquidity bootstraps the market and enables trading.</p>
+          <label htmlFor="create-market-liquidity" className="text-xs text-gray-400 mb-1 block font-medium">Initial Liquidity (USD) *</label>
+          <input
+            id="create-market-liquidity"
+            type="text"
+            inputMode="decimal"
+            placeholder="Min $100"
+            value={liquidity}
+            onChange={e => handleLiquidityChange(e.target.value)}
+            className={`w-full px-3 py-2.5 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 ${liquidityDisplayError ? 'border-red-500/50' : 'border-gray-700/30'}`}
+          />
+          {liquidityDisplayError && <p className="text-red-400 text-xs mt-1">{liquidityDisplayError}</p>}
+          <p className="text-gray-600 text-xs mt-1">Min $100 · Max $100,000</p>
         </div>
 
         <button type="submit"
