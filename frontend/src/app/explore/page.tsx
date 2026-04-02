@@ -84,6 +84,74 @@ const TokenRow = memo(function TokenRow({ token, idx, onRowClick }: TokenRowProp
   )
 })
 
+function MarketStatsBar({ tokens }: { tokens: TokenMarketData[] }) {
+  const stats = useMemo(() => {
+    const totalMarketCap = tokens.reduce((s, t) => s + t.marketCap, 0)
+    const weightedChange = tokens.reduce((s, t) => s + t.change24h * t.marketCap, 0) / (totalMarketCap || 1)
+    const trending = [...tokens].sort((a, b) => b.volume24h - a.volume24h).slice(0, 3)
+    const gainers = [...tokens].filter(t => t.change24h > 0).sort((a, b) => b.change24h - a.change24h).slice(0, 3)
+    return { totalMarketCap, weightedChange, trending, gainers }
+  }, [tokens])
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+      <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-4">
+        <div className="text-xs text-gray-500 mb-1.5 font-medium">Total Market Cap</div>
+        <div className="text-xl font-bold text-white mb-0.5">{formatMarketCap(stats.totalMarketCap)}</div>
+        <span className={`text-xs font-medium ${stats.weightedChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {stats.weightedChange >= 0 ? '▲' : '▼'} {Math.abs(stats.weightedChange).toFixed(2)}% (24h)
+        </span>
+      </div>
+
+      <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-4">
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2 font-medium">
+          <span className="text-orange-400">🔥</span> Trending
+        </div>
+        <div className="space-y-1.5">
+          {stats.trending.map((t, i) => (
+            <div key={t.symbol} className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-gray-600 w-3">{i + 1}</span>
+                <TokenIcon symbol={t.symbol} size={16} />
+                <span className="text-white font-medium">{t.symbol}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">{formatPrice(t.price)}</span>
+                <span className={t.change24h >= 0 ? 'text-green-400' : 'text-red-400'}>
+                  {t.change24h >= 0 ? '▲' : '▼'}{Math.abs(t.change24h).toFixed(1)}%
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-4">
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2 font-medium">
+          <span className="text-green-400">🚀</span> Top Gainers
+        </div>
+        <div className="space-y-1.5">
+          {stats.gainers.map((t, i) => (
+            <div key={t.symbol} className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-gray-600 w-3">{i + 1}</span>
+                <TokenIcon symbol={t.symbol} size={16} />
+                <span className="text-white font-medium">{t.symbol}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">{formatPrice(t.price)}</span>
+                <span className="text-green-400">
+                  ▲{t.change24h.toFixed(1)}%
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ExplorePage() {
   const router = useRouter()
   const [query, setQuery] = useState('')
@@ -125,6 +193,8 @@ export default function ExplorePage() {
         <h1 className="text-2xl font-bold text-white mb-1">Explore Tokens</h1>
         <p className="text-sm text-gray-400">Browse token prices, volume, and market data on GoodDollar L2</p>
       </div>
+
+      <MarketStatsBar tokens={data} />
 
       <div className="mb-4">
         <input
