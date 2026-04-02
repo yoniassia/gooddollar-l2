@@ -33,7 +33,7 @@ function HoldingRow({ holding, onClick }: { holding: PortfolioHolding; onClick: 
   const pnlPct = cost > 0 ? (pnl / cost) * 100 : 0
 
   return (
-    <tr onClick={onClick} className="border-b border-gray-700/10 hover:bg-dark-50/50 cursor-pointer transition-colors">
+    <tr onClick={onClick} className="border-b border-gray-700/10 hover:bg-white/[0.04] cursor-pointer transition-colors">
       <td className="py-3 px-3">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-full bg-gradient-to-br from-goodgreen/30 to-goodgreen/10 border border-goodgreen/20 flex items-center justify-center text-[9px] font-bold text-goodgreen">

@@ -45,7 +45,7 @@ export default function PerpsLeaderboardPage() {
               </thead>
               <tbody>
                 {leaderboard.map((entry, idx) => (
-                  <tr key={entry.rank} className={`border-b border-gray-700/10 ${idx % 2 === 1 ? 'bg-dark-50/15' : ''}`}>
+                  <tr key={entry.rank} className={`border-b border-gray-700/10 hover:bg-white/[0.04] cursor-pointer transition-colors ${idx % 2 === 1 ? 'bg-dark-50/15' : ''}`}>
                     <td className="py-3 px-3 text-right">
                       {entry.rank <= 3 ? (
                         <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${

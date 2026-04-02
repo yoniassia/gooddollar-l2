@@ -30,7 +30,7 @@ const StockRow = memo(function StockRow({ stock, idx, onRowClick }: StockRowProp
   return (
     <tr
       onClick={() => onRowClick(stock.ticker)}
-      className={`group border-b border-gray-700/10 hover:bg-dark-50/50 cursor-pointer transition-colors ${idx % 2 === 1 ? 'bg-dark-50/15' : ''}`}
+      className={`group border-b border-gray-700/10 hover:bg-white/[0.04] cursor-pointer transition-colors ${idx % 2 === 1 ? 'bg-dark-50/15' : ''}`}
     >
       <td className="py-3 px-3 text-gray-500 text-right">{idx + 1}</td>
       <td className="py-3 px-3">
