@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { getMarkets, filterAndSortMarkets, formatVolume, ALL_CATEGORIES, type MarketCategory, type SortOption } from '@/lib/predictData'
+import { getMarkets, filterAndSortMarkets, formatVolume, ALL_CATEGORIES, getMarketStatus, getDaysLeftLabel, type MarketCategory, type SortOption } from '@/lib/predictData'
 
 function ProbabilityBar({ yesPrice }: { yesPrice: number }) {
   const yesPct = Math.round(yesPrice * 100)
@@ -23,17 +23,22 @@ function ProbabilityBar({ yesPrice }: { yesPrice: number }) {
 
 function MarketCard({ market }: { market: ReturnType<typeof getMarkets>[0] }) {
   const yesPct = Math.round(market.yesPrice * 100)
-  const endDate = new Date(market.endDate)
-  const now = new Date()
-  const daysLeft = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+  const status = getMarketStatus(market.endDate)
+  const timeLabel = getDaysLeftLabel(market.endDate)
+
+  const timeLabelClass = status === 'expired'
+    ? 'text-red-400/70 bg-red-500/10 px-1.5 py-0.5 rounded'
+    : status === 'ending-today'
+    ? 'text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded'
+    : 'text-gray-500'
 
   return (
-    <Link href={`/predict/${market.id}`} className="block bg-dark-100 rounded-2xl border border-gray-700/20 p-5 hover:border-goodgreen/30 transition-all group">
+    <Link href={`/predict/${market.id}`} className={`block bg-dark-100 rounded-2xl border border-gray-700/20 p-5 hover:border-goodgreen/30 transition-all group ${status === 'expired' ? 'opacity-60' : ''}`}>
       <div className="flex items-start justify-between mb-3">
         <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-goodgreen/10 text-goodgreen/80 border border-goodgreen/15">
           {market.category}
         </span>
-        <span className="text-xs text-gray-500">{daysLeft}d left</span>
+        <span className={`text-xs font-medium ${timeLabelClass}`}>{timeLabel}</span>
       </div>
 
       <h3 className="text-sm font-semibold text-white mb-3 leading-snug group-hover:text-goodgreen/90 transition-colors line-clamp-2">

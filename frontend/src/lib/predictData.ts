@@ -72,11 +72,36 @@ export function filterAndSortMarkets(
       result.sort((a, b) => b.volume - a.volume)
       break
     case 'ending':
-      result.sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime())
+      result.sort((a, b) => {
+        const aExpired = getMarketStatus(a.endDate) === 'expired'
+        const bExpired = getMarketStatus(b.endDate) === 'expired'
+        if (aExpired && !bExpired) return 1
+        if (!aExpired && bExpired) return -1
+        return new Date(a.endDate).getTime() - new Date(b.endDate).getTime()
+      })
       break
   }
 
   return result
+}
+
+export type MarketStatus = 'active' | 'ending-today' | 'expired'
+
+export function getMarketStatus(endDate: string): MarketStatus {
+  const end = new Date(endDate)
+  const now = new Date()
+  const msLeft = end.getTime() - now.getTime()
+  if (msLeft < 0) return 'expired'
+  if (msLeft < 24 * 60 * 60 * 1000) return 'ending-today'
+  return 'active'
+}
+
+export function getDaysLeftLabel(endDate: string): string {
+  const status = getMarketStatus(endDate)
+  if (status === 'expired') return 'Expired'
+  if (status === 'ending-today') return 'Ending today'
+  const days = Math.ceil((new Date(endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  return `${days}d left`
 }
 
 export function formatVolume(vol: number): string {
