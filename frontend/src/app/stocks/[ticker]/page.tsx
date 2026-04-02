@@ -169,7 +169,7 @@ export default function StockDetailPage() {
           </div>
 
           <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
-            <h2 className="text-sm font-semibold text-white mb-3">Stock Info</h2>
+            <h2 className="text-sm font-semibold text-white mb-3">Key Statistics</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
               <div>
                 <div className="text-gray-500 text-xs mb-0.5">Market Cap</div>
