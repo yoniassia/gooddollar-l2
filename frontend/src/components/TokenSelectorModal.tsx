@@ -174,3 +174,5 @@ export function TokenSelectorModal({ open, onClose, onSelect, selected, exclude 
     </div>
   )
 }
+
+export default TokenSelectorModal

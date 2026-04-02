@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, lazy, Suspense } from 'react'
 import { TokenIcon } from './TokenIcon'
-import { TokenSelectorModal } from './TokenSelectorModal'
 import { TOKENS as ALL_TOKENS, type Token } from '@/lib/tokens'
+
+const TokenSelectorModal = lazy(() => import('./TokenSelectorModal'))
 
 export type { Token }
 export const TOKENS = ALL_TOKENS
@@ -35,13 +36,17 @@ export function TokenSelector({ selected, onSelect, exclude }: TokenSelectorProp
         </svg>
       </button>
 
-      <TokenSelectorModal
-        open={open}
-        onClose={handleClose}
-        onSelect={onSelect}
-        selected={selected}
-        exclude={exclude}
-      />
+      {open && (
+        <Suspense fallback={<div className="fixed inset-0 z-50" />}>
+          <TokenSelectorModal
+            open={open}
+            onClose={handleClose}
+            onSelect={onSelect}
+            selected={selected}
+            exclude={exclude}
+          />
+        </Suspense>
+      )}
     </>
   )
 }
