@@ -474,9 +474,9 @@ contract GoodDollarBridgeTest is Test {
         l2Bridge.finalizeETHDeposit(user, user, 2 ether);
         assertEq(user.balance, userL2Before + 2 ether);
 
-        // Step 3: User withdraws ETH from L2
+        // Step 3: User withdraws ETH from L2 — must send ETH (burns L2 ETH)
         vm.prank(user);
-        l2Bridge.withdrawETH(user, 2 ether);
+        l2Bridge.withdrawETH{value: 2 ether}(user, 2 ether);
 
         // Step 4: L1 finalizes ETH withdrawal
         l1Messenger.setXDomainMessageSender(address(l2Bridge));
@@ -484,6 +484,39 @@ contract GoodDollarBridgeTest is Test {
         vm.prank(address(l1Messenger));
         l1Bridge.finalizeETHWithdrawal(user, 2 ether);
         assertEq(user.balance, userL1Before + 2 ether);
+    }
+
+
+    // ============ ETH Withdrawal Security Tests ============
+
+    function test_l2Bridge_withdrawETH_requiresExactValue() public {
+        // Attacker has no deposited ETH but tries to drain bridge
+        address attacker = address(0xDEAD);
+        vm.deal(attacker, 5 ether);
+        vm.deal(address(l2Bridge), 10 ether); // bridge has ETH from deposits
+
+        // Must revert: msg.value != amount
+        vm.prank(attacker);
+        vm.expectRevert(GoodDollarBridgeL2.InsufficientETH.selector);
+        l2Bridge.withdrawETH(attacker, 2 ether); // no value sent
+    }
+
+    function test_l2Bridge_withdrawETH_revertsValueMismatch() public {
+        vm.deal(address(0xABC), 10 ether);
+        vm.prank(address(0xABC));
+        vm.expectRevert(GoodDollarBridgeL2.InsufficientETH.selector);
+        l2Bridge.withdrawETH{value: 1 ether}(address(0xABC), 2 ether); // value != amount
+    }
+
+    function test_l2Bridge_withdrawETH_acceptsCorrectValue() public {
+        address withdrawer = address(0xABC);
+        vm.deal(withdrawer, 5 ether);
+
+        vm.prank(withdrawer);
+        l2Bridge.withdrawETH{value: 3 ether}(withdrawer, 3 ether);
+
+        // Cross-chain message was queued
+        assertEq(l2Messenger.lastTarget(), address(l1Bridge));
     }
 
     // ============ Admin Tests ============

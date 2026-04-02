@@ -164,10 +164,10 @@ contract GoodDollarBridgeL2 {
         emit WithdrawalInitiated(l1Token, msg.sender, to, amount);
     }
 
-    function withdrawETH(address to, uint256 amount) external whenNotPaused {
+    function withdrawETH(address to, uint256 amount) external payable whenNotPaused {
         if (amount == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
-        if (address(this).balance < amount) revert InsufficientETH();
+        if (msg.value != amount) revert InsufficientETH();
 
         bytes memory message = abi.encodeCall(
             IGoodDollarBridgeL1.finalizeETHWithdrawal,
