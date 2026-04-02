@@ -77,7 +77,7 @@ contract UBIFeeSplitter {
         goodDollar.transferFrom(msg.sender, address(this), totalFee);
         
         // Route to destinations
-        goodDollar.transfer(address(goodDollar), ubiShare); // UBI pool
+        goodDollar.fundUBIPool(ubiShare);
         goodDollar.transfer(protocolTreasury, protocolShare);
         goodDollar.transfer(dAppRecipient, dAppShare);
         

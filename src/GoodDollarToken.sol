@@ -113,7 +113,7 @@ contract GoodDollarToken {
             poolShare = ubiPool / totalVerifiedHumans;
             if (poolShare > 0) {
                 ubiPool -= poolShare;
-                _mint(msg.sender, poolShare); // or transfer from pool
+                _transfer(address(this), msg.sender, poolShare);
             }
         }
         
