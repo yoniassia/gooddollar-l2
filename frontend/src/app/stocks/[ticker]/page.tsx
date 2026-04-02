@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getStockByTicker, formatStockPrice, formatLargeNumber } from '@/lib/stockData'
+import { sanitizeNumericInput } from '@/lib/format'
 import { getChartData, type Timeframe } from '@/lib/chartData'
 import dynamic from 'next/dynamic'
 
@@ -65,14 +66,14 @@ function OrderForm({ stock }: { stock: { ticker: string; price: number } }) {
       {orderType === 'limit' && (
         <div className="mb-3">
           <label className="text-xs text-gray-400 mb-1 block">Limit Price</label>
-          <input type="number" step="0.01" min="0" placeholder="0.00" value={limitPrice} onChange={e => setLimitPrice(e.target.value)}
+          <input type="text" inputMode="decimal" placeholder="0.00" value={limitPrice} onChange={e => setLimitPrice(sanitizeNumericInput(e.target.value))}
             className="w-full px-3 py-2.5 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
         </div>
       )}
 
       <div className="mb-3">
         <label className="text-xs text-gray-400 mb-1 block">Amount (USD)</label>
-        <input type="number" step="0.01" min="0" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)}
+        <input type="text" inputMode="decimal" placeholder="0.00" value={amount} onChange={e => setAmount(sanitizeNumericInput(e.target.value))}
           className="w-full px-3 py-2.5 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
       </div>
 

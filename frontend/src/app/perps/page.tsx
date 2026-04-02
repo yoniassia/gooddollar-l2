@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { getPairs, getPairBySymbol, getAccountSummary, formatPerpsPrice, formatLargeValue, formatFundingRate, getFundingCountdown, type PerpPair, type AccountSummaryData } from '@/lib/perpsData'
+import { sanitizeNumericInput } from '@/lib/format'
 import { getChartData, type Timeframe } from '@/lib/chartData'
 import dynamic from 'next/dynamic'
 
@@ -93,13 +94,6 @@ function LeverageSlider({ value, onChange, max }: { value: number; onChange: (v:
 
 type OrderType = 'market' | 'limit' | 'stop-limit'
 
-function sanitizePositiveInput(value: string): string {
-  if (value === '' || value === '.') return value
-  const num = parseFloat(value)
-  if (isNaN(num)) return ''
-  if (num < 0) return ''
-  return value
-}
 
 function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryData }) {
   const [side, setSide] = useState<'long' | 'short'>('long')
@@ -175,8 +169,8 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
       {orderType === 'stop-limit' && (
         <div>
           <label className="text-xs text-gray-400 mb-1 block">Trigger Price</label>
-          <input type="number" step="any" min="0" placeholder={formatPerpsPrice(pair.markPrice)}
-            value={triggerPrice} onChange={e => setTriggerPrice(sanitizePositiveInput(e.target.value))}
+          <input type="text" inputMode="decimal" placeholder={formatPerpsPrice(pair.markPrice)}
+            value={triggerPrice} onChange={e => setTriggerPrice(sanitizeNumericInput(e.target.value))}
             className="w-full px-3 py-2 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
         </div>
       )}
@@ -184,16 +178,16 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
       {orderType !== 'market' && (
         <div>
           <label className="text-xs text-gray-400 mb-1 block">Limit Price</label>
-          <input type="number" step="any" min="0" placeholder={formatPerpsPrice(pair.markPrice)}
-            value={limitPrice} onChange={e => setLimitPrice(sanitizePositiveInput(e.target.value))}
+          <input type="text" inputMode="decimal" placeholder={formatPerpsPrice(pair.markPrice)}
+            value={limitPrice} onChange={e => setLimitPrice(sanitizeNumericInput(e.target.value))}
             className="w-full px-3 py-2 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
         </div>
       )}
 
       <div>
         <label className="text-xs text-gray-400 mb-1 block">Size ({pair.baseAsset})</label>
-        <input type="number" step="any" min="0" placeholder="0.00"
-          value={size} onChange={e => setSize(sanitizePositiveInput(e.target.value))}
+        <input type="text" inputMode="decimal" placeholder="0.00"
+          value={size} onChange={e => setSize(sanitizeNumericInput(e.target.value))}
           className={`w-full px-3 py-2 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 ${exceedsMargin ? 'border-yellow-500/50' : 'border-gray-700/30'}`} />
         {exceedsMargin && (
           <p className="text-yellow-400 text-[10px] mt-1">Exceeds available margin ({formatPerpsPrice(account.availableMargin)})</p>
