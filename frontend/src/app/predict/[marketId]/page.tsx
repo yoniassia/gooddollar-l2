@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getMarketById, formatVolume, getMarketStatus, getDaysLeftLabel } from '@/lib/predictData'
 import { generateProbabilityHistory } from '@/lib/chartData'
+import { ChartErrorBoundary } from '@/components/ChartErrorBoundary'
 import dynamic from 'next/dynamic'
 
 const ProbabilityChart = dynamic(
@@ -146,7 +147,9 @@ export default function MarketDetailPage() {
 
           <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-4 mb-4">
             <h3 className="text-xs text-gray-400 mb-2 font-medium">Probability Over Time</h3>
-            <ProbabilityChart data={probData} height={280} />
+            <ChartErrorBoundary>
+              <ProbabilityChart data={probData} height={280} />
+            </ChartErrorBoundary>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">

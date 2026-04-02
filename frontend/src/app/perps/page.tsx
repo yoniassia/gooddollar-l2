@@ -14,6 +14,7 @@ const PriceChart = dynamic(
     ),
   }
 )
+import { ChartErrorBoundary } from '@/components/ChartErrorBoundary'
 import { OrderBook } from '@/components/OrderBook'
 import { RecentTrades } from '@/components/RecentTrades'
 import { OpenPositions } from '@/components/OpenPositions'
@@ -316,7 +317,9 @@ export default function PerpsPage() {
                 </button>
               ))}
             </div>
-            <PriceChart data={chartData} height={400} />
+            <ChartErrorBoundary>
+              <PriceChart data={chartData} height={400} />
+            </ChartErrorBoundary>
           </div>
         </div>
 
