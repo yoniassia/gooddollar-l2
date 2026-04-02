@@ -7,8 +7,8 @@ import { Header } from '@/components/Header'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'GoodSwap — Every Swap Funds UBI',
-  description: 'Swap tokens on GoodDollar L2. Every trade automatically funds universal basic income.',
+  title: 'GoodDollar — DeFi That Funds UBI',
+  description: 'Trade, predict, and invest on GoodDollar L2. Every platform interaction automatically funds universal basic income for verified humans worldwide.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

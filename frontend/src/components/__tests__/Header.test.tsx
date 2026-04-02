@@ -19,7 +19,7 @@ vi.mock('next/link', () => ({
 describe('Header', () => {
   it('renders logo and brand name', () => {
     render(<Header />)
-    expect(screen.getByText('GoodSwap')).toBeInTheDocument()
+    expect(screen.getByText('GoodDollar')).toBeInTheDocument()
     expect(screen.getByText('G$')).toBeInTheDocument()
   })
 

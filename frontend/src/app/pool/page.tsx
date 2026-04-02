@@ -16,7 +16,7 @@ export default function PoolPage() {
       <h1 className="text-3xl font-bold text-white mb-3">Liquidity Pools</h1>
       <p className="text-sm text-gray-400 max-w-sm mb-8">
         Provide liquidity to earn fees while funding universal basic income.
-        Every pool on GoodSwap routes a share of trading fees to the UBI pool.
+        Every pool on GoodDollar routes a share of trading fees to the UBI pool.
       </p>
 
       <Link

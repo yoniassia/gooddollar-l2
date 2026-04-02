@@ -45,7 +45,7 @@ export function Header() {
           <div className="w-8 h-8 rounded-full bg-goodgreen flex items-center justify-center font-bold text-dark text-sm">
             G$
           </div>
-          <span className="text-lg font-semibold text-white">GoodSwap</span>
+          <span className="text-lg font-semibold text-white">GoodDollar</span>
         </div>
 
         <nav className="hidden sm:flex items-center gap-6 text-sm text-gray-400">

@@ -2,7 +2,7 @@ const steps = [
   {
     number: '1',
     title: 'Swap Tokens',
-    description: 'Trade any token on GoodSwap just like you would on any decentralized exchange.',
+    description: 'Trade any token on GoodDollar just like you would on any decentralized exchange.',
     icon: (
       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />

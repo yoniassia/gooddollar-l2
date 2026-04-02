@@ -27,10 +27,10 @@ export default function Home() {
 
       <div className="mb-8 text-center max-w-md relative">
         <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-          Swap. Fund UBI.
+          Trade. Predict. Invest. Fund UBI.
         </h1>
         <p className="text-sm text-gray-400">
-          Every trade on GoodSwap automatically funds universal basic income for verified humans worldwide.
+          Every swap, prediction, and trade on GoodDollar automatically funds universal basic income for verified humans worldwide.
         </p>
       </div>
 
