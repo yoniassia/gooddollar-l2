@@ -14,6 +14,9 @@ export function Header() {
   const isExplore = pathname === '/explore'
   const isPool = pathname === '/pool'
   const isBridge = pathname === '/bridge'
+  const isStocks = pathname.startsWith('/stocks')
+  const isPredict = pathname.startsWith('/predict')
+  const isPerps = pathname.startsWith('/perps')
 
   useEffect(() => {
     if (!mobileMenuOpen) return
@@ -64,6 +67,9 @@ export function Header() {
               </span>
             )}
           </Link>
+          <Link href="/stocks" className={isStocks ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Stocks</Link>
+          <Link href="/predict" className={isPredict ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Predict</Link>
+          <Link href="/perps" className={isPerps ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Perps</Link>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -123,6 +129,27 @@ export function Header() {
             >
               <span className={isBridge ? '' : 'opacity-60'}>Bridge</span>
               <span className="text-xs text-goodgreen/60 bg-goodgreen/10 px-2 py-0.5 rounded-full">Coming Soon</span>
+            </Link>
+            <Link
+              href="/stocks"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isStocks ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
+            >
+              Stocks
+            </Link>
+            <Link
+              href="/predict"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isPredict ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
+            >
+              Predict
+            </Link>
+            <Link
+              href="/perps"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isPerps ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
+            >
+              Perps
             </Link>
           </nav>
         </div>

@@ -1,8 +1,9 @@
 ---
 title: "GoodStocks — Tokenized Stocks Platform"
 parent: gooddollar-l2
-planned: false
+planned: true
 executed: false
+split: true
 priority: high
 depends_on: []
 ---
@@ -12,39 +13,47 @@ depends_on: []
 ## Goal
 Build a tokenized stocks platform on the GoodDollar L2 where users can trade synthetic versions of real equities (AAPL, TSLA, NVDA, etc.) 24/7 with fractional shares, all with UBI fee routing.
 
-## Requirements
+## Research Notes
+- TradingView Lightweight Charts library (open source, MIT) is ideal for stock price charts
+- Chainlink data feeds provide real equity prices — for testnet/mock we'll use static mock data
+- Existing patterns: Next.js App Router, Tailwind dark theme with `goodgreen` accent, `dark-*` bg palette
+- Explore page pattern (data table with sort/search) can be reused for stock listing
+- No smart contracts in this phase — frontend only with mock data layer
 
-### Smart Contracts (Solidity/Foundry)
-- **SyntheticAssetFactory** — Mints/burns synthetic stock tokens pegged to real prices
-- **PriceOracle** — Chainlink oracle integration for real-time equity prices (or mock for testnet)
-- **CollateralVault** — Users deposit G$/USDC as collateral to mint synthetics (150% collateralization ratio)
-- **LiquidationEngine** — Liquidates undercollateralized positions, liquidation bonus → UBI pool
-- **UBIFeeHook** — 0.1% trade fee, 33% → UBI pool
-- **StockRegistry** — Whitelist of supported stocks with ticker, oracle address, trading hours override (24/7)
+## Architecture
 
-### Frontend Pages
-- **/stocks** — Market overview: list of all tokenized stocks with price, 24h change, volume, market cap
-- **/stocks/[ticker]** — Individual stock page: price chart (TradingView lightweight), order form (market/limit), position summary, stock info
-- **/stocks/portfolio** — User's synthetic stock holdings, P&L, collateral health
-- **Mint/Redeem flow** — Deposit collateral → mint synthetic → trade → redeem back to collateral
+```mermaid
+graph TD
+    A[/stocks - Market Overview] --> B[StockTable + Search]
+    B --> C[Mock Stock Data Layer]
+    D[/stocks/ticker - Detail] --> E[TradingView Chart]
+    D --> F[Order Form - mock]
+    D --> G[Stock Info Panel]
+    H[/stocks/portfolio] --> I[Holdings Table]
+    H --> J[P&L Display]
+    H --> K[Collateral Health Indicator]
+    L[Header Nav] --> A
+    C --> D
+    C --> H
+```
 
-### Key Features
-- Fractional shares (buy $1 of AAPL)
-- 24/7 trading (no market hours restriction)
-- Real-time price feeds via oracles
-- Collateral health indicator (green/yellow/red)
-- Price alerts
-- Trading history with P&L
+## Size Estimation
+- **New pages/routes:** 4 (/stocks, /stocks/[ticker], /stocks/portfolio, mint/redeem sub-flow)
+- **New UI components:** 8+ (StockTable, StockRow, PriceChart, OrderForm, PositionSummary, CollateralHealth, MintRedeemDialog, PortfolioTable)
+- **API integrations:** 2 (TradingView widget, mock oracle data)
+- **Complex interactions:** 3 (TradingView chart, real-time price simulation, mint/redeem flow)
+- **Estimated LOC:** ~3000-4000
 
-### Design
-- Professional trading UI (dark theme, clean data tables)
-- TradingView charts embedded
-- Consistent with GoodSwap styling
-- Mobile responsive
+## One-Week Decision: NO
+4 pages, 8+ components, 3 complex interactions, 3000+ LOC. Exceeds every threshold. Must split.
 
-## Success Criteria
-- Users can mint, trade, and redeem at least 5 synthetic stocks
-- Prices track real equities within 0.5% deviation
-- UBI fees correctly route to pool
-- All contract tests pass
-- Responsive UI with charts
+## Split Rationale
+Split into 3 vertical slices by page, each building on the previous:
+1. **Market Overview** — the stock listing page with search/sort and nav integration (~500 LOC)
+2. **Stock Detail** — individual stock page with chart and order form (~800 LOC)
+3. **Portfolio** — user holdings, P&L tracking, collateral health (~600 LOC)
+
+## Children
+- 0049-goodstocks-market-overview
+- 0050-goodstocks-stock-detail
+- 0051-goodstocks-portfolio
