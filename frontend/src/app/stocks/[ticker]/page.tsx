@@ -5,7 +5,17 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getStockByTicker, formatStockPrice, formatLargeNumber } from '@/lib/stockData'
 import { getChartData, type Timeframe } from '@/lib/chartData'
-import { PriceChart } from '@/components/PriceChart'
+import dynamic from 'next/dynamic'
+
+const PriceChart = dynamic(
+  () => import('@/components/PriceChart').then(m => ({ default: m.PriceChart })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full bg-dark-50/30 rounded-xl animate-pulse" style={{ height: 400 }} />
+    ),
+  }
+)
 
 const TIMEFRAMES: Timeframe[] = ['1D', '1W', '1M', '3M', '1Y']
 

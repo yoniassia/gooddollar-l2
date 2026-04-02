@@ -3,7 +3,17 @@
 import { useState, useMemo } from 'react'
 import { getPairs, getPairBySymbol, getAccountSummary, formatPerpsPrice, formatLargeValue, formatFundingRate, getFundingCountdown, type PerpPair, type AccountSummaryData } from '@/lib/perpsData'
 import { getChartData, type Timeframe } from '@/lib/chartData'
-import { PriceChart } from '@/components/PriceChart'
+import dynamic from 'next/dynamic'
+
+const PriceChart = dynamic(
+  () => import('@/components/PriceChart').then(m => ({ default: m.PriceChart })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full bg-dark-50/30 rounded-xl animate-pulse" style={{ height: 400 }} />
+    ),
+  }
+)
 import { OrderBook } from '@/components/OrderBook'
 import { RecentTrades } from '@/components/RecentTrades'
 import { OpenPositions } from '@/components/OpenPositions'

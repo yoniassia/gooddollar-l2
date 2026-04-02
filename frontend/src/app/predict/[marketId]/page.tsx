@@ -5,7 +5,17 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getMarketById, formatVolume, getMarketStatus, getDaysLeftLabel } from '@/lib/predictData'
 import { generateProbabilityHistory } from '@/lib/chartData'
-import { ProbabilityChart } from '@/components/ProbabilityChart'
+import dynamic from 'next/dynamic'
+
+const ProbabilityChart = dynamic(
+  () => import('@/components/ProbabilityChart').then(m => ({ default: m.ProbabilityChart })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full bg-dark-50/30 rounded-xl animate-pulse" style={{ height: 300 }} />
+    ),
+  }
+)
 
 function TradePanel({ market }: { market: ReturnType<typeof getMarketById> & {} }) {
   const [side, setSide] = useState<'yes' | 'no'>('yes')
