@@ -26,8 +26,9 @@ The UBI Chain. An OP Stack L2 where every transaction funds universal basic inco
 - [ ] GoodSwap — Uniswap V4 fork with UBI fee hooks
 - [ ] GoodLend — Aave V3 fork with UBI fee hooks
 - [ ] GoodBridge — Cross-chain bridge (Li.Fi integration)
-- [ ] GoodPerps — Perpetual futures exchange
-- [ ] GoodPredict — Prediction markets (Polymarket fork)
+- [ ] GoodPerps — Perpetual futures DEX (Hyperliquid-style order book + vAMM)
+- [ ] GoodPredict — Prediction markets (Polymarket CLOB-style)
+- [ ] GoodStocks — Tokenized stocks (synthetic assets pegged to real equities via Chainlink oracles, fractional shares, 24/7 trading)
 
 ### Phase 3: Ecosystem
 - [ ] GoodStake — Liquid staking for G$
