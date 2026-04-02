@@ -202,11 +202,11 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
 
       {sizeNum > 0 && (
         <div className="space-y-1 text-xs">
-          <div className="flex justify-between text-gray-400"><span>Notional</span><span className="text-white">{formatPerpsPrice(notional)}</span></div>
-          <div className="flex justify-between text-gray-400"><span>Margin</span><span className="text-white">{formatPerpsPrice(marginRequired)}</span></div>
-          <div className="flex justify-between text-gray-400"><span>Liq. Price</span><span className="text-yellow-400">{formatPerpsPrice(liqPrice)}</span></div>
-          <div className="flex justify-between text-gray-400"><span>Fee ({orderType === 'market' ? '0.05%' : '0.02%'})</span><span className="text-white">${fee.toFixed(2)}</span></div>
-          <div className="flex justify-between text-goodgreen/80"><span>→ UBI (33%)</span><span>${ubiFee.toFixed(2)}</span></div>
+          <div className="flex justify-between text-gray-400"><span>Notional</span><span className="text-white truncate ml-2">{formatPerpsPrice(notional)}</span></div>
+          <div className="flex justify-between text-gray-400"><span>Margin</span><span className="text-white truncate ml-2">{formatPerpsPrice(marginRequired)}</span></div>
+          <div className="flex justify-between text-gray-400"><span>Liq. Price</span><span className="text-yellow-400 truncate ml-2">{formatPerpsPrice(liqPrice)}</span></div>
+          <div className="flex justify-between text-gray-400"><span>Fee ({orderType === 'market' ? '0.05%' : '0.02%'})</span><span className="text-white truncate ml-2">{formatLargeValue(fee)}</span></div>
+          <div className="flex justify-between text-goodgreen/80"><span>→ UBI (33%)</span><span className="truncate ml-2">{formatLargeValue(ubiFee)}</span></div>
         </div>
       )}
 

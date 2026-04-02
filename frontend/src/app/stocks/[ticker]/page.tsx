@@ -80,19 +80,19 @@ function OrderForm({ stock }: { stock: { ticker: string; price: number } }) {
         <div className="mb-4 space-y-1.5 text-xs">
           <div className="flex justify-between text-gray-400">
             <span>Est. Shares</span>
-            <span className="text-white">{shares.toFixed(4)} {stock.ticker}</span>
+            <span className="text-white truncate ml-2">{shares >= 1e6 ? `${(shares / 1e6).toFixed(2)}M` : shares >= 1e3 ? `${(shares / 1e3).toFixed(1)}K` : shares.toFixed(4)} {stock.ticker}</span>
           </div>
           <div className="flex justify-between text-gray-400">
             <span>Price</span>
-            <span className="text-white">{formatStockPrice(effectivePrice)}</span>
+            <span className="text-white truncate ml-2">{formatStockPrice(effectivePrice)}</span>
           </div>
           <div className="flex justify-between text-gray-400">
             <span>Fee (0.1%)</span>
-            <span className="text-white">${fee.toFixed(2)}</span>
+            <span className="text-white truncate ml-2">{formatLargeNumber(fee)}</span>
           </div>
           <div className="flex justify-between text-goodgreen/80">
             <span>→ UBI Pool (33%)</span>
-            <span>${ubiFee.toFixed(2)}</span>
+            <span className="truncate ml-2">{formatLargeNumber(ubiFee)}</span>
           </div>
         </div>
       )}
