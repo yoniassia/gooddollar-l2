@@ -3,6 +3,7 @@
 import { useState, useMemo, memo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { TokenIcon } from '@/components/TokenIcon'
+import { Sparkline } from '@/components/Sparkline'
 import { getTokenMarketData, formatPrice, formatVolume, formatMarketCap, type TokenMarketData } from '@/lib/marketData'
 
 type SortField = 'price' | 'change24h' | 'volume24h' | 'marketCap'
@@ -51,6 +52,9 @@ const TokenRow = memo(function TokenRow({ token, idx, onRowClick }: TokenRowProp
       </td>
       <td className="py-3 px-3 text-right text-gray-300 hidden md:table-cell">
         {formatMarketCap(token.marketCap)}
+      </td>
+      <td className="py-3 px-2 hidden lg:table-cell">
+        <Sparkline data={token.sparkline7d} positive={token.change24h >= 0} />
       </td>
       <td className="py-3 px-1 text-right w-20 hidden sm:table-cell">
         <button
@@ -147,13 +151,14 @@ export default function ExplorePage() {
                 >
                   Market Cap <SortArrow active={sortField === 'marketCap'} dir={sortDir} />
                 </th>
+                <th className="text-right py-3 px-2 font-semibold hidden lg:table-cell text-gray-400">7d</th>
                 <th className="w-20 hidden sm:table-cell" />
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-500">
+                  <td colSpan={8} className="py-12 text-center text-gray-500">
                     No tokens match your search
                   </td>
                 </tr>

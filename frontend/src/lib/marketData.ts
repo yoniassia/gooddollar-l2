@@ -5,6 +5,7 @@ export interface TokenMarketData extends Token {
   change24h: number
   volume24h: number
   marketCap: number
+  sparkline7d: number[]
 }
 
 const MOCK_MARKET_DATA: Record<string, Omit<TokenMarketData, keyof Token>> = {
@@ -28,13 +29,47 @@ const MOCK_MARKET_DATA: Record<string, Omit<TokenMarketData, keyof Token>> = {
   'WETH': { price: 3012.45, change24h: 2.34, volume24h: 2_100_000_000, marketCap: 10_200_000_000 },
 }
 
+function seededRandom(seed: number): () => number {
+  let s = seed
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff
+    return (s >>> 0) / 0xffffffff
+  }
+}
+
+function hashString(str: string): number {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash)
+}
+
+function generateSparkline(price: number, change24h: number, symbol: string): number[] {
+  const rng = seededRandom(hashString(symbol))
+  const weeklyChange = change24h * 3
+  const startPrice = price / (1 + weeklyChange / 100)
+  const points: number[] = [startPrice]
+  for (let i = 1; i <= 6; i++) {
+    const progress = i / 6
+    const trend = startPrice + (price - startPrice) * progress
+    const noise = (rng() - 0.5) * price * 0.03
+    points.push(Math.max(trend + noise, price * 0.01))
+  }
+  return points
+}
+
 export function getTokenMarketData(): TokenMarketData[] {
   return TOKENS
     .filter(t => MOCK_MARKET_DATA[t.symbol])
-    .map(t => ({
-      ...t,
-      ...MOCK_MARKET_DATA[t.symbol],
-    }))
+    .map(t => {
+      const data = MOCK_MARKET_DATA[t.symbol]
+      return {
+        ...t,
+        ...data,
+        sparkline7d: generateSparkline(data.price, data.change24h, t.symbol),
+      }
+    })
     .sort((a, b) => b.marketCap - a.marketCap)
 }
 
