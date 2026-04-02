@@ -8,9 +8,52 @@ export interface Stock {
   marketCap: number
   high52w: number
   low52w: number
+  sparkline7d: number[]
 }
 
-const MOCK_STOCKS: Stock[] = [
+function seededRandom(seed: number): () => number {
+  let s = seed
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff
+    return (s >>> 0) / 0xffffffff
+  }
+}
+
+function hashString(str: string): number {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash)
+}
+
+function generateSparkline(price: number, change24h: number, ticker: string): number[] {
+  const rng = seededRandom(hashString(ticker + '-stock'))
+  const weeklyChange = change24h * 3
+  const startPrice = price / (1 + weeklyChange / 100)
+  const points: number[] = [startPrice]
+  for (let i = 1; i <= 6; i++) {
+    const progress = i / 6
+    const trend = startPrice + (price - startPrice) * progress
+    const noise = (rng() - 0.5) * price * 0.03
+    points.push(Math.max(trend + noise, price * 0.01))
+  }
+  return points
+}
+
+interface StockSeed {
+  ticker: string
+  name: string
+  sector: string
+  price: number
+  change24h: number
+  volume24h: number
+  marketCap: number
+  high52w: number
+  low52w: number
+}
+
+const STOCK_SEEDS: StockSeed[] = [
   { ticker: 'AAPL', name: 'Apple Inc.', sector: 'Technology', price: 178.72, change24h: 1.24, volume24h: 58_300_000, marketCap: 2_780_000_000_000, high52w: 199.62, low52w: 143.88 },
   { ticker: 'TSLA', name: 'Tesla Inc.', sector: 'Automotive', price: 248.50, change24h: -2.18, volume24h: 112_500_000, marketCap: 790_000_000_000, high52w: 299.29, low52w: 138.80 },
   { ticker: 'NVDA', name: 'NVIDIA Corp.', sector: 'Technology', price: 875.30, change24h: 3.45, volume24h: 42_800_000, marketCap: 2_160_000_000_000, high52w: 974.00, low52w: 373.56 },
@@ -24,6 +67,11 @@ const MOCK_STOCKS: Stock[] = [
   { ticker: 'NFLX', name: 'Netflix Inc.', sector: 'Entertainment', price: 628.90, change24h: 2.67, volume24h: 5_100_000, marketCap: 272_000_000_000, high52w: 639.00, low52w: 344.73 },
   { ticker: 'AMD', name: 'Advanced Micro Devices', sector: 'Technology', price: 164.80, change24h: -1.78, volume24h: 52_600_000, marketCap: 266_000_000_000, high52w: 227.30, low52w: 93.12 },
 ]
+
+const MOCK_STOCKS: Stock[] = STOCK_SEEDS.map(s => ({
+  ...s,
+  sparkline7d: generateSparkline(s.price, s.change24h, s.ticker),
+}))
 
 export function getStockData(): Stock[] {
   return [...MOCK_STOCKS].sort((a, b) => b.marketCap - a.marketCap)

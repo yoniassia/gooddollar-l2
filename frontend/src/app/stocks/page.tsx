@@ -3,6 +3,7 @@
 import { useState, useMemo, memo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { getStockData, formatStockPrice, formatLargeNumber, type Stock } from '@/lib/stockData'
+import { Sparkline } from '@/components/Sparkline'
 import { InfoBanner } from '@/components/InfoBanner'
 
 type SortField = 'price' | 'change24h' | 'volume24h' | 'marketCap'
@@ -57,6 +58,12 @@ const StockRow = memo(function StockRow({ stock, idx, onRowClick }: StockRowProp
       </td>
       <td className="py-3 px-3 text-right text-gray-300 hidden md:table-cell">
         {formatLargeNumber(stock.marketCap)}
+      </td>
+      <td className="py-3 px-2 hidden lg:table-cell">
+        <Sparkline data={stock.sparkline7d} positive={stock.change24h >= 0} />
+      </td>
+      <td className="py-3 px-2 hidden lg:table-cell" aria-label={`7-day trend: ${stock.change24h >= 0 ? 'up' : 'down'} ${Math.abs(stock.change24h).toFixed(1)}%`}>
+        <Sparkline data={stock.sparkline7d} positive={stock.change24h >= 0} />
       </td>
       <td className="py-3 px-1 text-right w-20 hidden sm:table-cell">
         <button
@@ -156,13 +163,15 @@ export default function StocksPage() {
                 <th className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors hidden md:table-cell" onClick={() => handleSort('marketCap')}>
                   Market Cap <SortArrow active={sortField === 'marketCap'} dir={sortDir} />
                 </th>
+                <th className="py-3 px-2 hidden lg:table-cell" />
+                <th className="py-3 px-2 hidden lg:table-cell" aria-label="7-day trend" />
                 <th className="w-20 hidden sm:table-cell" />
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-500">
+                  <td colSpan={8} className="py-12 text-center text-gray-500">
                     No stocks match your search
                   </td>
                 </tr>
