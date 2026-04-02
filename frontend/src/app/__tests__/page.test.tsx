@@ -1,6 +1,21 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 
+vi.mock('next/dynamic', () => ({
+  __esModule: true,
+  default: (loader: () => Promise<any>) => {
+    let Comp: any = null
+    loader().then((m: any) => { Comp = m.default || m })
+    const Wrapper = (props: any) => Comp ? <Comp {...props} /> : null
+    Wrapper.displayName = 'DynamicMock'
+    return Wrapper
+  },
+}))
+
+vi.mock('@/components/StartSwappingCTA', () => ({
+  StartSwappingCTA: () => <div><button>Start Swapping →</button></div>,
+}))
+
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }))
