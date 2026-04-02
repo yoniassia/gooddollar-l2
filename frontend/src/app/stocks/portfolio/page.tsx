@@ -1,0 +1,190 @@
+'use client'
+
+import { useState, useMemo } from 'react'
+import Link from 'next/link'
+import { getPortfolioHoldings, getTradeHistory, getPortfolioSummary, getStockByTicker, formatStockPrice, formatLargeNumber, type PortfolioHolding, type TradeRecord } from '@/lib/stockData'
+
+type Tab = 'holdings' | 'history'
+
+function CollateralHealth({ ratio }: { ratio: number }) {
+  const color = ratio >= 150 ? 'text-green-400' : ratio >= 120 ? 'text-yellow-400' : 'text-red-400'
+  const bgColor = ratio >= 150 ? 'bg-green-400' : ratio >= 120 ? 'bg-yellow-400' : 'bg-red-400'
+  const label = ratio >= 150 ? 'Healthy' : ratio >= 120 ? 'At Risk' : 'Critical'
+  const barWidth = Math.min(100, (ratio / 200) * 100)
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-xs text-gray-400">Collateral Health</span>
+        <span className={`text-xs font-medium ${color}`}>{ratio.toFixed(0)}% — {label}</span>
+      </div>
+      <div className="h-1.5 bg-dark-50 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all ${bgColor}`} style={{ width: `${barWidth}%` }} />
+      </div>
+    </div>
+  )
+}
+
+function HoldingRow({ holding, onClick }: { holding: PortfolioHolding; onClick: () => void }) {
+  const stock = getStockByTicker(holding.ticker)
+  const value = holding.shares * holding.currentPrice
+  const cost = holding.shares * holding.avgCost
+  const pnl = value - cost
+  const pnlPct = cost > 0 ? (pnl / cost) * 100 : 0
+
+  return (
+    <tr onClick={onClick} className="border-b border-gray-700/10 hover:bg-dark-50/50 cursor-pointer transition-colors">
+      <td className="py-3 px-3">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-goodgreen/30 to-goodgreen/10 border border-goodgreen/20 flex items-center justify-center text-[9px] font-bold text-goodgreen">
+            {holding.ticker.slice(0, 2)}
+          </div>
+          <div>
+            <span className="font-medium text-white text-sm">{holding.ticker}</span>
+            {stock && <span className="text-gray-500 text-xs ml-1 hidden sm:inline">{stock.name}</span>}
+          </div>
+        </div>
+      </td>
+      <td className="py-3 px-3 text-right text-white text-sm">{holding.shares.toFixed(2)}</td>
+      <td className="py-3 px-3 text-right text-gray-300 text-sm hidden sm:table-cell">{formatStockPrice(holding.avgCost)}</td>
+      <td className="py-3 px-3 text-right text-white text-sm">{formatStockPrice(holding.currentPrice)}</td>
+      <td className="py-3 px-3 text-right text-white text-sm hidden sm:table-cell">{formatStockPrice(value)}</td>
+      <td className={`py-3 px-3 text-right text-sm font-medium ${pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+        {pnl >= 0 ? '+' : ''}{formatStockPrice(pnl)}
+        <span className="text-xs ml-1 opacity-70">({pnlPct >= 0 ? '+' : ''}{pnlPct.toFixed(1)}%)</span>
+      </td>
+    </tr>
+  )
+}
+
+function TradeRow({ trade }: { trade: TradeRecord }) {
+  const date = new Date(trade.timestamp)
+  return (
+    <tr className="border-b border-gray-700/10">
+      <td className="py-3 px-3 text-sm text-white">{trade.ticker}</td>
+      <td className="py-3 px-3 text-sm">
+        <span className={`px-2 py-0.5 rounded text-xs font-medium ${trade.side === 'buy' ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
+          {trade.side.toUpperCase()}
+        </span>
+      </td>
+      <td className="py-3 px-3 text-right text-gray-300 text-sm">{trade.shares.toFixed(2)}</td>
+      <td className="py-3 px-3 text-right text-white text-sm">{formatStockPrice(trade.price)}</td>
+      <td className="py-3 px-3 text-right text-gray-400 text-sm hidden sm:table-cell">
+        {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+      </td>
+      <td className={`py-3 px-3 text-right text-sm font-medium ${trade.pnl > 0 ? 'text-green-400' : trade.pnl < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+        {trade.pnl !== 0 ? `${trade.pnl > 0 ? '+' : ''}${formatStockPrice(trade.pnl)}` : '—'}
+      </td>
+    </tr>
+  )
+}
+
+export default function StocksPortfolioPage() {
+  const [tab, setTab] = useState<Tab>('holdings')
+  const holdings = useMemo(() => getPortfolioHoldings(), [])
+  const trades = useMemo(() => getTradeHistory(), [])
+  const summary = useMemo(() => getPortfolioSummary(), [])
+
+  return (
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="flex items-center gap-2 mb-6">
+        <Link href="/stocks" className="text-gray-400 hover:text-white transition-colors">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        </Link>
+        <h1 className="text-2xl font-bold text-white">Stock Portfolio</h1>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
+          <div className="text-xs text-gray-400 mb-1">Total Value</div>
+          <div className="text-xl font-bold text-white">{formatLargeNumber(summary.totalValue)}</div>
+        </div>
+        <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
+          <div className="text-xs text-gray-400 mb-1">Unrealized P&L</div>
+          <div className={`text-xl font-bold ${summary.unrealizedPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {summary.unrealizedPnl >= 0 ? '+' : ''}{formatStockPrice(summary.unrealizedPnl)}
+            <span className="text-sm ml-1 opacity-70">({summary.pnlPercent >= 0 ? '+' : ''}{summary.pnlPercent.toFixed(1)}%)</span>
+          </div>
+        </div>
+        <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
+          <CollateralHealth ratio={summary.healthRatio} />
+          <div className="mt-2 text-xs text-gray-500">
+            {formatStockPrice(summary.totalCollateral)} / {formatStockPrice(summary.totalRequired)} required
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-dark-100 rounded-2xl border border-gray-700/20 overflow-hidden">
+        <div className="flex border-b border-gray-700/20">
+          <button onClick={() => setTab('holdings')}
+            className={`px-5 py-3 text-sm font-medium transition-colors ${tab === 'holdings' ? 'text-white border-b-2 border-goodgreen' : 'text-gray-400 hover:text-white'}`}>
+            Holdings ({holdings.length})
+          </button>
+          <button onClick={() => setTab('history')}
+            className={`px-5 py-3 text-sm font-medium transition-colors ${tab === 'history' ? 'text-white border-b-2 border-goodgreen' : 'text-gray-400 hover:text-white'}`}>
+            History ({trades.length})
+          </button>
+        </div>
+
+        {tab === 'holdings' && (
+          holdings.length === 0 ? (
+            <div className="py-16 text-center">
+              <svg className="w-10 h-10 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <p className="text-gray-400 text-sm mb-1">No positions yet</p>
+              <p className="text-gray-600 text-xs mb-4">Start trading to build your portfolio</p>
+              <Link href="/stocks" className="text-goodgreen text-sm hover:underline">Browse Stocks</Link>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-700/30 text-gray-400">
+                    <th className="text-left py-2.5 px-3 font-semibold">Stock</th>
+                    <th className="text-right py-2.5 px-3 font-semibold">Shares</th>
+                    <th className="text-right py-2.5 px-3 font-semibold hidden sm:table-cell">Avg Cost</th>
+                    <th className="text-right py-2.5 px-3 font-semibold">Price</th>
+                    <th className="text-right py-2.5 px-3 font-semibold hidden sm:table-cell">Value</th>
+                    <th className="text-right py-2.5 px-3 font-semibold">P&L</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {holdings.map(h => (
+                    <HoldingRow key={h.ticker} holding={h} onClick={() => {}} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        )}
+
+        {tab === 'history' && (
+          trades.length === 0 ? (
+            <div className="py-16 text-center">
+              <p className="text-gray-400 text-sm">No trade history</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-700/30 text-gray-400">
+                    <th className="text-left py-2.5 px-3 font-semibold">Stock</th>
+                    <th className="text-left py-2.5 px-3 font-semibold">Side</th>
+                    <th className="text-right py-2.5 px-3 font-semibold">Shares</th>
+                    <th className="text-right py-2.5 px-3 font-semibold">Price</th>
+                    <th className="text-right py-2.5 px-3 font-semibold hidden sm:table-cell">Date</th>
+                    <th className="text-right py-2.5 px-3 font-semibold">P&L</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trades.map(t => <TradeRow key={t.id} trade={t} />)}
+                </tbody>
+              </table>
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  )
+}
