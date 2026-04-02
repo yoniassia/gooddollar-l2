@@ -6,7 +6,7 @@ deps: [goodperps-trading-terminal]
 split: false
 depth: 1
 planned: true
-executed: false
+executed: true
 ---
 
 # GoodPerps Order Book & Advanced Trading

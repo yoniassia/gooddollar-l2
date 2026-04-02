@@ -6,7 +6,7 @@ deps: [goodpredict-markets-browser]
 split: false
 depth: 1
 planned: true
-executed: false
+executed: true
 ---
 
 # GoodPredict Market Detail Page

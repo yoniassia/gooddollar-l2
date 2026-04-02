@@ -6,7 +6,7 @@ deps: [goodstocks-stock-detail]
 split: false
 depth: 1
 planned: true
-executed: false
+executed: true
 ---
 
 # GoodStocks Portfolio Page

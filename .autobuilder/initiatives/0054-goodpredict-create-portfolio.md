@@ -6,7 +6,7 @@ deps: [goodpredict-market-detail]
 split: false
 depth: 1
 planned: true
-executed: false
+executed: true
 ---
 
 # GoodPredict Create Market & Portfolio Pages

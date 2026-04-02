@@ -6,7 +6,7 @@ deps: [goodstocks-market-overview]
 split: false
 depth: 1
 planned: true
-executed: false
+executed: true
 ---
 
 # GoodStocks Stock Detail Page
