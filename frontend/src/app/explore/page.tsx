@@ -6,7 +6,7 @@ import { TokenIcon } from '@/components/TokenIcon'
 import { Sparkline } from '@/components/Sparkline'
 import { getTokenMarketData, formatPrice, formatVolume, formatMarketCap, type TokenMarketData } from '@/lib/marketData'
 
-type SortField = 'price' | 'change24h' | 'volume24h' | 'marketCap'
+type SortField = 'price' | 'change1h' | 'change24h' | 'change7d' | 'volume24h' | 'marketCap'
 type SortDir = 'asc' | 'desc'
 
 function SortArrow({ active, dir }: { active: boolean; dir: SortDir }) {
@@ -39,12 +39,28 @@ const TokenRow = memo(function TokenRow({ token, idx, onRowClick }: TokenRowProp
       <td className="py-3 px-3 text-right text-white font-medium">
         {formatPrice(token.price)}
       </td>
+      <td className={`py-3 px-2 text-right font-medium hidden lg:table-cell ${
+        token.change1h >= 0 ? 'text-green-400' : 'text-red-400'
+      }`}>
+        <span className="inline-flex items-center gap-0.5 text-xs">
+          {token.change1h >= 0 ? '▲' : '▼'}
+          {Math.abs(token.change1h).toFixed(1)}%
+        </span>
+      </td>
       <td className={`py-3 px-3 text-right font-medium ${
         token.change24h >= 0 ? 'text-green-400' : 'text-red-400'
       }`}>
         <span className="inline-flex items-center gap-0.5">
           {token.change24h >= 0 ? '▲' : '▼'}
           {Math.abs(token.change24h).toFixed(2)}%
+        </span>
+      </td>
+      <td className={`py-3 px-2 text-right font-medium hidden lg:table-cell ${
+        token.change7d >= 0 ? 'text-green-400' : 'text-red-400'
+      }`}>
+        <span className="inline-flex items-center gap-0.5 text-xs">
+          {token.change7d >= 0 ? '▲' : '▼'}
+          {Math.abs(token.change7d).toFixed(1)}%
         </span>
       </td>
       <td className="py-3 px-3 text-right text-gray-300 hidden sm:table-cell">
@@ -104,7 +120,7 @@ export default function ExplorePage() {
   }, [router])
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-5xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Explore Tokens</h1>
         <p className="text-sm text-gray-400">Browse token prices, volume, and market data on GoodDollar L2</p>
@@ -134,10 +150,22 @@ export default function ExplorePage() {
                   Price <SortArrow active={sortField === 'price'} dir={sortDir} />
                 </th>
                 <th
+                  className="text-right py-3 px-2 font-semibold cursor-pointer hover:text-white transition-colors hidden lg:table-cell"
+                  onClick={() => handleSort('change1h')}
+                >
+                  1h <SortArrow active={sortField === 'change1h'} dir={sortDir} />
+                </th>
+                <th
                   className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors"
                   onClick={() => handleSort('change24h')}
                 >
-                  <span className="hidden sm:inline">24h </span>Change <SortArrow active={sortField === 'change24h'} dir={sortDir} />
+                  24h <SortArrow active={sortField === 'change24h'} dir={sortDir} />
+                </th>
+                <th
+                  className="text-right py-3 px-2 font-semibold cursor-pointer hover:text-white transition-colors hidden lg:table-cell"
+                  onClick={() => handleSort('change7d')}
+                >
+                  7d <SortArrow active={sortField === 'change7d'} dir={sortDir} />
                 </th>
                 <th
                   className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors hidden sm:table-cell"
@@ -151,14 +179,14 @@ export default function ExplorePage() {
                 >
                   Market Cap <SortArrow active={sortField === 'marketCap'} dir={sortDir} />
                 </th>
-                <th className="text-right py-3 px-2 font-semibold hidden lg:table-cell text-gray-400">7d</th>
+                <th className="py-3 px-2 hidden lg:table-cell" />
                 <th className="w-20 hidden sm:table-cell" />
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-500">
+                  <td colSpan={10} className="py-12 text-center text-gray-500">
                     No tokens match your search
                   </td>
                 </tr>
