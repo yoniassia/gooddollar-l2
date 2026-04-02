@@ -61,24 +61,26 @@ export function filterAndSortMarkets(
     result = result.filter(m => m.question.toLowerCase().includes(q))
   }
 
+  const expiredLast = (a: PredictionMarket, b: PredictionMarket) => {
+    const aExpired = getMarketStatus(a.endDate) === 'expired'
+    const bExpired = getMarketStatus(b.endDate) === 'expired'
+    if (aExpired && !bExpired) return 1
+    if (!aExpired && bExpired) return -1
+    return 0
+  }
+
   switch (sort) {
     case 'trending':
-      result.sort((a, b) => b.volume - a.volume)
+      result.sort((a, b) => expiredLast(a, b) || b.volume - a.volume)
       break
     case 'newest':
-      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      result.sort((a, b) => expiredLast(a, b) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       break
     case 'volume':
-      result.sort((a, b) => b.volume - a.volume)
+      result.sort((a, b) => expiredLast(a, b) || b.volume - a.volume)
       break
     case 'ending':
-      result.sort((a, b) => {
-        const aExpired = getMarketStatus(a.endDate) === 'expired'
-        const bExpired = getMarketStatus(b.endDate) === 'expired'
-        if (aExpired && !bExpired) return 1
-        if (!aExpired && bExpired) return -1
-        return new Date(a.endDate).getTime() - new Date(b.endDate).getTime()
-      })
+      result.sort((a, b) => expiredLast(a, b) || new Date(a.endDate).getTime() - new Date(b.endDate).getTime())
       break
   }
 
