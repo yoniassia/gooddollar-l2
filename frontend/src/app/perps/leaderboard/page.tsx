@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import Link from 'next/link'
 import { getLeaderboard, formatPerpsPrice } from '@/lib/perpsData'
 
 type TimeFilter = '24h' | '7d' | '30d' | 'all'
@@ -12,14 +11,9 @@ export default function PerpsLeaderboardPage() {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      <div className="flex items-center gap-2 mb-6">
-        <Link href="/perps" className="text-gray-400 hover:text-white transition-colors">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-white">Leaderboard</h1>
-          <p className="text-sm text-gray-400">Top traders by P&L</p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-white">Leaderboard</h1>
+        <p className="text-sm text-gray-400">Top traders by P&L</p>
       </div>
 
       <div className="flex gap-2 mb-4">
