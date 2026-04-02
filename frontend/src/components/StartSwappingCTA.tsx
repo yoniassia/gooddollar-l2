@@ -18,7 +18,7 @@ export function StartSwappingCTA() {
         onClick={handleClick}
         className="group px-8 py-3 rounded-full bg-goodgreen text-dark font-semibold text-sm hover:bg-goodgreen/90 transition-colors shadow-lg shadow-goodgreen/20"
       >
-        Start Swapping
+        Start Trading
         <span className="inline-block ml-1.5 transition-transform group-hover:translate-x-0.5">&rarr;</span>
       </button>
     </div>

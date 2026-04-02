@@ -34,7 +34,7 @@ describe('PlatformShowcase', () => {
 
   it('shows CTA text for each product', () => {
     render(<PlatformShowcase />)
-    expect(screen.getByText(/Explore Pools/)).toBeInTheDocument()
+    expect(screen.getByText(/Explore Tokens/)).toBeInTheDocument()
     expect(screen.getByText(/View Stocks/)).toBeInTheDocument()
     expect(screen.getByText(/View Markets/)).toBeInTheDocument()
     expect(screen.getByText(/Trade Perps/)).toBeInTheDocument()

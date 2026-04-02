@@ -1,0 +1,5 @@
+{
+  "permissions": {
+    "allow": ["Bash(curl*)", "Bash(python3*)", "Bash(cd*)", "Bash(git*)", "Bash(forge*)", "Bash(npm*)", "Bash(node*)", "Bash(cat*)", "Bash(ls*)", "Bash(mkdir*)", "Bash(cp*)", "Bash(mv*)", "Bash(find*)", "Bash(grep*)", "Bash(echo*)", "Bash(touch*)", "Bash(rm*)", "Bash(sed*)", "Bash(awk*)", "Write(*)", "Read(*)"]
+  }
+}

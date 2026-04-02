@@ -6,15 +6,15 @@ describe('HowItWorks', () => {
   it('renders three steps', () => {
     render(<HowItWorks />)
     expect(screen.getByText('How It Works')).toBeInTheDocument()
-    expect(screen.getByText('Swap Tokens')).toBeInTheDocument()
+    expect(screen.getByText('Trade Any Asset')).toBeInTheDocument()
     expect(screen.getByText('Fees Fund UBI')).toBeInTheDocument()
     expect(screen.getByText('People Earn Income')).toBeInTheDocument()
   })
 
   it('renders step descriptions', () => {
     render(<HowItWorks />)
-    expect(screen.getByText(/Trade any token/i)).toBeInTheDocument()
-    expect(screen.getByText(/33% of every swap fee/i)).toBeInTheDocument()
+    expect(screen.getByText(/Swap tokens, trade stocks/i)).toBeInTheDocument()
+    expect(screen.getByText(/33% of every trading fee/i)).toBeInTheDocument()
     expect(screen.getByText(/verified humans worldwide/i)).toBeInTheDocument()
   })
 
