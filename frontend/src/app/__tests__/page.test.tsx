@@ -36,6 +36,14 @@ vi.mock('@/components/LandingFooter', () => ({
   LandingFooter: () => <footer>Footer</footer>,
 }))
 
+vi.mock('@/components/UBIExplainer', () => ({
+  UBIExplainer: () => <section>UBI Explainer</section>,
+}))
+
+vi.mock('@/components/PlatformShowcase', () => ({
+  PlatformShowcase: () => <section>Platform Showcase</section>,
+}))
+
 import Home from '../page'
 
 describe('Landing page — Start Swapping CTA', () => {

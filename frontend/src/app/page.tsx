@@ -11,6 +11,12 @@ const StartSwappingCTA = dynamic(
 const StatsRow = dynamic(
   () => import('@/components/StatsRow').then(m => ({ default: m.StatsRow }))
 )
+const UBIExplainer = dynamic(
+  () => import('@/components/UBIExplainer').then(m => ({ default: m.UBIExplainer }))
+)
+const PlatformShowcase = dynamic(
+  () => import('@/components/PlatformShowcase').then(m => ({ default: m.PlatformShowcase }))
+)
 const LandingFooter = dynamic(
   () => import('@/components/LandingFooter').then(m => ({ default: m.LandingFooter }))
 )
@@ -68,6 +74,8 @@ export default function Home() {
       </div>
 
       <HowItWorks />
+      <UBIExplainer />
+      <PlatformShowcase />
       <StartSwappingCTA />
       <StatsRow />
       <LandingFooter />
