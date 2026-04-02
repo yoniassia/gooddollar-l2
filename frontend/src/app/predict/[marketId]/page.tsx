@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getMarketById, formatVolume, getMarketStatus, getDaysLeftLabel } from '@/lib/predictData'
 import { generateProbabilityHistory } from '@/lib/chartData'
@@ -88,7 +88,6 @@ function TradePanel({ market }: { market: ReturnType<typeof getMarketById> & {} 
 
 export default function MarketDetailPage() {
   const params = useParams()
-  const router = useRouter()
   const marketId = params.marketId as string
   const market = getMarketById(marketId)
 
@@ -117,11 +116,6 @@ export default function MarketDetailPage() {
 
   return (
     <div className="w-full max-w-5xl mx-auto">
-      <button onClick={() => router.push('/predict')} className="flex items-center gap-1 text-sm text-gray-400 hover:text-white transition-colors mb-4">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-        Back to Markets
-      </button>
-
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="flex-1 min-w-0">
           <div className="mb-4">

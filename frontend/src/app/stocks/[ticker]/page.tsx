@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getStockByTicker, formatStockPrice, formatLargeNumber } from '@/lib/stockData'
 import { getChartData, type Timeframe } from '@/lib/chartData'
@@ -104,7 +104,6 @@ function OrderForm({ stock }: { stock: { ticker: string; price: number } }) {
 
 export default function StockDetailPage() {
   const params = useParams()
-  const router = useRouter()
   const ticker = (params.ticker as string)?.toUpperCase()
   const stock = getStockByTicker(ticker || '')
   const [timeframe, setTimeframe] = useState<Timeframe>('3M')
@@ -128,11 +127,6 @@ export default function StockDetailPage() {
 
   return (
     <div className="w-full max-w-5xl mx-auto">
-      <button onClick={() => router.push('/stocks')} className="flex items-center gap-1 text-sm text-gray-400 hover:text-white transition-colors mb-4">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-        Back to Stocks
-      </button>
-
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-4">
