@@ -6,7 +6,7 @@ deps: [gooddollar-l2-add-section-sub-navigation]
 split: false
 depth: 1
 planned: true
-executed: false
+executed: true
 ---
 
 ## Problem Statement
