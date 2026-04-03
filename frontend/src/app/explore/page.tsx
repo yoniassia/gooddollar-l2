@@ -293,7 +293,7 @@ export default function ExplorePage() {
                 >
                   Market Cap <SortArrow active={sortField === 'marketCap'} dir={sortDir} />
                 </th>
-                <th className="py-3 px-2 hidden lg:table-cell" />
+                <th className="py-3 px-2 font-semibold hidden lg:table-cell">7d Trend</th>
                 <th className="w-20 hidden sm:table-cell" />
               </tr>
             </thead>

@@ -160,7 +160,7 @@ export default function StocksPage() {
                 <th className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors hidden md:table-cell" onClick={() => handleSort('marketCap')}>
                   Market Cap <SortArrow active={sortField === 'marketCap'} dir={sortDir} />
                 </th>
-                <th className="py-3 px-2 hidden lg:table-cell" aria-label="7-day trend" />
+                <th className="py-3 px-2 font-semibold hidden lg:table-cell">7d Trend</th>
                 <th className="w-20 hidden sm:table-cell" />
               </tr>
             </thead>
