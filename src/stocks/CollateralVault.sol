@@ -14,7 +14,7 @@ import "./PriceOracle.sol";
  *
  *         Liquidation: anyone can liquidate a position whose collateral ratio
  *         falls below LIQUIDATION_RATIO (120%). The liquidator provides the
- *         synthetic tokens, receives the G$ collateral at a 10% discount,
+ *         synthetic tokens, receives debt value in G$ plus a 10% bonus,
  *         and the remaining collateral is forwarded to the fee splitter.
  */
 
@@ -37,7 +37,7 @@ contract CollateralVault {
     /// @notice Collateral ratio below which liquidation is allowed (120%)
     uint256 public constant LIQUIDATION_RATIO = 12000;
 
-    /// @notice Liquidator bonus expressed as percentage of collateral seized (10%)
+    /// @notice Liquidator bonus expressed as percentage of the repaid debt value (10%)
     uint256 public constant LIQUIDATION_BONUS_BPS = 1000;
 
     /// @notice Mint/burn fee in basis points (0.3%)
@@ -313,7 +313,8 @@ contract CollateralVault {
     /**
      * @notice Liquidate an undercollateralized position.
      * @dev Caller must hold sufficient synthetic tokens to repay the full debt.
-     *      Caller receives collateral at a 10% discount; remainder goes to fee splitter.
+     *      Caller receives the debt value in G$ plus a 10% bonus; remainder goes
+     *      to the fee splitter (funds UBI).
      * @param user Address of the position owner to liquidate
      * @param ticker Stock ticker
      */
@@ -322,30 +323,33 @@ contract CollateralVault {
         address syntheticAsset = syntheticAssets[key];
         if (syntheticAsset == address(0)) revert AssetNotRegistered(key);
 
-        uint256 stockPrice = oracle.getPriceByKey(oracleKeys[key]);
         uint256 userDebt = debt[user][key];
         uint256 userCollateral = collateral[user][key];
 
-        // Check ratio
-        if (userDebt > 0) {
-            uint256 debtValueUSD8 = (userDebt * stockPrice) / 1e18;
-            uint256 collateralUSD8 = (userCollateral * 1e8) / 1e18;
-            uint256 ratio = (collateralUSD8 * BPS) / debtValueUSD8;
-            if (ratio >= LIQUIDATION_RATIO) {
-                revert PositionHealthy(ratio, LIQUIDATION_RATIO);
-            }
+        // No debt means nothing to liquidate — prevents free collateral drain
+        if (userDebt == 0) revert PositionHealthy(type(uint256).max, LIQUIDATION_RATIO);
+
+        uint256 stockPrice = oracle.getPriceByKey(oracleKeys[key]);
+        uint256 debtValueUSD8 = (userDebt * stockPrice) / 1e18;
+        uint256 collateralUSD8 = (userCollateral * 1e8) / 1e18;
+        uint256 ratio = (collateralUSD8 * BPS) / debtValueUSD8;
+        if (ratio >= LIQUIDATION_RATIO) {
+            revert PositionHealthy(ratio, LIQUIDATION_RATIO);
         }
 
         // Liquidator repays full synthetic debt
         SyntheticAsset(syntheticAsset).burn(msg.sender, userDebt);
 
-        // Liquidator gets collateral + bonus
-        uint256 bonus = (userCollateral * LIQUIDATION_BONUS_BPS) / BPS;
-        uint256 liquidatorReward = userCollateral > bonus ? bonus : userCollateral;
-        // Cap so we don't overdraw; realistically liquidatorReward << userCollateral at 120%
-        uint256 remainingCollateral = userCollateral > liquidatorReward
-            ? userCollateral - liquidatorReward
-            : 0;
+        // Liquidator receives: debt value in G$ + 10% bonus
+        // This makes liquidations economically rational: liquidator breaks even on the
+        // synthetic tokens they burn and earns the bonus as profit.
+        uint256 debtValueG = (debtValueUSD8 * 1e18) / 1e8;
+        uint256 bonus = (debtValueG * LIQUIDATION_BONUS_BPS) / BPS;
+        uint256 liquidatorReward = debtValueG + bonus;
+        // Cap at available collateral (edge case: extreme oracle move between liquidation
+        // threshold and actual execution)
+        if (liquidatorReward > userCollateral) liquidatorReward = userCollateral;
+        uint256 remainingCollateral = userCollateral - liquidatorReward;
 
         collateral[user][key] = 0;
         debt[user][key] = 0;
