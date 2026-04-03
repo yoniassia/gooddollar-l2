@@ -2,22 +2,29 @@
 
 import { useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
+import { useAccount } from 'wagmi'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 
 import Link from 'next/link'
 import { getStockByTicker, formatStockPrice, formatLargeNumber } from '@/lib/stockData'
 import { sanitizeNumericInput } from '@/lib/format'
 import { getChartData, type Timeframe } from '@/lib/chartData'
 import { useWalletReady } from '@/lib/WalletReadyContext'
+import { useMintSynthetic, useRedeemSynthetic } from '@/lib/useStocks'
 import dynamic from 'next/dynamic'
 
 function WalletGatedTradeButton({ hasAmount, children }: { hasAmount: boolean; children: React.ReactNode }) {
-  const isConnected = false // demo mode
+  const { isConnected } = useAccount()
   if (!isConnected) {
     return (
-      <button type="button" disabled
-        className="w-full py-3 rounded-xl font-semibold text-sm bg-goodgreen/30 text-goodgreen border border-goodgreen/40 cursor-not-allowed">
-        Connect Wallet to Trade
-      </button>
+      <ConnectButton.Custom>
+        {({ openConnectModal }) => (
+          <button type="button" onClick={openConnectModal}
+            className="w-full py-3 rounded-xl font-semibold text-sm bg-goodgreen text-white hover:bg-goodgreen/90 transition-colors">
+            Connect Wallet to Trade
+          </button>
+        )}
+      </ConnectButton.Custom>
     )
   }
   if (!hasAmount) {
@@ -50,6 +57,8 @@ function OrderForm({ stock }: { stock: { ticker: string; price: number } }) {
   const [limitPrice, setLimitPrice] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const walletReady = useWalletReady()
+  const { mint, phase: mintPhase, error: mintError, isDeployed } = useMintSynthetic()
+  const { redeem, phase: redeemPhase, error: redeemError } = useRedeemSynthetic()
 
   const parsedLimitPrice = parseFloat(limitPrice)
   const limitPriceInvalid = orderType === 'limit' && limitPrice !== '' && (isNaN(parsedLimitPrice) || parsedLimitPrice <= 0)
@@ -60,11 +69,31 @@ function OrderForm({ stock }: { stock: { ticker: string; price: number } }) {
   const ubiFee = fee * 0.33
   const hasAmount = !!amount && parseFloat(amount) > 0
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const actionPhase = side === 'buy' ? mintPhase : redeemPhase
+  const actionError = side === 'buy' ? mintError : redeemError
+  const isPending = actionPhase === 'approving' || actionPhase === 'pending'
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!amount || parseFloat(amount) <= 0 || limitPriceInvalid || !hasValidPrice) return
-    setSubmitted(true)
-    setTimeout(() => setSubmitted(false), 3000)
+
+    if (isDeployed && orderType === 'market') {
+      const amountNum = parseFloat(amount)
+      // Assume G$ ≈ $0.01 on devnet for collateral calculation
+      const GD_PRICE_USD = 0.01
+      const collateralGD = amountNum / GD_PRICE_USD
+      const collateralWei = BigInt(Math.round(collateralGD * 1e18))
+      const sharesWei = BigInt(Math.round(shares * 1e18))
+      if (side === 'buy') {
+        await mint(stock.ticker, collateralWei, sharesWei)
+      } else {
+        // Redeem: burn shares and withdraw equivalent collateral
+        await redeem(stock.ticker, sharesWei, collateralWei)
+      }
+    } else {
+      setSubmitted(true)
+      setTimeout(() => setSubmitted(false), 3000)
+    }
   }
 
   return (
@@ -129,13 +158,16 @@ function OrderForm({ stock }: { stock: { ticker: string; price: number } }) {
         </div>
       )}
 
+      {actionError && (
+        <p className="text-[10px] text-red-400 text-center truncate mb-2">{actionError}</p>
+      )}
       {walletReady ? (
         <WalletGatedTradeButton hasAmount={hasAmount && hasValidPrice}>
-          <button type="submit" disabled={limitPriceInvalid || !hasValidPrice}
+          <button type="submit" disabled={limitPriceInvalid || !hasValidPrice || isPending}
             className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
               side === 'buy' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
             }`}>
-            {submitted ? 'Order Submitted!' : `${side === 'buy' ? 'Buy' : 'Sell'} ${stock.ticker}`}
+            {actionPhase === 'approving' ? 'Approving…' : actionPhase === 'pending' ? 'Confirming…' : actionPhase === 'done' ? 'Order Submitted!' : submitted ? 'Order Submitted!' : `${side === 'buy' ? 'Buy' : 'Sell'} ${stock.ticker}`}
           </button>
         </WalletGatedTradeButton>
       ) : (
