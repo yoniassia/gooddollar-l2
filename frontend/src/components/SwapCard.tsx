@@ -11,7 +11,6 @@ import { PriceImpactWarning } from './PriceImpactWarning'
 import { FeeBreakdownBadge } from './FeeBreakdownBadge'
 import { formatAmount, compactAmount, sanitizeNumericInput, formatUsdValue } from '@/lib/format'
 import { useSwapSettings } from '@/lib/useSwapSettings'
-import { useWalletReady } from '@/lib/WalletReadyContext'
 import { SwapWalletActions } from './SwapWalletActions'
 
 const MOCK_USD_PRICES: Record<string, number> = {
@@ -34,7 +33,6 @@ const UBI_FEE_BPS = 3333
 
 export function SwapCard() {
   const { slippage } = useSwapSettings()
-  const walletReady = useWalletReady()
   const searchParams = useSearchParams()
   const [inputToken, setInputToken] = useState<Token>(TOKENS[1])
   const [outputToken, setOutputToken] = useState<Token>(TOKENS[0])
@@ -168,13 +166,11 @@ export function SwapCard() {
         <div className="mx-4 p-4 rounded-xl bg-dark/80 border border-gray-700/20">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-gray-400">You pay</span>
-            {walletReady && (
-              <SwapWalletActions
-                variant="balance"
-                inputToken={inputToken}
-                onSetAmount={setInputAmount}
-              />
-            )}
+            <SwapWalletActions
+              variant="balance"
+              inputToken={inputToken}
+              onSetAmount={setInputAmount}
+            />
           </div>
           <div className="flex items-center gap-3">
             <input
@@ -268,30 +264,21 @@ export function SwapCard() {
 
         {/* Swap button */}
         <div className="p-4 pt-3">
-          {walletReady ? (
-            <SwapWalletActions
-              variant="swap-button"
-              inputToken={inputToken}
-              outputToken={outputToken}
-              inputAmount={inputAmount}
-              hasAmount={hasAmount}
-              priceImpact={priceImpact}
-              outputAmount={outputAmount}
-              inputUsd={inputUsd}
-              outputUsd={outputUsd}
-              exchangeRate={exchangeRate}
-              minimumReceived={`${minimumReceived} ${outputToken.symbol}`}
-              networkFee="< $0.01"
-              ubiFee={ubiFee > 0 ? `${formatAmount(ubiFee)} ${outputToken.symbol}` : ''}
-            />
-          ) : (
-            <button
-              disabled
-              className="w-full py-4 rounded-xl font-semibold text-base bg-goodgreen/30 text-goodgreen border border-goodgreen/40 cursor-not-allowed"
-            >
-              Connect Wallet to Swap
-            </button>
-          )}
+          <SwapWalletActions
+            variant="swap-button"
+            inputToken={inputToken}
+            outputToken={outputToken}
+            inputAmount={inputAmount}
+            hasAmount={hasAmount}
+            priceImpact={priceImpact}
+            outputAmount={outputAmount}
+            inputUsd={inputUsd}
+            outputUsd={outputUsd}
+            exchangeRate={exchangeRate}
+            minimumReceived={`${minimumReceived} ${outputToken.symbol}`}
+            networkFee="< $0.01"
+            ubiFee={ubiFee > 0 ? `${formatAmount(ubiFee)} ${outputToken.symbol}` : ''}
+          />
         </div>
       </div>
 

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
-import { useAccount } from 'wagmi'
+
 import Link from 'next/link'
 import { getStockByTicker, formatStockPrice, formatLargeNumber } from '@/lib/stockData'
 import { sanitizeNumericInput } from '@/lib/format'
@@ -11,7 +11,7 @@ import { useWalletReady } from '@/lib/WalletReadyContext'
 import dynamic from 'next/dynamic'
 
 function WalletGatedTradeButton({ hasAmount, children }: { hasAmount: boolean; children: React.ReactNode }) {
-  const { isConnected } = useAccount()
+  const isConnected = false // demo mode
   if (!isConnected) {
     return (
       <button type="button" disabled

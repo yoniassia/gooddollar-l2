@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
-import { useAccount } from 'wagmi'
+
 import Link from 'next/link'
 import { getMarketById, formatVolume, getMarketStatus, getDaysLeftLabel } from '@/lib/predictData'
 import { formatLargeValue } from '@/lib/perpsData'
@@ -12,7 +12,7 @@ import { useWalletReady } from '@/lib/WalletReadyContext'
 import dynamic from 'next/dynamic'
 
 function WalletGatedTradeButton({ hasAmount, children }: { hasAmount: boolean; children: React.ReactNode }) {
-  const { isConnected } = useAccount()
+  const isConnected = false // demo mode
   if (!isConnected) {
     return (
       <button type="button" disabled

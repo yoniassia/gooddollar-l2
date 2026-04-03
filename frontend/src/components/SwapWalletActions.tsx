@@ -1,15 +1,8 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import { parseEther, formatEther } from 'viem'
+import { useState, useCallback } from 'react'
 import { type Token } from '@/lib/tokens'
-import { TxStatus } from './TxStatus'
 import { SwapConfirmModal } from './SwapConfirmModal'
-import { CONTRACTS } from '@/lib/chain'
-import { GoodDollarTokenABI } from '@/lib/abi'
-import { formatAmount } from '@/lib/format'
-import { useTransactionContext } from '@/lib/TransactionContext'
 
 type BalanceProps = {
   variant: 'balance'
@@ -37,7 +30,7 @@ type SwapWalletActionsProps = BalanceProps | SwapButtonProps
 
 export function SwapWalletActions(props: SwapWalletActionsProps) {
   if (props.variant === 'balance') {
-    return <BalanceDisplay inputToken={props.inputToken} onSetAmount={props.onSetAmount} />
+    return null // No balance display in demo mode
   }
   return (
     <SwapButton
@@ -54,37 +47,6 @@ export function SwapWalletActions(props: SwapWalletActionsProps) {
       networkFee={props.networkFee}
       ubiFee={props.ubiFee}
     />
-  )
-}
-
-function BalanceDisplay({ inputToken, onSetAmount }: { inputToken: Token; onSetAmount: (amount: string) => void }) {
-  const { address, isConnected } = useAccount()
-
-  const { data: gdBalance } = useReadContract({
-    address: CONTRACTS.GoodDollarToken,
-    abi: GoodDollarTokenABI,
-    functionName: 'balanceOf',
-    args: address ? [address] : undefined,
-    query: { enabled: isConnected && !!address },
-  })
-
-  const formattedBalance = useMemo(() => {
-    if (!gdBalance) return null
-    const formatted = formatEther(gdBalance)
-    const num = parseFloat(formatted)
-    if (num > 1000) return `${(num / 1000).toFixed(1)}K`
-    return num.toFixed(2)
-  }, [gdBalance])
-
-  if (!isConnected || inputToken.symbol !== 'G$' || !formattedBalance) return null
-
-  return (
-    <button
-      onClick={() => gdBalance && onSetAmount(formatEther(gdBalance))}
-      className="text-xs text-goodgreen hover:text-goodgreen-300 transition-colors"
-    >
-      Balance: {formattedBalance} G$
-    </button>
   )
 }
 
@@ -115,77 +77,22 @@ function SwapButton({
   networkFee?: string
   ubiFee?: string
 }) {
-  const { isConnected } = useAccount()
-  const [showTxStatus, setShowTxStatus] = useState(false)
   const [showReview, setShowReview] = useState(false)
-  const { addTransaction, updateStatus } = useTransactionContext()
-  const pendingTxId = useRef<string | null>(null)
-
-  const { writeContract: approve, data: approveTxHash, isPending: isApproving } = useWriteContract()
-  const { writeContract: _swap, data: swapTxHash, isPending: isSwapping } = useWriteContract()
-
-  const { isLoading: isConfirming, isSuccess: isTxSuccess, isError: isTxError } = useWaitForTransactionReceipt({
-    hash: swapTxHash || approveTxHash,
-  })
-
-  const isPending = isApproving || isSwapping || isConfirming
-
-  useEffect(() => {
-    if (!pendingTxId.current) return
-    if (isTxSuccess) {
-      updateStatus(pendingTxId.current, 'confirmed')
-      pendingTxId.current = null
-    } else if (isTxError) {
-      updateStatus(pendingTxId.current, 'failed')
-      pendingTxId.current = null
-    }
-  }, [isTxSuccess, isTxError, updateStatus])
-
-  const executeSwap = useCallback(() => {
-    if (!isConnected || !inputAmount) return
-    setShowReview(false)
-    setShowTxStatus(true)
-
-    const txId = addTransaction({
-      inputSymbol: inputToken.symbol,
-      outputSymbol: outputToken.symbol,
-      inputAmount,
-      outputAmount: outputAmount || '0',
-      status: 'pending',
-    })
-    pendingTxId.current = txId
-
-    setTimeout(() => {
-      if (pendingTxId.current === txId) {
-        updateStatus(txId, 'confirmed')
-        pendingTxId.current = null
-      }
-    }, 3000)
-
-    if (inputToken.symbol === 'G$') {
-      approve({
-        address: CONTRACTS.GoodDollarToken,
-        abi: GoodDollarTokenABI,
-        functionName: 'approve',
-        args: [CONTRACTS.UBIFeeHook, parseEther(inputAmount)],
-      })
-    }
-  }, [isConnected, inputAmount, inputToken.symbol, outputToken.symbol, outputAmount, approve, addTransaction, updateStatus])
+  const [showDemoToast, setShowDemoToast] = useState(false)
 
   const handleSwapClick = useCallback(() => {
     setShowReview(true)
   }, [])
 
+  const handleConfirm = useCallback(() => {
+    setShowReview(false)
+    setShowDemoToast(true)
+    setTimeout(() => setShowDemoToast(false), 3000)
+  }, [])
+
   return (
     <>
-      {!isConnected ? (
-        <button
-          disabled
-          className="w-full py-4 rounded-xl font-semibold text-base bg-goodgreen/30 text-goodgreen border border-goodgreen/40 cursor-not-allowed"
-        >
-          Connect Wallet to Swap
-        </button>
-      ) : !hasAmount ? (
+      {!hasAmount ? (
         <button
           disabled
           className="w-full py-4 rounded-xl font-semibold text-base bg-dark-50 text-gray-400 cursor-not-allowed"
@@ -195,25 +102,22 @@ function SwapButton({
       ) : (
         <button
           onClick={handleSwapClick}
-          disabled={isPending}
-          className={`w-full py-4 rounded-xl font-semibold text-base transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:outline-none ${
+          className={`w-full py-4 rounded-xl font-semibold text-base transition-all active:scale-[0.98] focus-visible:ring-2 focus-visible:outline-none ${
             priceImpact >= 10
               ? 'bg-red-500 text-white hover:bg-red-600 focus-visible:ring-red-500/50'
               : 'bg-goodgreen text-white hover:bg-goodgreen-600 focus-visible:ring-goodgreen/50'
           }`}
         >
-          {isPending
-            ? 'Swapping...'
-            : priceImpact >= 10
-              ? `Swap Anyway — High Price Impact`
-              : `Swap ${inputToken.symbol} for ${outputToken.symbol}`}
+          {priceImpact >= 10
+            ? `Swap Anyway — High Price Impact`
+            : `Swap ${inputToken.symbol} for ${outputToken.symbol}`}
         </button>
       )}
 
       <SwapConfirmModal
         open={showReview}
         onClose={() => setShowReview(false)}
-        onConfirm={executeSwap}
+        onConfirm={handleConfirm}
         inputAmount={inputAmount}
         outputAmount={outputAmount}
         inputSymbol={inputToken.symbol}
@@ -227,14 +131,10 @@ function SwapButton({
         ubiFee={ubiFee}
       />
 
-      {showTxStatus && (
-        <TxStatus
-          hash={swapTxHash || approveTxHash}
-          isPending={isPending}
-          isSuccess={isTxSuccess}
-          isError={isTxError}
-          onClose={() => setShowTxStatus(false)}
-        />
+      {showDemoToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[9999] px-4 py-2.5 rounded-xl bg-dark-50 border border-goodgreen/30 text-sm text-gray-200 shadow-lg">
+          🚀 Demo mode — L2 testnet launching soon!
+        </div>
       )}
     </>
   )
