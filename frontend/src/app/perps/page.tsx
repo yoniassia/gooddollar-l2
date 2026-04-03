@@ -1,10 +1,33 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { useAccount } from 'wagmi'
 import { getPairs, getPairBySymbol, getAccountSummary, formatPerpsPrice, formatLargeValue, formatFundingRate, getFundingCountdown, type PerpPair, type AccountSummaryData } from '@/lib/perpsData'
 import { sanitizeNumericInput } from '@/lib/format'
 import { getChartData, type Timeframe } from '@/lib/chartData'
+import { useWalletReady } from '@/lib/WalletReadyContext'
 import dynamic from 'next/dynamic'
+
+function WalletGatedTradeButton({ hasSize, exceedsMargin, children }: { hasSize: boolean; exceedsMargin: boolean; children: React.ReactNode }) {
+  const { isConnected } = useAccount()
+  if (!isConnected) {
+    return (
+      <button type="button" disabled
+        className="w-full py-2.5 rounded-xl font-semibold text-sm bg-goodgreen/30 text-goodgreen border border-goodgreen/40 cursor-not-allowed">
+        Connect Wallet to Trade
+      </button>
+    )
+  }
+  if (!hasSize) {
+    return (
+      <button type="button" disabled
+        className="w-full py-2.5 rounded-xl font-semibold text-sm bg-dark-50 text-gray-400 cursor-not-allowed">
+        Enter Size
+      </button>
+    )
+  }
+  return <>{children}</>
+}
 
 const PriceChart = dynamic(
   () => import('@/components/PriceChart').then(m => ({ default: m.PriceChart })),
@@ -155,6 +178,7 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
   const [leverage, setLeverage] = useState(10)
   const [marginMode, setMarginMode] = useState<'cross' | 'isolated'>('cross')
   const [submitted, setSubmitted] = useState(false)
+  const walletReady = useWalletReady()
 
   useEffect(() => {
     if (leverage > pair.maxLeverage) {
@@ -255,18 +279,26 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
         </div>
       )}
 
-      <button type="submit" disabled={sizeNum <= 0 || exceedsMargin}
-        className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-          side === 'long' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
-        }`}>
-        {submitted ? 'Order Placed!' : `${side === 'long' ? 'Long' : 'Short'} ${pair.baseAsset}`}
-      </button>
+      {walletReady ? (
+        <WalletGatedTradeButton hasSize={sizeNum > 0} exceedsMargin={exceedsMargin}>
+          <button type="submit" disabled={exceedsMargin}
+            className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+              side === 'long' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
+            }`}>
+            {submitted ? 'Order Placed!' : `${side === 'long' ? 'Long' : 'Short'} ${pair.baseAsset}`}
+          </button>
+        </WalletGatedTradeButton>
+      ) : (
+        <button type="submit" disabled={sizeNum <= 0 || exceedsMargin}
+          className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+            side === 'long' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
+          }`}>
+          {submitted ? 'Order Placed!' : `${side === 'long' ? 'Long' : 'Short'} ${pair.baseAsset}`}
+        </button>
+      )}
 
       {sizeNum <= 0 && size !== '' && (
         <p className="text-center text-[10px] text-gray-500">Enter a valid size to place order</p>
-      )}
-      {sizeNum <= 0 && size === '' && (
-        <p className="text-center text-[10px] text-gray-500">Enter size to get started</p>
       )}
 
       <div className="flex items-center justify-center gap-1.5 text-[10px] text-goodgreen/60">

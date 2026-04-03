@@ -2,11 +2,34 @@
 
 import { useState, useMemo } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
+import { useAccount } from 'wagmi'
 import Link from 'next/link'
 import { getMarketById, formatVolume, getMarketStatus, getDaysLeftLabel } from '@/lib/predictData'
 import { generateProbabilityHistory } from '@/lib/chartData'
 import { ChartErrorBoundary } from '@/components/ChartErrorBoundary'
+import { useWalletReady } from '@/lib/WalletReadyContext'
 import dynamic from 'next/dynamic'
+
+function WalletGatedTradeButton({ hasAmount, children }: { hasAmount: boolean; children: React.ReactNode }) {
+  const { isConnected } = useAccount()
+  if (!isConnected) {
+    return (
+      <button type="button" disabled
+        className="w-full py-3 rounded-xl font-semibold text-sm bg-goodgreen/30 text-goodgreen border border-goodgreen/40 cursor-not-allowed">
+        Connect Wallet to Trade
+      </button>
+    )
+  }
+  if (!hasAmount) {
+    return (
+      <button type="button" disabled
+        className="w-full py-3 rounded-xl font-semibold text-sm bg-dark-50 text-gray-400 cursor-not-allowed">
+        Enter Amount
+      </button>
+    )
+  }
+  return <>{children}</>
+}
 
 const ProbabilityChart = dynamic(
   () => import('@/components/ProbabilityChart').then(m => ({ default: m.ProbabilityChart })),
@@ -22,12 +45,14 @@ function TradePanel({ market, initialSide }: { market: ReturnType<typeof getMark
   const [side, setSide] = useState<'yes' | 'no'>(initialSide ?? 'yes')
   const [amount, setAmount] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const walletReady = useWalletReady()
 
   const price = side === 'yes' ? market.yesPrice : 1 - market.yesPrice
   const shares = amount && price > 0 ? parseFloat(amount) / price : 0
   const potentialPayout = shares
   const fee = amount ? parseFloat(amount) * 0.01 : 0
   const ubiFee = fee * 0.33
+  const hasAmount = !!amount && parseFloat(amount) > 0
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -82,12 +107,23 @@ function TradePanel({ market, initialSide }: { market: ReturnType<typeof getMark
         </div>
       )}
 
-      <button type="submit" disabled={!amount || parseFloat(amount) <= 0}
-        className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-          side === 'yes' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
-        }`}>
-        {submitted ? 'Order Placed!' : `Buy ${side.toUpperCase()}`}
-      </button>
+      {walletReady ? (
+        <WalletGatedTradeButton hasAmount={hasAmount}>
+          <button type="submit"
+            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
+              side === 'yes' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
+            }`}>
+            {submitted ? 'Order Placed!' : `Buy ${side.toUpperCase()}`}
+          </button>
+        </WalletGatedTradeButton>
+      ) : (
+        <button type="submit" disabled={!hasAmount}
+          className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+            side === 'yes' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
+          }`}>
+          {submitted ? 'Order Placed!' : `Buy ${side.toUpperCase()}`}
+        </button>
+      )}
 
       <div className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-goodgreen/60">
         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
