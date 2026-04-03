@@ -48,7 +48,7 @@ export function OrderBook({ markPrice }: OrderBookProps) {
         <span>Total</span>
       </div>
 
-      <div className="divide-y divide-gray-700/5">
+      <div className="max-h-[130px] overflow-y-auto scrollbar-none divide-y divide-gray-700/5">
         {asks.map((a, i) => (
           <div key={`a-${i}`} className="flex justify-between px-2 py-1 relative">
             <div className="absolute inset-y-0 right-0 bg-red-500/8 transition-all" style={{ width: `${(a.total / maxTotal) * 100}%` }} />
@@ -64,7 +64,7 @@ export function OrderBook({ markPrice }: OrderBookProps) {
         <span className="text-gray-500 text-[10px]">Spread: {formatPerpsPrice(spread)}</span>
       </div>
 
-      <div className="divide-y divide-gray-700/5">
+      <div className="max-h-[130px] overflow-y-auto scrollbar-none divide-y divide-gray-700/5">
         {bids.map((b, i) => (
           <div key={`b-${i}`} className="flex justify-between px-2 py-1 relative">
             <div className="absolute inset-y-0 right-0 bg-green-500/8 transition-all" style={{ width: `${(b.total / maxTotal) * 100}%` }} />
