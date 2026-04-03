@@ -64,8 +64,8 @@ One chain where AI agents do everything in finance — and every transaction fun
 ### 6. GoodStocks — Tokenized Equities (PRIORITY: MEDIUM)
 **Status:** Frontend live, SyntheticAssetFactory + CollateralVault + PriceOracle deployed
 **Next:**
-- [ ] Real price oracle integration (Chainlink/Pyth for stock prices)
-- [ ] Create initial synthetic stocks (sAAPL, sTSLA, sGOOG, sNVDA)
+- [x] Real price oracle integration (Chainlink/Pyth for stock prices) — PriceOracle deployed with manual prices + backend/stocks-keeper for live Yahoo Finance feeds
+- [x] Create initial synthetic stocks (sAAPL, sTSLA, sGOOG, sNVDA) — 12 stocks deployed via DeployGoodStocks, 4 seeded with positions
 - [x] Frontend → real contract interaction — useMintSynthetic/useRedeemSynthetic wired in stocks/[ticker]
 - [ ] Portfolio tracking (blocked until initial synthetic stocks are deployed)
 **Research:** Study Synthetix V3, Mirror Protocol (Terra), dHedge

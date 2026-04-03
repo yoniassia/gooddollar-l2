@@ -49,6 +49,7 @@ contract GoodDollarToken {
     event HumanVerified(address indexed human, bool status);
     event UBIPoolFunded(address indexed from, uint256 amount);
     event DailyUBIDistributed(uint256 totalAmount, uint256 recipients);
+    event MinterSet(address indexed minter, bool authorized);
     
     modifier onlyAdmin() {
         require(msg.sender == admin, "Not admin");
@@ -182,7 +183,14 @@ contract GoodDollarToken {
     }
 
     function setMinter(address minter, bool authorized) external onlyAdmin {
+        require(minter != address(0), "Minter cannot be zero address");
+        if (authorized) {
+            uint256 size;
+            assembly { size := extcodesize(minter) }
+            require(size > 0, "Minter must be a contract");
+        }
         minters[minter] = authorized;
+        emit MinterSet(minter, authorized);
     }
 
     /**

@@ -53,10 +53,23 @@ export const CONTRACTS = {
   // GoodPerps — deployed to devnet (chain 42069), 2026-04-03
   PerpEngine: '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853' as `0x${string}`,
   MarginVault: '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707' as `0x${string}`,
-  // GoodStocks — deployed to devnet (chain 42069), 2026-04-03
-  StocksPriceOracle: '0x0165878A594ca255338adfa4d48449f69242Eb8F' as `0x${string}`,
-  CollateralVault: '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e' as `0x${string}`,
-  SyntheticAssetFactory: '0x610178dA211FEF7D417bC0e6FeD39F05609AD788' as `0x${string}`,
+  // GoodStocks — redeployed with 12 synthetic stocks (chain 42069), 2026-04-03
+  StocksPriceOracle: '0xD0141E899a65C95a556fE2B27e5982A6DE7fDD7A' as `0x${string}`,
+  CollateralVault: '0x457cCf29090fe5A24c19c1bc95F492168C0EaFdb' as `0x${string}`,
+  SyntheticAssetFactory: '0x1f10F3Ba7ACB61b2F50B9d6DdCf91a6f787C0E82' as `0x${string}`,
+  // Synthetic stock tokens (sToken ERC-20s)
+  sAAPL: '0x5F6470D65d82C4fCFd5b7245D76A9011158ad142' as `0x${string}`,
+  sTSLA: '0xD98678105A4B298890Eb35FfBC2d3b02357413Ec' as `0x${string}`,
+  sNVDA: '0xAD2fCF4dB5988EF8616BB5FC021E4Ab5B4C77281' as `0x${string}`,
+  sMSFT: '0xA3cBDaB80f473875690b39546A19b8d493eCdb37' as `0x${string}`,
+  sAMZN: '0xFC3A93EDFBFeAF455cf79CFf6ce0aF0ca7bA01Fd' as `0x${string}`,
+  sGOOGL: '0x827dcE508AAF3b8Da694Cc514bf99085BC94E0CA' as `0x${string}`,
+  sMETA: '0x701aA107682f48Cd6dCca8728C7581A0e5A13780' as `0x${string}`,
+  sJPM: '0x0b10EE0e963813855a4F8e5BDd9d6A24b458c2dA' as `0x${string}`,
+  sV: '0x272b149aD31CBA25Ce3851440dbf9Cf6B087b068' as `0x${string}`,
+  sDIS: '0x655431725d19dC597Ac2CE297AC664CEd7DfC980' as `0x${string}`,
+  sNFLX: '0xf90FB57e62f8D65Ddd67C4EbE11E42B108a505D1' as `0x${string}`,
+  sAMD: '0x9Ae8284C2404243c88CB31dF652F0c36144d7CFc' as `0x${string}`,
   // GoodStable — CDP vault system (chain 42069), deployed 2026-04-03
   gUSD: '0x0e801d84fa97b50751dbf25036d067dcf18858bf' as `0x${string}`,
   VaultManager: '0x5eb3bc0a489c5a8288765d2336659ebca68fcd00' as `0x${string}`,

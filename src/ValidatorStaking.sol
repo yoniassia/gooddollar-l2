@@ -45,6 +45,7 @@ contract ValidatorStaking {
 
     mapping(address => Validator) public validators;
     address[] public validatorList;
+    mapping(address => uint256) private _validatorListIndex; // 1-based; 0 = not in list
     uint256 public totalStaked;
     uint256 public activeCount;
 
@@ -86,8 +87,9 @@ contract ValidatorStaking {
 
         Validator storage v = validators[msg.sender];
         if (!v.isActive) {
-            // Only push to validatorList on first-ever stake (not on re-activation)
-            if (v.lastStakeTime == 0) {
+            // Push to validatorList only if not already tracked (first stake or after full exit)
+            if (_validatorListIndex[msg.sender] == 0) {
+                _validatorListIndex[msg.sender] = validatorList.length + 1; // 1-based
                 validatorList.push(msg.sender);
             }
             v.isActive = true;
@@ -151,6 +153,11 @@ contract ValidatorStaking {
         uint256 amount = v.unbonding.amount;
         delete v.unbonding;
 
+        // Fully exited — remove from validatorList so it doesn't grow unboundedly
+        if (v.staked == 0) {
+            _removeFromValidatorList(msg.sender);
+        }
+
         goodDollar.transfer(msg.sender, amount);
         emit UnstakeCompleted(msg.sender, amount);
     }
@@ -190,6 +197,11 @@ contract ValidatorStaking {
             v.isActive = false;
         }
 
+        // If fully slashed out of both pools, remove from list to cap its growth
+        if (v.staked == 0 && v.unbonding.amount == 0) {
+            _removeFromValidatorList(validator);
+        }
+
         goodDollar.fundUBIPool(slashAmount);
         emit ValidatorSlashed(validator, slashAmount, reason);
     }
@@ -220,6 +232,25 @@ contract ValidatorStaking {
         v.rewardDebt = 0;
         goodDollar.transfer(msg.sender, rewards);
         emit RewardsClaimed(msg.sender, rewards);
+    }
+
+    // ============ Internal ============
+
+    /**
+     * @dev O(1) swap-and-pop removal from validatorList.
+     *      Clears the index mapping so the address can re-enter the list if they stake again.
+     */
+    function _removeFromValidatorList(address validator) private {
+        uint256 idx = _validatorListIndex[validator]; // 1-based
+        if (idx == 0) return;
+        uint256 lastIdx = validatorList.length;
+        if (idx != lastIdx) {
+            address last = validatorList[lastIdx - 1];
+            validatorList[idx - 1] = last;
+            _validatorListIndex[last] = idx;
+        }
+        validatorList.pop();
+        delete _validatorListIndex[validator];
     }
 
     // ============ View ============
