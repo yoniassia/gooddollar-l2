@@ -16,9 +16,60 @@ const PriceChart = dynamic(
   }
 )
 import { ChartErrorBoundary } from '@/components/ChartErrorBoundary'
-import { OrderBook } from '@/components/OrderBook'
-import { RecentTrades } from '@/components/RecentTrades'
-import { OpenPositions } from '@/components/OpenPositions'
+
+const OrderBook = dynamic(
+  () => import('@/components/OrderBook').then(m => ({ default: m.OrderBook })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="text-xs">
+        <div className="flex justify-between text-gray-500 px-2 py-1.5 border-b border-gray-700/20">
+          <span>Price</span><span>Size</span><span>Total</span>
+        </div>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex justify-between px-2 py-1">
+            <div className="h-3 w-16 bg-dark-50/40 rounded animate-pulse" />
+            <div className="h-3 w-10 bg-dark-50/40 rounded animate-pulse" />
+            <div className="h-3 w-10 bg-dark-50/40 rounded animate-pulse" />
+          </div>
+        ))}
+      </div>
+    ),
+  }
+)
+
+const RecentTrades = dynamic(
+  () => import('@/components/RecentTrades').then(m => ({ default: m.RecentTrades })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="text-xs">
+        <div className="flex justify-between text-gray-500 px-2 py-1.5 border-b border-gray-700/20">
+          <span>Price</span><span>Size</span><span>Time</span>
+        </div>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex justify-between px-2 py-1">
+            <div className="h-3 w-16 bg-dark-50/40 rounded animate-pulse" />
+            <div className="h-3 w-10 bg-dark-50/40 rounded animate-pulse" />
+            <div className="h-3 w-14 bg-dark-50/40 rounded animate-pulse" />
+          </div>
+        ))}
+      </div>
+    ),
+  }
+)
+
+const OpenPositions = dynamic(
+  () => import('@/components/OpenPositions').then(m => ({ default: m.OpenPositions })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="px-3 py-6 text-center">
+        <div className="h-4 w-32 bg-dark-50/40 rounded animate-pulse mx-auto" />
+      </div>
+    ),
+  }
+)
 
 const TIMEFRAMES: Timeframe[] = ['1D', '1W', '1M', '3M', '1Y']
 
