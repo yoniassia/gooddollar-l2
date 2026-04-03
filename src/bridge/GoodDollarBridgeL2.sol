@@ -31,6 +31,11 @@ contract GoodDollarBridgeL2 {
     mapping(address => uint256) public totalMinted;
 
     bool public paused;
+    bool private _locked;
+
+    /// @notice Total ETH currently locked in this contract for pending L2->L1 withdrawals.
+    ///         This ETH must NOT be used to fund finalizeETHDeposit payouts.
+    uint256 public pendingETHWithdrawalTotal;
 
     event DepositFinalized(
         address indexed l1Token,
@@ -57,6 +62,15 @@ contract GoodDollarBridgeL2 {
     error TransferFailed();
     error InsufficientETH();
     error PeerNotConfigured();
+    error InsufficientFreeETH();
+    error Reentrant();
+
+    modifier nonReentrant() {
+        if (_locked) revert Reentrant();
+        _locked = true;
+        _;
+        _locked = false;
+    }
 
     modifier onlyAdmin() {
         if (msg.sender != admin) revert NotAdmin();
@@ -74,7 +88,7 @@ contract GoodDollarBridgeL2 {
         _;
     }
 
-    /// @dev Guard against withdrawals before setL1Bridge() is called — would burn
+    /// @dev Guard against withdrawals before setL1Bridge() is called -- would burn
     ///      L2 tokens permanently since the cross-domain message targets address(0).
     modifier peerConfigured() {
         if (l1Bridge == address(0)) revert PeerNotConfigured();
@@ -102,7 +116,7 @@ contract GoodDollarBridgeL2 {
         l1ToL2Token[l1Token] = l2Token;
     }
 
-    // ============ Deposit Finalization (L1 → L2) ============
+    // ============ Deposit Finalization (L1 -> L2) ============
     // Called by L2CrossDomainMessenger when L1 deposit message is relayed
 
     function finalizeDeposit(
@@ -120,18 +134,26 @@ contract GoodDollarBridgeL2 {
         emit DepositFinalized(l1Token, l2Token, to, amount);
     }
 
+    /// @notice Finalize an ETH deposit from L1.
+    /// @dev Only uses ETH that is NOT reserved for pending L2->L1 withdrawals.
+    ///      Reentrancy guard prevents malicious `to` contracts from re-entering.
     function finalizeETHDeposit(
         address, /* from */
         address to,
         uint256 amount
-    ) external onlyFromL1Bridge {
+    ) external onlyFromL1Bridge nonReentrant {
+        // Only spend ETH that is not reserved for pending withdrawals.
+        // This separates the two ETH pools and prevents theft of withdrawal-locked ETH.
+        uint256 freeETH = address(this).balance - pendingETHWithdrawalTotal;
+        if (freeETH < amount) revert InsufficientFreeETH();
+
         (bool success, ) = to.call{value: amount}("");
         if (!success) revert TransferFailed();
 
         emit ETHDepositFinalized(to, amount);
     }
 
-    // ============ Withdrawals (L2 → L1) ============
+    // ============ Withdrawals (L2 -> L1) ============
     // User initiates on L2, finalized on L1 after 7-day challenge
 
     function withdrawGDollar(address l1Token, address to, uint256 amount) external whenNotPaused peerConfigured {
@@ -172,10 +194,19 @@ contract GoodDollarBridgeL2 {
         emit WithdrawalInitiated(l1Token, msg.sender, to, amount);
     }
 
-    function withdrawETH(address to, uint256 amount) external payable whenNotPaused peerConfigured {
+    /// @notice Initiate an ETH withdrawal from L2 to L1.
+    /// @dev The caller must send exactly `amount` ETH. The ETH is locked in this contract
+    ///      and tracked in `pendingETHWithdrawalTotal` to prevent it from being consumed
+    ///      by finalizeETHDeposit. A cross-domain message is queued to release the
+    ///      corresponding ETH on L1 after the 7-day challenge window.
+    ///      Reentrancy guard is included as defense-in-depth.
+    function withdrawETH(address to, uint256 amount) external payable nonReentrant whenNotPaused peerConfigured {
         if (amount == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
         if (msg.value != amount) revert InsufficientETH();
+
+        // Reserve the incoming ETH so it cannot be spent by finalizeETHDeposit.
+        pendingETHWithdrawalTotal += amount;
 
         bytes memory message = abi.encodeCall(
             IGoodDollarBridgeL1.finalizeETHWithdrawal,

@@ -90,7 +90,7 @@ contract MockL2Token {
     }
 }
 
-// Mock cross-domain messenger that simulates L1↔L2 message relay
+// Mock cross-domain messenger that simulates L1<->L2 message relay
 contract MockL1Messenger {
     address public xDomainMessageSenderVal;
     address public lastTarget;
@@ -116,6 +116,33 @@ contract MockL1Messenger {
         (bool success, ) = target.call(lastMessage);
         require(success, "Relay failed");
     }
+}
+
+// Malicious contract that re-enters finalizeETHDeposit when it receives ETH
+contract ReentrantDeposit {
+    GoodDollarBridgeL2 public bridge;
+    address public messenger;
+    address public l1Bridge;
+    bool public attacked;
+
+    constructor(address _bridge, address _messenger, address _l1Bridge) {
+        bridge = GoodDollarBridgeL2(payable(_bridge));
+        messenger = _messenger;
+        l1Bridge = _l1Bridge;
+    }
+
+    receive() external payable {
+        if (!attacked) {
+            attacked = true;
+            // Attempt reentrant call into finalizeETHDeposit
+            MockL1Messenger(messenger).setXDomainMessageSender(l1Bridge);
+            vm.prank(messenger);
+            bridge.finalizeETHDeposit(address(this), address(this), msg.value);
+        }
+    }
+
+    // Forge cheatcode reference — needed for vm.prank inside receive()
+    Vm constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 }
 
 contract GoodDollarBridgeTest is Test {
@@ -296,7 +323,7 @@ contract GoodDollarBridgeTest is Test {
         vm.prank(user);
         l1Bridge.depositGDollar(recipient, DEPOSIT_AMOUNT);
 
-        // Simulate L2→L1 message relay (after 7-day challenge)
+        // Simulate L2->L1 message relay (after 7-day challenge)
         l1Messenger.setXDomainMessageSender(address(l2Bridge));
 
         uint256 recipientBefore = gd.balanceOf(recipient);
@@ -467,16 +494,17 @@ contract GoodDollarBridgeTest is Test {
         vm.prank(user);
         l1Bridge.depositETH{value: 2 ether}(user);
 
-        // Step 2: L2 finalizes ETH deposit
+        // Step 2: L2 finalizes ETH deposit (uses pre-funded free ETH)
         l2Messenger.setXDomainMessageSender(address(l1Bridge));
         uint256 userL2Before = user.balance;
         vm.prank(address(l2Messenger));
         l2Bridge.finalizeETHDeposit(user, user, 2 ether);
         assertEq(user.balance, userL2Before + 2 ether);
 
-        // Step 3: User withdraws ETH from L2 — must send ETH (burns L2 ETH)
+        // Step 3: User withdraws ETH from L2 -- must send ETH (locks L2 ETH as pending)
         vm.prank(user);
         l2Bridge.withdrawETH{value: 2 ether}(user, 2 ether);
+        assertEq(l2Bridge.pendingETHWithdrawalTotal(), 2 ether);
 
         // Step 4: L1 finalizes ETH withdrawal
         l1Messenger.setXDomainMessageSender(address(l2Bridge));
@@ -517,6 +545,91 @@ contract GoodDollarBridgeTest is Test {
 
         // Cross-chain message was queued
         assertEq(l2Messenger.lastTarget(), address(l1Bridge));
+    }
+
+    // ============ ETH Pool Separation Tests (GOO-32 fix) ============
+
+    function test_withdrawETH_reservesPendingTotal() public {
+        address withdrawer = address(0xABC);
+        vm.deal(withdrawer, 5 ether);
+
+        assertEq(l2Bridge.pendingETHWithdrawalTotal(), 0);
+
+        vm.prank(withdrawer);
+        l2Bridge.withdrawETH{value: 3 ether}(withdrawer, 3 ether);
+
+        assertEq(l2Bridge.pendingETHWithdrawalTotal(), 3 ether);
+        assertEq(address(l2Bridge).balance, 3 ether);
+    }
+
+    function test_finalizeETHDeposit_cannotUseReservedWithdrawalETH() public {
+        // Simulate: users have bridged 5 ETH back to L1 (all bridge ETH is reserved)
+        address withdrawer = address(0xABC);
+        vm.deal(withdrawer, 5 ether);
+        vm.prank(withdrawer);
+        l2Bridge.withdrawETH{value: 5 ether}(withdrawer, 5 ether);
+        assertEq(address(l2Bridge).balance, 5 ether);
+        assertEq(l2Bridge.pendingETHWithdrawalTotal(), 5 ether);
+
+        // L1 deposit tries to use reserved withdrawal ETH -- must revert
+        l2Messenger.setXDomainMessageSender(address(l1Bridge));
+        vm.prank(address(l2Messenger));
+        vm.expectRevert(GoodDollarBridgeL2.InsufficientFreeETH.selector);
+        l2Bridge.finalizeETHDeposit(user, recipient, 1 ether);
+    }
+
+    function test_finalizeETHDeposit_usesFreeETHOnly() public {
+        // Bridge has 10 ETH free (pre-funded for deposits) + 3 ETH reserved (pending withdrawal)
+        vm.deal(address(l2Bridge), 10 ether);
+
+        address withdrawer = address(0xABC);
+        vm.deal(withdrawer, 3 ether);
+        vm.prank(withdrawer);
+        l2Bridge.withdrawETH{value: 3 ether}(withdrawer, 3 ether);
+
+        // Total bridge balance: 13 ETH, reserved: 3 ETH, free: 10 ETH
+        assertEq(address(l2Bridge).balance, 13 ether);
+        assertEq(l2Bridge.pendingETHWithdrawalTotal(), 3 ether);
+
+        // Deposit of 10 ETH (exactly the free amount) should succeed
+        l2Messenger.setXDomainMessageSender(address(l1Bridge));
+        uint256 recipientBefore = recipient.balance;
+        vm.prank(address(l2Messenger));
+        l2Bridge.finalizeETHDeposit(user, recipient, 10 ether);
+        assertEq(recipient.balance, recipientBefore + 10 ether);
+
+        // Reserved withdrawal ETH is still intact
+        assertEq(l2Bridge.pendingETHWithdrawalTotal(), 3 ether);
+        assertEq(address(l2Bridge).balance, 3 ether);
+    }
+
+    function test_finalizeETHDeposit_revertsIfExceedsFreeETH() public {
+        vm.deal(address(l2Bridge), 10 ether);
+
+        // Reserve 8 ETH for withdrawal -- only 2 ETH free
+        address withdrawer = address(0xABC);
+        vm.deal(withdrawer, 8 ether);
+        vm.prank(withdrawer);
+        l2Bridge.withdrawETH{value: 8 ether}(withdrawer, 8 ether);
+
+        // Attempt to deposit 5 ETH when only 2 ETH is free -- must revert
+        l2Messenger.setXDomainMessageSender(address(l1Bridge));
+        vm.prank(address(l2Messenger));
+        vm.expectRevert(GoodDollarBridgeL2.InsufficientFreeETH.selector);
+        l2Bridge.finalizeETHDeposit(user, recipient, 5 ether);
+    }
+
+    function test_withdrawETH_multipleUsersAccumulate() public {
+        vm.deal(user, 5 ether);
+        vm.deal(recipient, 3 ether);
+
+        vm.prank(user);
+        l2Bridge.withdrawETH{value: 5 ether}(user, 5 ether);
+        vm.prank(recipient);
+        l2Bridge.withdrawETH{value: 3 ether}(recipient, 3 ether);
+
+        assertEq(l2Bridge.pendingETHWithdrawalTotal(), 8 ether);
+        assertEq(address(l2Bridge).balance, 8 ether);
     }
 
     // ============ Admin Tests ============
