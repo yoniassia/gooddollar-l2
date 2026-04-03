@@ -40,8 +40,9 @@ export const PERPS_CONTRACTS: ContractDef[] = [
     protocol: "perps",
     events: [
       "event PositionOpened(address indexed trader, uint256 indexed marketId, bool isLong, uint256 size, uint256 collateral, uint256 entryPrice)",
-      "event PositionClosed(address indexed trader, uint256 indexed marketId, int256 pnl)",
+      "event PositionClosed(address indexed trader, uint256 indexed marketId, int256 pnl, uint256 exitPrice)",
       "event PositionLiquidated(address indexed trader, uint256 indexed marketId, address indexed liquidator, int256 pnl)",
+      "event MarketCreated(uint256 indexed marketId, bytes32 oracleKey, uint256 maxLeverage)",
     ],
   },
   {
@@ -60,6 +61,15 @@ export const PERPS_CONTRACTS: ContractDef[] = [
     protocol: "perps",
     events: [
       "event FundingApplied(uint256 indexed marketId, int256 rate, int256 newIndex, uint256 timestamp)",
+    ],
+  },
+  {
+    name: "PerpPriceOracle",
+    address: "0x286B8DecD5ED79c962b2d8F4346CD97FF0E2C352",
+    protocol: "perps",
+    events: [
+      "event PriceUpdated(bytes32 indexed key, uint256 markPrice, uint256 indexPrice, uint8 numSources, uint256 timestamp)",
+      "event ManualPriceSet(bytes32 indexed key, uint256 markPrice, uint256 indexPrice)",
     ],
   },
 ];

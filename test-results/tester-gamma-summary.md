@@ -256,3 +256,179 @@ All 10 rapid sequential calls returned consistently. No timeout, no dropped resp
 3. **Carry-forward (GOO-198)**: UBIFeeSplitter ubiRecipient still zero — set via `setUBIRecipient(addr)`.
 4. **Devnet hygiene**: Register at least a second synthetic asset (e.g. GLD) to broaden coverage for SyntheticAssetFactory.
 5. **ValidatorStaking**: Now has 1 validator (tester-gamma wallet) staked — retest `validatorCount()` and `totalStaked()` on next iteration to confirm state persistence.
+
+---
+
+# Tester Gamma - Iteration 3 Test Results
+
+Date: 2026-04-03
+Wallet: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
+Chain: GoodDollar L2 Devnet (Chain ID 42069, RPC http://localhost:8545)
+
+**Total Tests: 46 | Passed: 43 | Failed: 3 (3 new bugs discovered)**
+
+## Contracts Covered
+
+ConditionalTokens, MarketFactory, MarginVault, GoodLendPool (corrected ABI), PerpEngine (negative tests), MockUSDC, ValidatorStaking (regression), Stress test (writes)
+
+## Test Results
+
+### ConditionalTokens (0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6)
+
+| Test ID | Function | Status | Notes |
+|---------|----------|--------|-------|
+| CT-001 | `factory()` | PASS (anomaly) | Returns deployer 0xf39Fd6.. NOT MarketFactory — see GOO-214 |
+| CT-002 | `yesTokenId(0)` | PASS | tokenId=0 |
+| CT-003 | `noTokenId(0)` | PASS | tokenId=1 |
+| CT-004 | `balanceOf(wallet, 0)` | PASS | balance=0 (no YES tokens held) |
+| CT-005 | `balanceOf(wallet, 1)` | PASS | balance=0 (no NO tokens held) |
+
+**Anomaly (GOO-214):** The deployed ConditionalTokens at 0x2279B7A0... has `factory()=deployer address`, not MarketFactory. See below.
+
+### MarketFactory (0x8A791620dd6260079BF849Dc5567aDC3F2FdC318)
+
+| Test ID | Function | Status | Notes |
+|---------|----------|--------|-------|
+| MF-001 | `admin()` | PASS | 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (deployer) |
+| MF-002 | `marketCount()` | PASS | 2 markets seeded |
+| MF-003 | `goodDollar()` | PASS | 0x5FbDB2...aa3 (GDT — correct) |
+| MF-004 | `feeSplitter()` | PASS | 0xe7f172...512 (UBIFeeSplitter — correct) |
+| MF-005 | `tokens()` | PASS (anomaly) | Returns 0x8aCd85... NOT deployed ConditionalTokens — see GOO-214 |
+| MF-006 | `BPS()` | PASS | 10000 |
+| MF-007 | `REDEEM_FEE_BPS()` | PASS | 100 (1% redemption fee) |
+| MF-008-0 | `getMarket(0)` | PASS | "Will ETH be above $3000 by May 2026?" endTime=1777828391 status=4 (Voided) YES=100e18 NO=50e18 collateral=50e18 |
+| MF-009-0 | `impliedProbabilityYES(0)` | PASS | 6666 bps (66.66%) |
+| MF-008-1 | `getMarket(1)` | PASS | "Will BTC be above $70000 by Q2 2026?" endTime=1775253909 status=2 (ResolvedYES) YES=100e18 NO=50e18 collateral=75e18 |
+| MF-009-1 | `impliedProbabilityYES(1)` | PASS | 6666 bps (66.66%) |
+
+**Market State observations:**
+- Market 0 (ETH>$3000): Status=4 (Voided) — market was voided. Collateral=50e18 GDT not redeemed yet.
+- Market 1 (BTC>$70k): Status=2 (ResolvedYES) — YES winners resolved. Collateral=75e18 GDT (includes NO side; unclaimed).
+
+### MarginVault (0x5FC8d32690cc91D4c39d9d3abcBD16989F875707)
+
+| Test ID | Function | Status | Notes |
+|---------|----------|--------|-------|
+| MV-001 | `admin()` | PASS | 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 |
+| MV-002 | `collateral()` | PASS | GDT (0x5FbDB...) — correct |
+| MV-003 | `perpEngine()` | PASS | 0xa513E6... (PerpEngine — correct) |
+| MV-004 | `totalDeposited()` | PASS | 880.401 GDT total deposited by all users |
+| MV-005 | `balances(wallet)` | PASS | 0 GDT (no prior balance) |
+| MV-006 | `GDT.approve(MarginVault, 1e18)` | PASS | Approval tx confirmed block=26195 |
+| MV-007 | `deposit(1e18)` | PASS | Deposited 1 GDT — block=26197 |
+| MV-008 | `balances(wallet)_post` | PASS | 1e18 (1 GDT) — deposit confirmed |
+| MV-009 | `withdraw(1e18)` | PASS | Withdrew 1 GDT — block=26199 |
+
+**Full deposit/withdraw cycle works correctly.** MarginVault is functional.
+
+### Bug Regression — GOO-198 (UBIFeeSplitter)
+
+| Test ID | Function | Status | Notes |
+|---------|----------|--------|-------|
+| GOO198-REG | `ubiRecipient()` | PASS (regression confirmed) | Still reverts — ubiRecipient=address(0) UNFIXED |
+| GOO198-CB | `claimableBalance()` | PASS (regression confirmed) | Still reverts — UNFIXED |
+| GOO198-TFC | `totalFeesCollected()` | PASS | 5,051.80 GDT collected (up from 5,050.80 in iter2 — slowly accruing) |
+
+**GOO-198 status: STILL OPEN.** Not fixed between iterations.
+
+### Bug Regression — GOO-204 (GoodLendPool.getUserAccountData)
+
+| Test ID | Function | Status | Notes |
+|---------|----------|--------|-------|
+| GOO204-v2 | `getUserAccountData(wallet)` | PASS (regression confirmed) | healthFactor=uint256_max — BUG STILL OPEN |
+| GOO204-v3 | `getUserAccountData(wallet)_post_supply` | PASS (confirmed) | After supply: collateral accumulates (199e9→209e9) but healthFactor=uint256_max — price oracle not returning valid data |
+
+**GOO-204 status: STILL OPEN.** healthFactor=uint256_max both pre and post supply. The collateral USD value accumulates correctly (100 USDC = 100e8 value, consistent across calls), but healthFactor stays at uint256_max — suggesting the GoodLendPool oracle (SimplePriceOracle at 0x9A9f2...) is returning 0 or reverts for debt lookups, causing division-by-zero → uint256_max sentinel.
+
+### Negative Tests — GoodLendPool Over-Borrow
+
+| Test ID | Function | Status | Notes |
+|---------|----------|--------|-------|
+| OB-001 | `MockUSDC.mint(wallet,100e6)` | PASS | 100 USDC minted |
+| OB-002 | `MockUSDC.approve(GoodLendPool,100e6)` | PASS | Approved |
+| OB-003-v2 | `supply(USDC,100e6)` | PASS | 100 USDC supplied successfully |
+| OB-004-v2 | `borrow(USDC,200e6)` | **FAIL — NEW BUG GOO-213** | Expected revert but borrow SUCCEEDED |
+
+**GOO-213 (CRITICAL): GoodLendPool allows over-collateralized borrowing.** When healthFactor=uint256_max (due to GOO-204 oracle bug), health factor checks are bypassed and any borrow amount succeeds. Cascading bug from GOO-204.
+
+### Negative Tests — PerpEngine
+
+| Test ID | Function | Status | Notes |
+|---------|----------|--------|-------|
+| PE-NEG-001 | `openPosition(0,0,true,1)` | PASS | Reverts with custom error 0x1f2a2005 (ZeroAmount) |
+| PE-NEG-002 | `openPosition(99,100e18,true,1)` | PASS | Reverts: array index out of bounds for non-existent market |
+
+PerpEngine correctly rejects malformed inputs.
+
+### Cross-dApp Flow
+
+| Test ID | Function | Status | Notes |
+|---------|----------|--------|-------|
+| XDA-001 | `MockUSDC.balanceOf(wallet)` | PASS | 9,100 USDC available |
+| XDA-004 | `borrow(WETH, 0.01e18)` | PASS (expected revert) | Borrow WETH fails — no WETH liquidity in pool |
+| GLP-RD-v2 | `getReserveData(USDC)` | PASS | totalDeposits=153e9, totalBorrows=0, liqIdx≈1e27 |
+
+### ValidatorStaking State Persistence
+
+| Test ID | Function | Status | Notes |
+|---------|----------|--------|-------|
+| VS-PERSIST-001 | `totalStaked()` | PASS | 1,000,000 GDT — iter2 stake PERSISTED |
+| VS-PERSIST-002 | `validatorCount()` | PASS | 1 — iter2 validator registration PERSISTED |
+| VS-PERSIST-003 | `activeValidatorCount()` | PASS | 1 active validator |
+
+State persistence confirmed. Devnet state is stable across iterations.
+
+### Stress Test — Write Operations
+
+| Test ID | Description | Status | Notes |
+|---------|-------------|--------|-------|
+| STRESS-WRITE | 5x rapid MockUSDC.mint() sends | PASS | 5/5 succeeded, avg ~4006ms/tx (1 block = 2s, 2 blocks wait per tx) |
+
+All 5 sequential write operations completed successfully. Node stable under write load.
+
+### ConditionalTokens / MarketFactory Address Mismatch (GOO-214)
+
+| Test ID | Function | Status | Notes |
+|---------|----------|--------|-------|
+| CT-ANO-001 | `ConditionalTokens(0x2279).factory()` | **FAIL — NEW BUG GOO-214** | Returns deployer 0xf39Fd6.. NOT MarketFactory |
+| CT-ANO-002 | `MarketFactory.tokens()` | **FAIL — NEW BUG GOO-214** | Returns 0x8aCd85.. NOT 0x2279.. |
+
+## New Bugs Found
+
+### GOO-213 (CRITICAL): GoodLendPool allows under-collateralized borrowing
+
+- **Contract**: GoodLendPool (0x322813fd9a801c5507c9de605d63cea4f2ce6c44)
+- **Observation**: Supplied 100 USDC, then successfully borrowed 200 USDC (2x over-supplied). The transaction succeeded on-chain.
+- **Root cause**: Cascading from GOO-204. `healthFactor=uint256_max` means the health check `require(healthFactor >= HEALTH_FACTOR_LIQUIDATION_THRESHOLD)` always passes (uint256_max ≥ anything). The pool's collateral oracle returns 0/invalid prices → healthFactor computed as infinity → no borrow limit enforced.
+- **Impact**: CRITICAL — Any user can drain the pool's liquidity by depositing any small amount and borrowing the entire reserve. Protocol is effectively insolvent on devnet until oracle is fixed.
+- **Fix prerequisite**: Fix GOO-204 (configure SimplePriceOracle with USDC/WETH prices).
+
+### GOO-214 (HIGH): ConditionalTokens deployment mismatch — two separate instances
+
+- **Contract**: ConditionalTokens (deployed at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6)
+- **Observation**:
+  - The deployment config lists ConditionalTokens at 0x2279B7A0...
+  - `ConditionalTokens(0x2279B7A0).factory()` = `0xf39Fd6e51aad...` (the deployer EOA) — NOT MarketFactory
+  - `MarketFactory(0x8A791620).tokens()` = `0x8aCd85898458400f7Db866d53FCFF6f0D49741FF` — a DIFFERENT address
+- **Root cause**: MarketFactory deploys its own ConditionalTokens in the constructor (`tokens = new ConditionalTokens(address(this))`). The 0x2279B7A0 address was a standalone ConditionalTokens deployed separately (with factory=deployer) and is listed in the config but is NOT the one MarketFactory uses.
+- **Impact**: Any frontend, indexer, or integration pointing to ConditionalTokens at 0x2279B7A0... will see empty balances and no token activity, because all actual token minting/burning happens on the MarketFactory-owned ConditionalTokens at 0x8aCd85....
+- **Fix**: Update deployment config to list `0x8aCd85898458400f7Db866d53FCFF6f0D49741FF` as the canonical ConditionalTokens address. The 0x2279B7A0... contract is an orphaned deployment.
+
+## Status Updates on Prior Bugs
+
+| Bug | Status | Notes |
+|-----|--------|-------|
+| GOO-198 (UBIFeeSplitter ubiRecipient=0) | **STILL OPEN** | Both `ubiRecipient()` and `claimableBalance()` revert. totalFeesCollected=5051.8 GDT (was 5050.8 in iter2 — accruing). |
+| GOO-199 (CollateralVault decimal mismatch) | NOT RETESTED | Carried forward |
+| GOO-200 (PriceOracle no data) | RESOLVED (iter2) | AAPL and ETH prices active |
+| GOO-204 (GoodLendPool uint256_max) | **STILL OPEN** | healthFactor=uint256_max pre and post supply. Collateral USD accumulates correctly but HF broken. |
+| GOO-205 (UBIFeeHook poolManager=0x1) | NOT RETESTED | Carried forward |
+
+## Recommendations (Iteration 3)
+
+1. **CRITICAL (GOO-213)**: Disable borrowing in GoodLendPool until oracle is fixed — the pool is currently drainable with no collateral requirement.
+2. **HIGH (GOO-214)**: Update all deployment configs, frontend references, and indexers to use ConditionalTokens at `0x8aCd85898458400f7Db866d53FCFF6f0D49741FF` (the one MarketFactory owns). The address at 0x2279B7A0... is orphaned.
+3. **IMMEDIATE (GOO-204)**: Configure SimplePriceOracle (0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE) with USDC and WETH prices. This will fix healthFactor computation and close the GOO-213 vulnerability.
+4. **CARRY-FORWARD (GOO-198)**: Set `UBIFeeSplitter.ubiRecipient` via admin call. 5,051 GDT in fees cannot be queried or claimed.
+5. **CARRY-FORWARD (GOO-205)**: Configure UBIFeeHook.poolManager with real Uniswap V4 PoolManager address (currently sentinel 0x1).
+

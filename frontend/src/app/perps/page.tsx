@@ -484,8 +484,11 @@ export default function PerpsPage() {
   const pair = pairs.find(p => p.symbol === selectedSymbol) ?? pairs[0]
 
   const chartData = useMemo(() => {
+    if (!pair) return []
     return getChartData(pair.symbol, timeframe, pair.markPrice)
-  }, [pair.symbol, pair.markPrice, timeframe])
+  }, [pair, timeframe])
+
+  if (!pair) return null
 
   return (
     <div className="w-full max-w-6xl mx-auto">

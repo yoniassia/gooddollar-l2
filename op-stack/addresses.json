@@ -1,5 +1,5 @@
 {
-  "_comment": "GoodDollar L2 contract addresses — deployed 2026-04-03",
+  "_comment": "GoodDollar L2 contract addresses \u2014 deployed 2026-04-03",
   "chain_id": 42069,
   "chain_name": "GoodDollar L2 Devnet",
   "rpc_url": "https://rpc.goodclaw.org",
@@ -11,7 +11,7 @@
     "UBIFeeHook": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
     "FundingRate": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
     "MarginVault": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
-    "PriceOracle": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+    "PriceOracle": "0x286B8DecD5ED79c962b2d8F4346CD97FF0E2C352",
     "StocksPriceOracle": "0xD0141E899a65C95a556fE2B27e5982A6DE7fDD7A",
     "PerpEngine": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
     "ConditionalTokens": "0x8aCd85898458400f7Db866d53FCFF6f0D49741FF",
@@ -19,7 +19,8 @@
     "MarketFactory": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
     "CollateralVault": "0x56D13Eb21a625EdA8438F55DF2C31dC3632034f5",
     "SyntheticAssetFactory": "0xd9140951d8aE6E5F625a02F5908535e16e3af964",
-    "TestRegistry": "0x12bcb546bc60ff39f1adfc7ce4605d5bd6a6a876"
+    "TestRegistry": "0x12bcb546bc60ff39f1adfc7ce4605d5bd6a6a876",
+    "PerpPriceOracle": "0x286B8DecD5ED79c962b2d8F4346CD97FF0E2C352"
   },
   "admin": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
   "sequencer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",

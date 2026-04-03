@@ -14,6 +14,7 @@ import { useMemo } from 'react'
 import { useReadContract, useReadContracts, useAccount } from 'wagmi'
 import { PerpEngineABI, MarginVaultABI, FundingRateABI } from './abi'
 import { CONTRACTS } from './chain'
+import { useOracleMarkPrices } from './usePerpsHistory'
 import type { PerpPair, AccountSummaryData, OpenPosition } from './perpsData'
 
 const ENGINE = CONTRACTS.PerpEngine
@@ -24,12 +25,16 @@ const FUNDING_INTERVAL_MS = 8 * 3600 * 1000 // 8 hours fallback
 // ─── Static market metadata (pairs the PerpEngine supports) ──────────────────
 // The on-chain PerpEngine stores markets by ID with a bytes32 key.
 // We map known market IDs to human-readable pair info.
+// On-chain market ordering (verified via `cast call markets(uint256)` + keccak256 of ticker):
+//   Market 0: keccak256("ETH") = 0xaaae...  → ETH-USD
+//   Market 1: keccak256("BTC") = 0xe98e...  → BTC-USD
 const MARKET_META: Record<number, { symbol: string; baseAsset: string; quoteAsset: string; maxLeverage: number }> = {
-  0: { symbol: 'BTC-USD', baseAsset: 'BTC', quoteAsset: 'USD', maxLeverage: 50 },
-  1: { symbol: 'ETH-USD', baseAsset: 'ETH', quoteAsset: 'USD', maxLeverage: 50 },
-  2: { symbol: 'G$-USD', baseAsset: 'G$', quoteAsset: 'USD', maxLeverage: 20 },
-  3: { symbol: 'SOL-USD', baseAsset: 'SOL', quoteAsset: 'USD', maxLeverage: 50 },
-  4: { symbol: 'LINK-USD', baseAsset: 'LINK', quoteAsset: 'USD', maxLeverage: 30 },
+  0: { symbol: 'ETH-USD', baseAsset: 'ETH', quoteAsset: 'USD', maxLeverage: 50 },
+  1: { symbol: 'BTC-USD', baseAsset: 'BTC', quoteAsset: 'USD', maxLeverage: 100 },
+  2: { symbol: 'SOL-USD', baseAsset: 'SOL', quoteAsset: 'USD', maxLeverage: 25 },
+  3: { symbol: 'BNB-USD', baseAsset: 'BNB', quoteAsset: 'USD', maxLeverage: 25 },
+  4: { symbol: 'MATIC-USD', baseAsset: 'MATIC', quoteAsset: 'USD', maxLeverage: 20 },
+  5: { symbol: 'ARB-USD', baseAsset: 'ARB', quoteAsset: 'USD', maxLeverage: 20 },
 }
 
 // ─── Read all markets ─────────────────────────────────────────────────────────
@@ -75,6 +80,9 @@ export function useOnChainPairs(): { pairs: PerpPair[]; isLoading: boolean; isLi
     query: { enabled: maxRead > 0, refetchInterval: 60_000 },
   })
 
+  // Read oracle prices for all active markets
+  const { markPrices, indexPrices } = useOracleMarkPrices(maxRead)
+
   const pairs = useMemo<PerpPair[]>(() => {
     if (!data || data.length === 0) return []
 
@@ -103,8 +111,8 @@ export function useOnChainPairs(): { pairs: PerpPair[]; isLoading: boolean; isLi
         symbol: meta.symbol,
         baseAsset: meta.baseAsset,
         quoteAsset: meta.quoteAsset,
-        markPrice: 0,      // mark price requires oracle read — filled by backend/keeper
-        indexPrice: 0,
+        markPrice: markPrices[i] ?? 0,
+        indexPrice: indexPrices[i] ?? 0,
         change24h: 0,
         volume24h: 0,
         fundingRate: 0,    // rate requires mark/index prices from oracle
@@ -114,7 +122,7 @@ export function useOnChainPairs(): { pairs: PerpPair[]; isLoading: boolean; isLi
       })
     }
     return result
-  }, [data, fundingData])
+  }, [data, fundingData, markPrices, indexPrices])
 
   return { pairs, isLoading, isLive: pairs.length > 0 }
 }
@@ -127,6 +135,7 @@ export function useOnChainPositions(): {
 } {
   const { address } = useAccount()
   const { pairs } = useOnChainPairs()
+  const { markPrices } = useOracleMarkPrices(pairs.length)
 
   const contracts = useMemo(() => {
     if (!address || pairs.length === 0) return []
@@ -168,6 +177,13 @@ export function useOnChainPositions(): {
       const entryFloat = Number(entryPrice) / 1e8
       const collFloat = Number(collateral) / 1e18
       const leverage = collFloat > 0 ? Math.round(sizeFloat * entryFloat / collFloat) : 1
+      const mark = markPrices[i] ?? entryFloat  // oracle mark price, fallback to entry
+      // Liquidation price estimate: entry ± (margin / size) adjusted by maintenance margin
+      const marginPerUnit = collFloat > 0 ? collFloat / sizeFloat : 0
+      const maintenanceRatio = 0.02 // 2% maintenance margin
+      const liqPrice = isLong
+        ? entryFloat - marginPerUnit * (1 - maintenanceRatio)
+        : entryFloat + marginPerUnit * (1 - maintenanceRatio)
 
       result.push({
         pair: pairs[i].symbol,
@@ -175,15 +191,15 @@ export function useOnChainPositions(): {
         size: sizeFloat,
         leverage,
         entryPrice: entryFloat,
-        markPrice: entryFloat, // TODO: read from oracle
-        liquidationPrice: 0,
+        markPrice: mark,
+        liquidationPrice: Math.max(0, liqPrice),
         unrealizedPnl: pnl,
         margin: collFloat,
         marginMode: 'cross',
       })
     }
     return result
-  }, [data, pairs])
+  }, [data, pairs, markPrices])
 
   return { positions, isLoading }
 }

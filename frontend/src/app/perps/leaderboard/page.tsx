@@ -2,12 +2,13 @@
 
 import { useState, useMemo } from 'react'
 import { formatPerpsPrice, type LeaderboardEntry } from '@/lib/perpsData'
+import { useLeaderboard } from '@/lib/usePerpsHistory'
 
 type TimeFilter = '24h' | '7d' | '30d' | 'all'
 
 export default function PerpsLeaderboardPage() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
-  const leaderboard: LeaderboardEntry[] = []  // TODO: read from backend indexer
+  const { leaderboard } = useLeaderboard()
 
   return (
     <div className="w-full max-w-4xl mx-auto">
@@ -83,7 +84,7 @@ export default function PerpsLeaderboardPage() {
       </div>
 
       <p className="text-xs text-gray-600 text-center mt-4">
-        Leaderboard data is illustrative. Live rankings coming soon.
+        Rankings sourced from on-chain trade settlement events via indexer.
       </p>
     </div>
   )

@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { formatPerpsPrice, formatLargeValue, type OpenPosition, type PendingOrder, type TradeHistoryRecord, type FundingPayment } from '@/lib/perpsData'
 import { useOnChainPairs, useOnChainPositions, useOnChainAccountSummary } from '@/lib/useOnChainPerps'
+import { useTradeHistory, useFundingPayments } from '@/lib/usePerpsHistory'
 import { useClosePosition } from '@/lib/usePerps'
 import { ConnectWalletEmptyState } from '@/components/ConnectWalletEmptyState'
 
@@ -112,9 +113,9 @@ export default function PerpsPortfolioPage() {
   const [tab, setTab] = useState<Tab>('positions')
   const { positions } = useOnChainPositions()
   const { pairs } = useOnChainPairs()
-  const orders: PendingOrder[] = []  // TODO: read from on-chain/backend
-  const trades: TradeHistoryRecord[] = []  // TODO: read from event logs
-  const funding: FundingPayment[] = []  // TODO: read from event logs
+  const orders: PendingOrder[] = []  // limit orders not yet supported
+  const { trades } = useTradeHistory()
+  const { funding } = useFundingPayments()
   const { summary: account } = useOnChainAccountSummary()
 
   const totalPnl = positions.reduce((sum, p) => sum + p.unrealizedPnl, 0)

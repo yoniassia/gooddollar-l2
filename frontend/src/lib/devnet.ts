@@ -70,6 +70,7 @@ export const CONTRACTS = {
   PerpEngine:            '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853' as `0x${string}`,
   MarginVault:           '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707' as `0x${string}`,
   FundingRate:           '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9' as `0x${string}`,
+  PerpPriceOracle:       '0x286B8DecD5ED79c962b2d8F4346CD97FF0E2C352' as `0x${string}`,
 
   // ── GoodStocks — redeployed with 12 synthetic stocks (chain 42069), 2026-04-03
   StocksPriceOracle:     '0xD0141E899a65C95a556fE2B27e5982A6DE7fDD7A' as `0x${string}`,
