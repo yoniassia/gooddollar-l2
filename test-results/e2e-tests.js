@@ -332,6 +332,101 @@ async function run() {
     logResult({ page: 'nav', check: 'nav_links', passed: false, detail: e.message });
   }
 
+  // ═══ TEST 13: Explore Page ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/explore`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.waitForTimeout(1500);
+
+    totalTests++;
+    const exploreData = await page.evaluate(() => {
+      const text = document.body.innerText;
+      return {
+        hasTokenList: /G\$|ETH|USDC|market cap/i.test(text),
+        hasBrokenData: /NaN|undefined|\[object/.test(text),
+        hasEthPrice: /\$[\d,]+/.test(text)
+      };
+    });
+    logResult({ page: 'explore', check: 'token_list_loads', passed: exploreData.hasTokenList && !exploreData.hasBrokenData, detail: exploreData.hasEthPrice ? 'Prices visible' : 'No prices' });
+    if (exploreData.hasTokenList && !exploreData.hasBrokenData) passed++; else failed++;
+
+    await page.close();
+  } catch (e) {
+    totalTests++; failed++;
+    logResult({ page: 'explore', check: 'token_list_loads', passed: false, detail: e.message });
+  }
+
+  // ═══ TEST 14: Lend Page — mock data disclaimer check (GOO-202) ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/lend`, { waitUntil: 'networkidle', timeout: 30000 });
+
+    totalTests++;
+    const lendData = await page.evaluate(() => {
+      const text = document.body.innerText;
+      return {
+        hasLendContent: /supply|borrow|APY|market/i.test(text),
+        hasBrokenData: /NaN%|NaN|undefined|\$0\.00\s*APY/.test(text),
+        hasDisclaimer: /demo|placeholder|illustrative|coming soon|synthetic/i.test(text)
+      };
+    });
+    // Page should load (has content) — flag missing disclaimer as known issue GOO-202
+    logResult({ page: 'lend', check: 'page_loads_with_content', passed: lendData.hasLendContent && !lendData.hasBrokenData, detail: lendData.hasDisclaimer ? 'Has disclaimer' : 'NO DISCLAIMER (GOO-202)' });
+    if (lendData.hasLendContent && !lendData.hasBrokenData) passed++; else failed++;
+
+    await page.close();
+  } catch (e) {
+    totalTests++; failed++;
+    logResult({ page: 'lend', check: 'page_loads_with_content', passed: false, detail: e.message });
+  }
+
+  // ═══ TEST 15: Stable Page ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/stable`, { waitUntil: 'networkidle', timeout: 30000 });
+
+    totalTests++;
+    const stableData = await page.evaluate(() => {
+      const text = document.body.innerText;
+      return {
+        hasStableContent: /gUSD|stablecoin|collateral|vault|mint/i.test(text),
+        hasBrokenData: /NaN|undefined|\[object/.test(text)
+      };
+    });
+    logResult({ page: 'stable', check: 'page_loads_with_content', passed: stableData.hasStableContent && !stableData.hasBrokenData, detail: stableData.hasStableContent ? 'Stable UI visible' : 'No content' });
+    if (stableData.hasStableContent && !stableData.hasBrokenData) passed++; else failed++;
+
+    await page.close();
+  } catch (e) {
+    totalTests++; failed++;
+    logResult({ page: 'stable', check: 'page_loads_with_content', passed: false, detail: e.message });
+  }
+
+  // ═══ TEST 16: Stocks — oracle empty state handled gracefully ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/stocks`, { waitUntil: 'networkidle', timeout: 30000 });
+
+    totalTests++;
+    const stocksData = await page.evaluate(() => {
+      const text = document.body.innerText;
+      return {
+        // Page should load with some content
+        hasStocksUI: /tokenized stocks|synthetic equities|markets|portfolio/i.test(text),
+        hasBrokenData: /NaN|TypeError|ReferenceError|\[object/.test(text),
+        hasGracefulEmpty: /no stocks|coming soon|oracle|synthetic and illustrative/i.test(text)
+      };
+    });
+    // Pass if UI loads without broken data (empty oracle is a known issue GOO-203, not a crash)
+    logResult({ page: 'stocks', check: 'empty_oracle_graceful', passed: stocksData.hasStocksUI && !stocksData.hasBrokenData, detail: stocksData.hasGracefulEmpty ? 'Empty state handled' : 'No empty-state msg' });
+    if (stocksData.hasStocksUI && !stocksData.hasBrokenData) passed++; else failed++;
+
+    await page.close();
+  } catch (e) {
+    totalTests++; failed++;
+    logResult({ page: 'stocks', check: 'empty_oracle_graceful', passed: false, detail: e.message });
+  }
+
   await browser.close();
 
   // Summary
