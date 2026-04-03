@@ -130,3 +130,13 @@ One chain where AI agents do everything in finance — and every transaction fun
 3. **AI agents are the primary users** — Optimize for programmatic access, not just human UIs.
 4. **Every fee funds UBI** — Non-negotiable. 33% of every protocol fee → UBI pool.
 5. **Ship working demos, then harden** — Get things visible fast, then make them production-grade.
+
+
+### ~~CRITICAL: Remove All Mock Data~~ ✅ DONE
+**Status:** All 500 lines of mock data replaced with on-chain hooks (GOO-135)
+**Completed:** 2026-04-03
+**New hooks:**
+- useOnChainPerps.ts — PerpEngine + MarginVault reads
+- useOnChainStocks.ts — SyntheticAssetFactory + PriceOracle + CollateralVault reads
+- useOnChainMarketData.ts — CoinGecko live prices via usePriceFeeds
+**Files cleaned:** stockData.ts, perpsData.ts, marketData.ts (types + formatters only)

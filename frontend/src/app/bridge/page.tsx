@@ -178,6 +178,11 @@ export default function BridgePage() {
   const [toToken, setToToken] = useState<BridgeToken>('ETH')
   const [amount, setAmount] = useState('')
 
+  // Native L2 bridge state
+  const [bridgeMode, setBridgeMode] = useState<'deposit' | 'withdraw'>('deposit')
+  const [nativeToken, setNativeToken] = useState<'ETH' | 'G$' | 'USDC'>('ETH')
+  const [nativeAmount, setNativeAmount] = useState('')
+
   // Build Li.Fi quote params — only when connected and amount entered
   const quoteParams = useMemo(() => {
     if (!isConnected || !address || !amount || parseFloat(amount) <= 0) return null
@@ -326,8 +331,8 @@ export default function BridgePage() {
         </div>
       </div>
 
-      {/* GoodDollar L2 native bridge section */}
-      <div className="mt-6 p-5 bg-dark-100 border border-gray-700/40 rounded-2xl flex flex-col gap-3">
+      {/* GoodDollar L2 Native Bridge — Deposit & Withdraw */}
+      <div className="mt-6 p-5 bg-dark-100 border border-gray-700/40 rounded-2xl flex flex-col gap-4">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-full bg-goodgreen/15 flex items-center justify-center">
             <svg className="w-3 h-3 text-goodgreen" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -339,21 +344,102 @@ export default function BridgePage() {
             Pending OP Stack
           </span>
         </div>
-        <p className="text-xs text-gray-400 leading-relaxed">
-          The native ETH/L2 deposit bridge (GoodDollar L2 ↔ Ethereum mainnet) requires the OP Stack
-          to be deployed — op-geth, op-node, and op-batcher. Once live, you'll be able to bridge
-          directly to chain 42069 with canonical L2 security guarantees.
-        </p>
-        <div className="grid grid-cols-2 gap-3 text-center">
-          <div className="bg-dark-50 rounded-xl p-3">
-            <p className="text-[10px] text-gray-500 mb-1">Chain ID</p>
-            <p className="text-sm font-semibold text-white">42069</p>
+
+        {/* Deposit / Withdraw tabs */}
+        <div className="flex gap-1 bg-dark-50 p-1 rounded-xl">
+          <button
+            onClick={() => setBridgeMode('deposit')}
+            className={`flex-1 py-2 text-xs font-medium rounded-lg transition-colors ${
+              bridgeMode === 'deposit'
+                ? 'bg-goodgreen/20 text-goodgreen'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Deposit (L1 → L2)
+          </button>
+          <button
+            onClick={() => setBridgeMode('withdraw')}
+            className={`flex-1 py-2 text-xs font-medium rounded-lg transition-colors ${
+              bridgeMode === 'withdraw'
+                ? 'bg-goodgreen/20 text-goodgreen'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Withdraw (L2 → L1)
+          </button>
+        </div>
+
+        {/* Token selector for native bridge */}
+        <div className="flex gap-2">
+          {(['ETH', 'G$', 'USDC'] as const).map(token => (
+            <button
+              key={token}
+              onClick={() => setNativeToken(token)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                nativeToken === token
+                  ? 'bg-goodgreen/20 text-goodgreen border-goodgreen/40'
+                  : 'bg-dark-50 border-gray-700/30 text-gray-400 hover:text-white'
+              }`}
+            >
+              {token}
+            </button>
+          ))}
+        </div>
+
+        {/* Amount input for native bridge */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs text-gray-400">
+            {bridgeMode === 'deposit' ? 'Deposit' : 'Withdraw'} Amount ({nativeToken})
+          </label>
+          <input
+            type="number"
+            min="0"
+            placeholder="0.00"
+            value={nativeAmount}
+            onChange={e => setNativeAmount(sanitizeNumericInput(e.target.value))}
+            className="w-full bg-dark-50 border border-gray-700/40 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-goodgreen/50"
+          />
+        </div>
+
+        {/* Bridge info cards */}
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="bg-dark-50 rounded-xl p-2.5">
+            <p className="text-[10px] text-gray-500 mb-0.5">Chain ID</p>
+            <p className="text-xs font-semibold text-white">42069</p>
           </div>
-          <div className="bg-dark-50 rounded-xl p-3">
-            <p className="text-[10px] text-gray-500 mb-1">Status</p>
-            <p className="text-xs font-medium text-yellow-400">Awaiting OP Stack</p>
+          <div className="bg-dark-50 rounded-xl p-2.5">
+            <p className="text-[10px] text-gray-500 mb-0.5">{bridgeMode === 'deposit' ? 'Deposit' : 'Withdraw'} Time</p>
+            <p className="text-xs font-medium text-white">{bridgeMode === 'deposit' ? '~2 min' : '~7 days'}</p>
+          </div>
+          <div className="bg-dark-50 rounded-xl p-2.5">
+            <p className="text-[10px] text-gray-500 mb-0.5">Fee</p>
+            <p className="text-xs font-medium text-goodgreen">Free</p>
           </div>
         </div>
+
+        {/* Fast withdrawal option */}
+        {bridgeMode === 'withdraw' && (
+          <div className="bg-goodgreen/5 border border-goodgreen/20 rounded-xl p-3 flex items-start gap-2.5">
+            <svg className="w-4 h-4 text-goodgreen mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <div>
+              <p className="text-xs font-medium text-goodgreen mb-0.5">⚡ Fast Withdrawal Available</p>
+              <p className="text-[10px] text-gray-400 leading-relaxed">
+                Skip the 7-day challenge window. LP-funded instant withdrawals — pay a small fee (0.3%) and receive funds immediately on L1.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Action button */}
+        <button
+          disabled={true}
+          className="w-full py-3 rounded-xl bg-gray-700/30 text-gray-500 font-semibold text-sm cursor-not-allowed"
+          title="Awaiting OP Stack deployment"
+        >
+          {bridgeMode === 'deposit' ? '⬇ Deposit' : '⬆ Withdraw'} — Awaiting OP Stack
+        </button>
       </div>
 
       {/* Li.Fi attribution */}
