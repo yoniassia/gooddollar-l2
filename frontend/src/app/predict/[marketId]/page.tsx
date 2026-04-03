@@ -130,6 +130,9 @@ export default function MarketDetailPage() {
 
   return (
     <div className="w-full max-w-5xl mx-auto">
+      <Link href="/predict" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-teal-400 transition-colors mb-4">
+        <span>←</span> Back to Markets
+      </Link>
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="flex-1 min-w-0">
           <div className="mb-4">
