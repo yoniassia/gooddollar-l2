@@ -16,6 +16,50 @@ function ProbabilityBar({ yesPrice }: { yesPrice: number }) {
   )
 }
 
+const CATEGORY_ICONS: Record<MarketCategory, { bg: string; color: string; path: string }> = {
+  Crypto: {
+    bg: 'bg-amber-500/10',
+    color: 'text-amber-400',
+    path: 'M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z',
+  },
+  Politics: {
+    bg: 'bg-blue-500/10',
+    color: 'text-blue-400',
+    path: 'M12 2L3 7v2h18V7l-9-5zM5 11v6h2v-6H5zm4 0v6h2v-6H9zm4 0v6h2v-6h-2zm4 0v6h2v-6h-2zM3 19v2h18v-2H3z',
+  },
+  Sports: {
+    bg: 'bg-orange-500/10',
+    color: 'text-orange-400',
+    path: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 2.07c2.59.44 4.74 2.16 5.74 4.52L13 10.12V4.07zM11 4.07v6.05L5.26 8.59C6.26 6.23 8.41 4.51 11 4.07zM4 12c0-.64.08-1.26.23-1.86L10 12l-5.77 1.86C4.08 13.26 4 12.64 4 12zm7 7.93c-2.59-.44-4.74-2.16-5.74-4.52L11 13.88v6.05zm2 0v-6.05l5.74 1.53c-1 2.36-3.15 4.08-5.74 4.52zM13.77 12L20 10.14c.15.6.23 1.22.23 1.86 0 .64-.08 1.26-.23 1.86L13.77 12z',
+  },
+  'AI & Tech': {
+    bg: 'bg-purple-500/10',
+    color: 'text-purple-400',
+    path: 'M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z',
+  },
+  'World Events': {
+    bg: 'bg-cyan-500/10',
+    color: 'text-cyan-400',
+    path: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z',
+  },
+  Culture: {
+    bg: 'bg-pink-500/10',
+    color: 'text-pink-400',
+    path: 'M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z',
+  },
+}
+
+function MarketIcon({ category }: { category: MarketCategory }) {
+  const icon = CATEGORY_ICONS[category]
+  return (
+    <div className={`w-9 h-9 shrink-0 rounded-xl ${icon.bg} flex items-center justify-center`}>
+      <svg className={`w-[18px] h-[18px] ${icon.color}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d={icon.path} />
+      </svg>
+    </div>
+  )
+}
+
 function MarketCard({ market }: { market: ReturnType<typeof getMarkets>[0] }) {
   const router = useRouter()
   const [isTrading, setIsTrading] = useState(false)
@@ -58,9 +102,12 @@ function MarketCard({ market }: { market: ReturnType<typeof getMarkets>[0] }) {
         <span className={`text-xs font-medium ${timeLabelClass}`}>{timeLabel}</span>
       </div>
 
-      <h3 className="text-sm font-semibold text-white mb-3 leading-snug group-hover:text-goodgreen/90 transition-colors line-clamp-2">
-        {market.question}
-      </h3>
+      <div className="flex items-start gap-3 mb-3">
+        <MarketIcon category={market.category} />
+        <h3 className="text-sm font-semibold text-white leading-snug group-hover:text-goodgreen/90 transition-colors line-clamp-2">
+          {market.question}
+        </h3>
+      </div>
 
       <div className="mb-3">
         <div className="flex items-baseline gap-1 mb-1.5">
