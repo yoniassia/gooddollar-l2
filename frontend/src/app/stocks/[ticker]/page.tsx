@@ -261,6 +261,13 @@ export default function StockDetailPage() {
               </div>
             </div>
           </div>
+
+          {stock.description && (
+            <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5 mt-4">
+              <h2 className="text-sm font-semibold text-white mb-2">About {stock.name}</h2>
+              <p className="text-sm text-gray-400 leading-relaxed">{stock.description}</p>
+            </div>
+          )}
         </div>
 
         <div className="lg:w-80 shrink-0">
