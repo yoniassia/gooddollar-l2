@@ -73,7 +73,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 ### 7. GoodBridge — Cross-Chain Bridge (PRIORITY: MEDIUM)
 **Status:** L1/L2 bridge contracts done, frontend stub
 **Next:**
-- [ ] Working bridge UI (deposit/withdraw G$, ETH, USDC)
+- [x] Working bridge UI (deposit/withdraw G$, ETH, USDC) — native L2 tabs + Li.Fi cross-chain
 - [x] Fast withdrawal via liquidity providers — FastWithdrawalLP.sol deployed, 21 tests, useFastWithdrawal hook
 - [ ] Multi-chain support via Li.Fi SDK
 **Research:** Study OP Stack standard bridge, Across Protocol, Stargate
