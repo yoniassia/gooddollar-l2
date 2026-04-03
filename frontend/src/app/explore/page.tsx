@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { TokenIcon } from '@/components/TokenIcon'
 import { Sparkline } from '@/components/Sparkline'
 import { getTokenMarketData, formatPrice, formatVolume, formatMarketCap, type TokenMarketData } from '@/lib/marketData'
+import { TOKEN_CATEGORIES, type TokenCategory } from '@/lib/tokens'
 
 type SortField = 'price' | 'change1h' | 'change24h' | 'change7d' | 'volume24h' | 'marketCap'
 type SortDir = 'asc' | 'desc'
@@ -171,6 +172,7 @@ function MarketStatsBar({ tokens }: { tokens: TokenMarketData[] }) {
 export default function ExplorePage() {
   const router = useRouter()
   const [query, setQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<TokenCategory | 'All'>('All')
   const [sortField, setSortField] = useState<SortField>('marketCap')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [data] = useState(() => getTokenMarketData())
@@ -186,6 +188,9 @@ export default function ExplorePage() {
 
   const filtered = useMemo(() => {
     let tokens = data
+    if (selectedCategory !== 'All') {
+      tokens = tokens.filter(t => t.category === selectedCategory)
+    }
     const trimmed = query.trim()
     if (trimmed) {
       const q = trimmed.toLowerCase()
@@ -197,7 +202,7 @@ export default function ExplorePage() {
       const mul = sortDir === 'asc' ? 1 : -1
       return (a[sortField] - b[sortField]) * mul
     })
-  }, [data, query, sortField, sortDir])
+  }, [data, query, selectedCategory, sortField, sortDir])
 
   const handleRowClick = useCallback((symbol: string) => {
     router.push(`/?buy=${symbol}`)
@@ -220,6 +225,24 @@ export default function ExplorePage() {
           onChange={e => setQuery(e.target.value)}
           className="w-full sm:w-72 px-4 py-2.5 rounded-xl bg-dark-100 border border-gray-700/30 text-white placeholder:text-gray-500 text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:border-goodgreen/30"
         />
+      </div>
+
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          onClick={() => setSelectedCategory('All')}
+          className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selectedCategory === 'All' ? 'bg-goodgreen/15 text-goodgreen border border-goodgreen/20' : 'text-gray-400 hover:text-white bg-dark-100 border border-gray-700/20'}`}
+        >
+          All
+        </button>
+        {TOKEN_CATEGORIES.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selectedCategory === cat ? 'bg-goodgreen/15 text-goodgreen border border-goodgreen/20' : 'text-gray-400 hover:text-white bg-dark-100 border border-gray-700/20'}`}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
 
       <div className="bg-dark-100 rounded-2xl border border-gray-700/20 overflow-hidden">
