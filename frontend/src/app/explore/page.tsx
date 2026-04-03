@@ -88,6 +88,51 @@ const TokenRow = memo(function TokenRow({ token, idx, onRowClick, onSwapClick }:
   )
 })
 
+function MarketCapSparkline({ value, positive }: { value: number; positive: boolean }) {
+  const data = useMemo(() => {
+    const points: number[] = []
+    let v = value * (1 - 0.03 * (positive ? 1 : -1))
+    const step = (value - v) / 13
+    for (let i = 0; i < 14; i++) {
+      const noise = (((i * 7 + 3) % 11) / 11 - 0.5) * value * 0.008
+      points.push(v + noise)
+      v += step
+    }
+    points[points.length - 1] = value
+    return points
+  }, [value, positive])
+
+  const w = 120
+  const h = 40
+  const pad = 2
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+  const color = positive ? '#4ade80' : '#f87171'
+
+  const coords = data.map((v, i) => ({
+    x: pad + (i / (data.length - 1)) * (w - pad * 2),
+    y: pad + (1 - (v - min) / range) * (h - pad * 2),
+  }))
+
+  const linePoints = coords.map(c => `${c.x},${c.y}`).join(' ')
+  const areaPoints = `${coords[0].x},${h} ${linePoints} ${coords[coords.length - 1].x},${h}`
+
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="hidden sm:inline-block" aria-hidden="true">
+      <polygon points={areaPoints} fill={color} opacity={0.12} />
+      <polyline
+        points={linePoints}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 function MarketStatsBar({ tokens }: { tokens: TokenMarketData[] }) {
   const stats = useMemo(() => {
     const totalMarketCap = tokens.reduce((s, t) => s + t.marketCap, 0)
@@ -100,11 +145,16 @@ function MarketStatsBar({ tokens }: { tokens: TokenMarketData[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
       <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-4">
-        <div className="text-xs text-gray-500 mb-1.5 font-medium">Total Market Cap</div>
-        <div className="text-xl font-bold text-white mb-0.5">{formatMarketCap(stats.totalMarketCap)}</div>
-        <span className={`text-xs font-medium ${stats.weightedChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-          {stats.weightedChange >= 0 ? '▲' : '▼'} {Math.abs(stats.weightedChange).toFixed(2)}% (24h)
-        </span>
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="text-xs text-gray-500 mb-1.5 font-medium">Total Market Cap</div>
+            <div className="text-xl font-bold text-white mb-0.5">{formatMarketCap(stats.totalMarketCap)}</div>
+            <span className={`text-xs font-medium ${stats.weightedChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {stats.weightedChange >= 0 ? '▲' : '▼'} {Math.abs(stats.weightedChange).toFixed(2)}% (24h)
+            </span>
+          </div>
+          <MarketCapSparkline value={stats.totalMarketCap} positive={stats.weightedChange >= 0} />
+        </div>
       </div>
 
       <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-4">
