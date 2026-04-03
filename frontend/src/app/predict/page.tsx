@@ -2,7 +2,9 @@
 
 import { useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { getMarkets, filterAndSortMarkets, formatVolume, ALL_CATEGORIES, getMarketStatus, getDaysLeftLabel, generateProbabilityHistory, type MarketCategory, type SortOption } from '@/lib/predictData'
+import { useChainId } from 'wagmi'
+import { getMarkets, filterAndSortMarkets, formatVolume, ALL_CATEGORIES, getMarketStatus, getDaysLeftLabel, generateProbabilityHistory, type MarketCategory, type SortOption, type PredictionMarket } from '@/lib/predictData'
+import { useMarketCount, useAllOnChainMarkets, type OnChainMarket } from '@/lib/useMarkets'
 import { InfoBanner } from '@/components/InfoBanner'
 
 function ProbabilityBar({ yesPrice }: { yesPrice: number }) {
@@ -292,12 +294,41 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'ending', label: 'Ending Soon' },
 ]
 
+function onChainToMarket(m: OnChainMarket): PredictionMarket {
+  const endDate = new Date(m.endTimeMs).toISOString().slice(0, 10)
+  const totalTokens = Number(m.totalYES + m.totalNO)
+  return {
+    id: m.id.toString(),
+    question: m.question,
+    category: 'Crypto',
+    yesPrice: m.yesPrice,
+    volume: totalTokens / 1e18,
+    liquidity: Number(m.collateral) / 1e18,
+    endDate,
+    resolved: m.isResolved,
+    outcome: m.status === 1 ? 'yes' : m.status === 2 ? 'no' : undefined,
+    resolutionSource: 'On-chain resolution',
+    createdAt: endDate,
+    totalShares: totalTokens / 1e18,
+  }
+}
+
 export default function PredictPage() {
+  const chainId = useChainId()
+  const { count } = useMarketCount()
+  const { markets: onChainMarkets } = useAllOnChainMarkets(count)
   const [category, setCategory] = useState<MarketCategory | 'All'>('All')
   const [sort, setSort] = useState<SortOption>('trending')
   const [query, setQuery] = useState('')
   const [showExpired, setShowExpired] = useState(false)
-  const [allMarkets] = useState(() => getMarkets())
+  const mockMarkets = useMemo(() => getMarkets(), [])
+
+  const allMarkets = useMemo(() => {
+    if (chainId === 42069 && onChainMarkets.length > 0) {
+      return onChainMarkets.map(onChainToMarket)
+    }
+    return mockMarkets
+  }, [chainId, onChainMarkets, mockMarkets])
 
   const filtered = useMemo(
     () => filterAndSortMarkets(allMarkets, category, sort, query),

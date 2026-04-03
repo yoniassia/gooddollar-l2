@@ -458,6 +458,31 @@ export const SyntheticAssetFactoryABI = [
   },
 ] as const
 
+// ─── MarginVault ABI (deposit / withdraw / balances) ─────────────────────────
+export const MarginVaultABI = [
+  {
+    inputs: [{ name: 'amount', type: 'uint256' }],
+    name: 'deposit',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'amount', type: 'uint256' }],
+    name: 'withdraw',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }],
+    name: 'balances',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const
+
 // ─── ERC20 minimal ABI (approve + allowance + balanceOf) ─────────────────────
 export const ERC20ABI = [
   {

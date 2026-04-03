@@ -3,19 +3,21 @@
 /**
  * usePerps — wagmi hooks for GoodPerps PerpEngine on-chain interactions.
  *
- * NOTE: PerpEngine has not yet been deployed to devnet (chain 42069).
- * CONTRACTS.PerpEngine is null until deployment. All hooks return null/empty
- * when the contract address is not set.
+ * Trade flow:
+ *   1. Approve G$ to MarginVault
+ *   2. MarginVault.deposit(margin)
+ *   3. PerpEngine.openPosition(marketId, size, isLong, margin)
  *
- * Wiring is complete — update CONTRACTS.PerpEngine in chain.ts after deployment.
+ * PerpEngine and MarginVault are deployed on devnet (chain 42069).
  */
 
 import { useCallback, useState } from 'react'
 import { useReadContract, useAccount, useWriteContract } from 'wagmi'
-import { PerpEngineABI, ERC20ABI } from './abi'
+import { PerpEngineABI, MarginVaultABI, ERC20ABI } from './abi'
 import { CONTRACTS } from './chain'
 
 const ENGINE = CONTRACTS.PerpEngine
+const VAULT = CONTRACTS.MarginVault
 
 // ─── Read: open position ──────────────────────────────────────────────────────
 
@@ -89,29 +91,38 @@ export function useOpenPosition() {
 
   const openPosition = useCallback(async (
     marketId: bigint,
-    collateralAmount: bigint,
+    margin: bigint,       // G$ collateral to deposit as margin
+    size: bigint,         // notional position size (margin * leverage)
     isLong: boolean,
-    minPrice: bigint = BigInt(0),
   ) => {
     if (!isConnected) { setError('Wallet not connected'); return }
-    if (!ENGINE) { setError('PerpEngine not deployed yet'); return }
+    if (!ENGINE || !VAULT) { setError('PerpEngine not deployed yet'); return }
 
     try {
-      // Approve G$ collateral spend
+      // 1. Approve G$ to MarginVault
       setPhase('approving')
       await writeContractAsync({
         address: CONTRACTS.GoodDollarToken,
         abi: ERC20ABI,
         functionName: 'approve',
-        args: [ENGINE, collateralAmount],
+        args: [VAULT, margin],
       })
 
+      // 2. Deposit margin into MarginVault
       setPhase('pending')
+      await writeContractAsync({
+        address: VAULT,
+        abi: MarginVaultABI,
+        functionName: 'deposit',
+        args: [margin],
+      })
+
+      // 3. Open position on PerpEngine
       await writeContractAsync({
         address: ENGINE,
         abi: PerpEngineABI,
         functionName: 'openPosition',
-        args: [marketId, collateralAmount, isLong, minPrice],
+        args: [marketId, size, isLong, margin],
       })
       setPhase('done')
     } catch (err: unknown) {

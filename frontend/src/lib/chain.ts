@@ -39,15 +39,14 @@ export const CONTRACTS = {
   // Debt tokens
   debtUSDC: '0x4a679253410272dd5232b3ff7cf5dbb88f295319' as `0x${string}`,
   debtWETH: '0x09635f643e140090a9a8dcd712ed6285858cebef' as `0x${string}`,
-  // GoodSwap — Uniswap V4 infrastructure (run script/DeployGoodSwap.s.sol)
+  // GoodSwap — Uniswap V4 infrastructure (not yet deployed to devnet)
   PoolManager: null as `0x${string}` | null,
   GoodSwapRouter: null as `0x${string}` | null,
-  // GoodPerps — PerpEngine (TODO: deploy to devnet, update address)
-  PerpEngine: null as `0x${string}` | null,
-  MarginVault: null as `0x${string}` | null,
-  // GoodStocks — PriceOracle, CollateralVault + SyntheticAssetFactory
-  // Run `forge script script/DeployGoodStocks.s.sol` and paste addresses below.
-  StocksPriceOracle: null as `0x${string}` | null,
-  CollateralVault: null as `0x${string}` | null,
-  SyntheticAssetFactory: null as `0x${string}` | null,
+  // GoodPerps — deployed to devnet (chain 42069), 2026-04-03
+  PerpEngine: '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853' as `0x${string}`,
+  MarginVault: '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707' as `0x${string}`,
+  // GoodStocks — deployed to devnet (chain 42069), 2026-04-03
+  StocksPriceOracle: '0x0165878A594ca255338adfa4d48449f69242Eb8F' as `0x${string}`,
+  CollateralVault: '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e' as `0x${string}`,
+  SyntheticAssetFactory: '0x610178dA211FEF7D417bC0e6FeD39F05609AD788' as `0x${string}`,
 } as const

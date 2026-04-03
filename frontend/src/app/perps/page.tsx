@@ -1,22 +1,29 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { useAccount } from 'wagmi'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 
 import { getPairs, getPairBySymbol, getAccountSummary, formatPerpsPrice, formatLargeValue, formatFundingRate, getFundingCountdown, type PerpPair, type AccountSummaryData } from '@/lib/perpsData'
 import { sanitizeNumericInput } from '@/lib/format'
 import { getChartData, type Timeframe } from '@/lib/chartData'
 import { useWalletReady } from '@/lib/WalletReadyContext'
+import { useOpenPosition } from '@/lib/usePerps'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
 function WalletGatedTradeButton({ hasSize, exceedsMargin, children }: { hasSize: boolean; exceedsMargin: boolean; children: React.ReactNode }) {
-  const isConnected = false // demo mode
+  const { isConnected } = useAccount()
   if (!isConnected) {
     return (
-      <button type="button" disabled
-        className="w-full py-2.5 rounded-xl font-semibold text-sm bg-goodgreen/30 text-goodgreen border border-goodgreen/40 cursor-not-allowed">
-        Connect Wallet to Trade
-      </button>
+      <ConnectButton.Custom>
+        {({ openConnectModal }) => (
+          <button type="button" onClick={openConnectModal}
+            className="w-full py-2.5 rounded-xl font-semibold text-sm bg-goodgreen text-white hover:bg-goodgreen/90 transition-colors">
+            Connect Wallet to Trade
+          </button>
+        )}
+      </ConnectButton.Custom>
     )
   }
   if (!hasSize) {
@@ -173,7 +180,7 @@ function LeverageSlider({ value, onChange, max }: { value: number; onChange: (v:
 type OrderType = 'market' | 'limit' | 'stop-limit'
 
 
-function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryData }) {
+function OrderForm({ pair, account, marketId }: { pair: PerpPair; account: AccountSummaryData; marketId: number }) {
   const [side, setSide] = useState<'long' | 'short'>('long')
   const [orderType, setOrderType] = useState<OrderType>('market')
   const [size, setSize] = useState('')
@@ -186,6 +193,7 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
   const [tp, setTp] = useState('')
   const [sl, setSl] = useState('')
   const walletReady = useWalletReady()
+  const { openPosition, phase: perpPhase, error: perpError, isDeployed } = useOpenPosition()
 
   useEffect(() => {
     if (leverage > pair.maxLeverage) {
@@ -228,11 +236,23 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
 
   const exceedsMargin = sizeNum > 0 && marginRequired > account.availableMargin
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (sizeNum <= 0 || exceedsMargin || !hasValidPrice || limitPriceInvalid || triggerPriceInvalid) return
-    setSubmitted(true)
-    setTimeout(() => setSubmitted(false), 3000)
+
+    if (isDeployed && orderType === 'market') {
+      // Convert to G$ wei (18 decimals). Assume G$ ≈ $0.01 on devnet.
+      const GD_PRICE_USD = 0.01
+      const notionalGD = notional / GD_PRICE_USD
+      const marginGD = marginRequired / GD_PRICE_USD
+      const sizeWei = BigInt(Math.round(notionalGD * 1e18))
+      const marginWei = BigInt(Math.round(marginGD * 1e18))
+      await openPosition(BigInt(marketId), marginWei, sizeWei, side === 'long')
+    } else {
+      // Limit/stop orders or contracts not deployed: UI-only preview
+      setSubmitted(true)
+      setTimeout(() => setSubmitted(false), 3000)
+    }
   }
 
   return (
@@ -377,13 +397,17 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
         </div>
       )}
 
+      {perpError && (
+        <p className="text-[10px] text-red-400 text-center truncate">{perpError}</p>
+      )}
       {walletReady ? (
         <WalletGatedTradeButton hasSize={sizeNum > 0} exceedsMargin={exceedsMargin}>
-          <button type="submit" disabled={exceedsMargin || limitPriceInvalid || triggerPriceInvalid || !hasValidPrice}
+          <button type="submit"
+            disabled={exceedsMargin || limitPriceInvalid || triggerPriceInvalid || !hasValidPrice || perpPhase === 'approving' || perpPhase === 'pending'}
             className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
               side === 'long' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
             }`}>
-            {submitted ? 'Order Placed!' : `${side === 'long' ? 'Long' : 'Short'} ${pair.baseAsset}`}
+            {perpPhase === 'approving' ? 'Approving…' : perpPhase === 'pending' ? 'Confirming…' : perpPhase === 'done' ? 'Order Placed!' : submitted ? 'Order Placed!' : `${side === 'long' ? 'Long' : 'Short'} ${pair.baseAsset}`}
           </button>
         </WalletGatedTradeButton>
       ) : (
@@ -531,7 +555,7 @@ export default function PerpsPage() {
         {/* Trade panel — always visible on desktop; on mobile only when trade tab active */}
         <div className={`lg:w-80 shrink-0 space-y-4 ${mobileTab !== 'trade' ? 'hidden lg:block' : ''}`}>
           <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
-            <OrderForm pair={pair} account={account} />
+            <OrderForm pair={pair} account={account} marketId={pairs.findIndex(p => p.symbol === pair.symbol)} />
           </div>
 
           <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
