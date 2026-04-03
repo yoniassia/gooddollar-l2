@@ -217,6 +217,7 @@ contract MarketFactory {
 
         uint256 tokenId;
         uint256 payout;
+        uint256 collateralDecrement;
 
         if (isVoided) {
             // Redeem either YES or NO at 1:1 (both valid)
@@ -229,16 +230,18 @@ contract MarketFactory {
                 tokenId = noId;
             }
             payout = amount; // 1:1 no fee on void
+            collateralDecrement = amount;
         } else {
             tokenId = isYESWin ? marketId * 2 : marketId * 2 + 1;
             uint256 winningSupply = isYESWin ? m.totalYES : m.totalNO;
 
-            // Pro-rata share of total collateral
-            payout = (amount * m.collateral) / winningSupply;
+            // Pro-rata share of total collateral (gross, before fee)
+            uint256 grossPayout = (amount * m.collateral) / winningSupply;
 
             // Deduct 1% fee, route to UBI via fee splitter
-            uint256 fee = (payout * REDEEM_FEE_BPS) / BPS;
-            payout -= fee;
+            uint256 fee = (grossPayout * REDEEM_FEE_BPS) / BPS;
+            payout = grossPayout - fee;
+            collateralDecrement = grossPayout; // full gross amount leaves the contract
 
             if (fee > 0) {
                 goodDollar.approve(feeSplitter, fee);
@@ -247,7 +250,7 @@ contract MarketFactory {
         }
 
         tokens.burn(msg.sender, tokenId, amount);
-        m.collateral -= payout;
+        m.collateral -= collateralDecrement;
 
         bool ok2 = goodDollar.transfer(msg.sender, payout);
         if (!ok2) revert TransferFailed();
