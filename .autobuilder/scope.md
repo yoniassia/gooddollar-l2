@@ -81,7 +81,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 ### 8. Chain Infrastructure (PRIORITY: ONGOING)
 **Status:** Anvil devnet live, Blockscout indexing
 **Next:**
-- [ ] Contract verification on Blockscout (all 12 contracts)
+- [x] Contract verification on Blockscout — 15/16 verified (ConditionalTokens factory-created, unverifiable)
 - [ ] Subgraph / indexer for each protocol
 - [ ] RPC load balancing
 - [ ] Monitoring & alerting
