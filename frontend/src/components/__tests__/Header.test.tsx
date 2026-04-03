@@ -31,6 +31,10 @@ describe('Header', () => {
     expect(poolLinks.length).toBeGreaterThanOrEqual(1)
     const bridgeLinks = screen.getAllByText('Bridge')
     expect(bridgeLinks.length).toBeGreaterThanOrEqual(1)
+    const lendLinks = screen.getAllByText('Lend')
+    expect(lendLinks.length).toBeGreaterThanOrEqual(1)
+    const stableLinks = screen.getAllByText('Stable')
+    expect(stableLinks.length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders Pool and Bridge as links to their pages', () => {
@@ -102,5 +106,21 @@ describe('Header', () => {
     const hrefs = Array.from(links).map(l => l.getAttribute('href'))
     expect(hrefs).toContain('/pool')
     expect(hrefs).toContain('/bridge')
+  })
+
+  it('has Lend and Stable as navigable links', () => {
+    render(<Header />)
+    const allLinks = document.querySelectorAll('a')
+    const hrefs = Array.from(allLinks).map(l => l.getAttribute('href'))
+    expect(hrefs).toContain('/lend')
+    expect(hrefs).toContain('/stable')
+  })
+
+  it('has Lend and Stable in mobile menu', () => {
+    render(<Header />)
+    fireEvent.click(screen.getByLabelText('Open menu'))
+    const mobileNav = screen.getByTestId('mobile-nav')
+    expect(mobileNav.textContent).toContain('Lend')
+    expect(mobileNav.textContent).toContain('Stable')
   })
 })
