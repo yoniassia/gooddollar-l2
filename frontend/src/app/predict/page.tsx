@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { getMarkets, filterAndSortMarkets, formatVolume, ALL_CATEGORIES, getMarketStatus, getDaysLeftLabel, type MarketCategory, type SortOption } from '@/lib/predictData'
+import { getMarkets, filterAndSortMarkets, formatVolume, ALL_CATEGORIES, getMarketStatus, getDaysLeftLabel, generateProbabilityHistory, type MarketCategory, type SortOption } from '@/lib/predictData'
 import { InfoBanner } from '@/components/InfoBanner'
 
 function ProbabilityBar({ yesPrice }: { yesPrice: number }) {
@@ -47,6 +47,38 @@ const CATEGORY_ICONS: Record<MarketCategory, { bg: string; color: string; path: 
     color: 'text-pink-400',
     path: 'M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z',
   },
+}
+
+function ProbSparkline({ data }: { data: number[] }) {
+  if (data.length < 2) return null
+  const w = 72
+  const h = 24
+  const pad = 1
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 0.01
+  const isUp = data[data.length - 1] >= data[0]
+
+  const points = data
+    .map((v, i) => {
+      const x = pad + (i / (data.length - 1)) * (w - pad * 2)
+      const y = pad + (1 - (v - min) / range) * (h - pad * 2)
+      return `${x},${y}`
+    })
+    .join(' ')
+
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="inline-block" aria-hidden="true">
+      <polyline
+        points={points}
+        fill="none"
+        stroke={isUp ? '#4ade80' : '#f87171'}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
 }
 
 function MarketIcon({ category }: { category: MarketCategory }) {
@@ -110,9 +142,14 @@ function MarketCard({ market }: { market: ReturnType<typeof getMarkets>[0] }) {
       </div>
 
       <div className="mb-3">
-        <div className="flex items-baseline gap-1 mb-1.5">
-          <span className="text-2xl font-bold text-green-400">{yesPct}%</span>
-          <span className="text-xs text-gray-500">chance</span>
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-bold text-green-400">{yesPct}%</span>
+            <span className="text-xs text-gray-500">chance</span>
+          </div>
+          {!isExpired && (
+            <ProbSparkline data={generateProbabilityHistory(market.id, market.yesPrice)} />
+          )}
         </div>
         <ProbabilityBar yesPrice={market.yesPrice} />
       </div>

@@ -106,6 +106,37 @@ export function getDaysLeftLabel(endDate: string): string {
   return `${days}d left`
 }
 
+function seededRandom(seed: number): () => number {
+  let s = seed
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff
+    return (s >>> 0) / 0xffffffff
+  }
+}
+
+function hashString(str: string): number {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash)
+}
+
+export function generateProbabilityHistory(marketId: string, currentPrice: number, points = 30): number[] {
+  const rng = seededRandom(hashString(marketId))
+  const startPrice = Math.max(0.02, Math.min(0.98, currentPrice + (rng() - 0.5) * 0.4))
+  const result: number[] = []
+  let price = startPrice
+  const step = (currentPrice - startPrice) / points
+
+  for (let i = 0; i < points; i++) {
+    result.push(Math.max(0.01, Math.min(0.99, price)))
+    price += step + (rng() - 0.5) * 0.06
+  }
+  result.push(currentPrice)
+  return result
+}
+
 export function formatVolume(vol: number): string {
   if (vol >= 1e6) return `$${(vol / 1e6).toFixed(1)}M`
   if (vol >= 1e3) return `$${(vol / 1e3).toFixed(0)}K`
