@@ -26,7 +26,7 @@ describe('PlatformShowcase', () => {
     render(<PlatformShowcase />)
     const links = screen.getAllByRole('link')
     const hrefs = links.map((l) => l.getAttribute('href'))
-    expect(hrefs).toContain('/explore')
+    expect(hrefs).toContain('/swap')
     expect(hrefs).toContain('/stocks')
     expect(hrefs).toContain('/predict')
     expect(hrefs).toContain('/perps')
@@ -34,7 +34,7 @@ describe('PlatformShowcase', () => {
 
   it('shows CTA text for each product', () => {
     render(<PlatformShowcase />)
-    expect(screen.getByText(/Explore Tokens/)).toBeInTheDocument()
+    expect(screen.getByText(/Start Swapping/)).toBeInTheDocument()
     expect(screen.getByText(/View Stocks/)).toBeInTheDocument()
     expect(screen.getByText(/View Markets/)).toBeInTheDocument()
     expect(screen.getByText(/Trade Perps/)).toBeInTheDocument()
