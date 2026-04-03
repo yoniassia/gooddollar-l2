@@ -89,6 +89,24 @@ export class OrderBook {
       order.timeInForce = TimeInForce.IOC;
     }
 
+    // PostOnly: check before any matching so we never disturb resting orders.
+    // If the order would immediately cross, reject without touching the book.
+    if (order.timeInForce === TimeInForce.PostOnly) {
+      const isBuy = order.side === Side.Buy;
+      const oppPrices = isBuy ? this.sortedAskPrices : this.sortedBidPrices;
+      if (oppPrices.length > 0) {
+        const bestOpp = new BigNumber(oppPrices[0]);
+        const wouldCross = isBuy ? bestOpp.lte(order.price) : bestOpp.gte(order.price);
+        if (wouldCross) {
+          order.status = OrderStatus.Rejected;
+          return { order, trades: [] };
+        }
+      }
+      // No cross → rest the order
+      this.addToBook(order);
+      return { order, trades: [] };
+    }
+
     // Match against opposite side
     const trades = this.matchOrder(order);
 
@@ -105,14 +123,8 @@ export class OrderBook {
           order.status = trades.length > 0 ? OrderStatus.PartiallyFilled : OrderStatus.Canceled;
           break;
 
-        case TimeInForce.PostOnly:
-          if (trades.length > 0) {
-            // Post-only order would have crossed — reject
-            order.status = OrderStatus.Rejected;
-            return { order, trades: [] };
-          }
-          this.addToBook(order);
-          break;
+        // Note: PostOnly is handled by early return above (line ~94),
+        // so it never reaches this switch.
 
         case TimeInForce.GTC:
         default:
