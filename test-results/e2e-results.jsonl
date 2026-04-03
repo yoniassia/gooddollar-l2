@@ -74,3 +74,23 @@
 {"timestamp":"2026-04-03T18:04:41.939Z","page":"no_wallet","check":"connect_wallet_present","passed":true,"detail":"Button found"}
 {"timestamp":"2026-04-03T18:04:45.147Z","page":"perps_content","check":"ui_renders","passed":true,"detail":"bodyLen=172"}
 {"timestamp":"2026-04-03T18:04:46.225Z","page":"nav","check":"nav_links_present","passed":true,"detail":"Found: /stocks,/predict,/perps,/bridge"}
+{"timestamp":"2026-04-03T20:01:09.124Z","page":"home","check":"page_loads","passed":true,"detail":"GoodDollar — DeFi That Funds UBI"}
+{"timestamp":"2026-04-03T20:01:09.138Z","page":"home","check":"no_errors","passed":true}
+{"timestamp":"2026-04-03T20:01:09.143Z","page":"home","check":"swap_ui_present","passed":true,"detail":"Found"}
+{"timestamp":"2026-04-03T20:01:10.696Z","page":"stocks","check":"no_mock_data","passed":true}
+{"timestamp":"2026-04-03T20:01:10.696Z","page":"stocks","check":"has_content","passed":true,"detail":"428 chars"}
+{"timestamp":"2026-04-03T20:01:13.061Z","page":"predict","check":"has_market_data","passed":true,"detail":"Markets visible"}
+{"timestamp":"2026-04-03T20:01:15.935Z","page":"perps","check":"no_broken_prices","passed":true,"detail":"Prices look real"}
+{"timestamp":"2026-04-03T20:01:17.648Z","page":"explorer","check":"page_loads","passed":true,"detail":"GoodDollar L2 blockchain explorer - View GoodDollar L2 stats | Blockscout"}
+{"timestamp":"2026-04-03T20:01:17.650Z","page":"explorer","check":"shows_blocks","passed":true}
+{"timestamp":"2026-04-03T20:01:21.095Z","page":"explorer/address","check":"no_error_banner","passed":true,"detail":"Clean"}
+{"timestamp":"2026-04-03T20:01:21.096Z","page":"explorer/address","check":"transactions_visible","passed":false,"detail":"Only address hash (GOO-193/194 pending)"}
+{"timestamp":"2026-04-03T20:01:22.167Z","page":"mobile","check":"no_horizontal_scroll","passed":true}
+{"timestamp":"2026-04-03T20:01:23.780Z","page":"bridge","check":"page_loads","passed":true,"detail":"GoodDollar — DeFi That Funds UBI"}
+{"timestamp":"2026-04-03T20:01:23.781Z","page":"bridge","check":"has_bridge_content","passed":true,"detail":"Bridge UI visible"}
+{"timestamp":"2026-04-03T20:01:25.378Z","page":"pool","check":"page_loads","passed":true,"detail":"GoodDollar — DeFi That Funds UBI"}
+{"timestamp":"2026-04-03T20:01:25.379Z","page":"pool","check":"has_pool_content","passed":true,"detail":"Pool UI visible"}
+{"timestamp":"2026-04-03T20:01:26.435Z","page":"no_wallet","check":"no_runtime_errors","passed":true,"detail":"Clean"}
+{"timestamp":"2026-04-03T20:01:26.448Z","page":"no_wallet","check":"connect_wallet_present","passed":true,"detail":"Button found"}
+{"timestamp":"2026-04-03T20:01:29.552Z","page":"perps_content","check":"ui_renders","passed":true,"detail":"bodyLen=172"}
+{"timestamp":"2026-04-03T20:01:30.603Z","page":"nav","check":"nav_links_present","passed":true,"detail":"Found: /stocks,/predict,/perps,/bridge"}
