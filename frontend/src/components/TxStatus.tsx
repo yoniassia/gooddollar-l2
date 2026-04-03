@@ -1,5 +1,7 @@
 'use client'
 
+import { DEVNET_EXPLORER_URL } from '../lib/devnet'
+
 interface TxStatusProps {
   hash?: string
   isPending: boolean
@@ -39,7 +41,7 @@ export function TxStatus({ hash, isPending, isSuccess, isError, error, onClose }
             <p className="text-sm text-goodgreen mb-3">Your swap was completed and UBI was funded.</p>
             {hash && (
               <a
-                href={`http://localhost:4000/tx/${hash}`}
+                href={`${DEVNET_EXPLORER_URL}/tx/${hash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-goodgreen/70 hover:text-goodgreen underline"
