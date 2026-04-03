@@ -15,8 +15,10 @@
 
 import { useCallback, useState } from 'react'
 import { useReadContract, useAccount, useWriteContract } from 'wagmi'
+import { readContract } from '@wagmi/core'
 import { CollateralVaultABI, SyntheticAssetFactoryABI, ERC20ABI } from './abi'
 import { CONTRACTS } from './chain'
+import { config } from './wagmi'
 
 const VAULT = CONTRACTS.CollateralVault
 const FACTORY = CONTRACTS.SyntheticAssetFactory
@@ -92,7 +94,7 @@ export function useMintSynthetic() {
   const [phase, setPhase] = useState<StocksActionPhase>('idle')
   const [error, setError] = useState<string | null>(null)
   const { writeContractAsync } = useWriteContract()
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
 
   const reset = useCallback(() => { setPhase('idle'); setError(null) }, [])
 
@@ -101,16 +103,26 @@ export function useMintSynthetic() {
     collateralAmount: bigint,
     mintAmount: bigint,
   ) => {
-    if (!isConnected) { setError('Wallet not connected'); return }
+    if (!isConnected || !address) { setError('Wallet not connected'); return }
     if (!VAULT) { setError('CollateralVault not deployed yet'); return }
 
     try {
+      // Read the exact fee before approving so the approval covers collateral + fee.
+      // This prevents viem's internal eth_call simulation of depositAndMint from
+      // reverting with InsufficientAllowance (GOO-183).
+      const [, fee] = await readContract(config, {
+        address: VAULT,
+        abi: CollateralVaultABI,
+        functionName: 'getMintRequirements',
+        args: [address, ticker, mintAmount, collateralAmount],
+      })
+
       setPhase('approving')
       await writeContractAsync({
         address: CONTRACTS.GoodDollarToken,
         abi: ERC20ABI,
         functionName: 'approve',
-        args: [VAULT, collateralAmount],
+        args: [VAULT, collateralAmount + fee],
       })
 
       setPhase('pending')
@@ -126,7 +138,7 @@ export function useMintSynthetic() {
       setError(e?.shortMessage ?? e?.message ?? 'Transaction failed')
       setPhase('error')
     }
-  }, [isConnected, writeContractAsync])
+  }, [isConnected, address, writeContractAsync])
 
   return { mint, phase, error, reset, isConnected, isDeployed: !!VAULT }
 }
