@@ -140,4 +140,14 @@ One chain where AI agents do everything in finance — and every transaction fun
 - useOnChainPerps.ts — PerpEngine + MarginVault reads
 - useOnChainStocks.ts — SyntheticAssetFactory + PriceOracle + CollateralVault reads
 - useOnChainMarketData.ts — CoinGecko live prices via usePriceFeeds
-**Files cleaned:** stockData.ts, perpsData.ts, marketData.ts (types + formatters only)
+**Files cleaned:** stockData.ts, perpsData.ts, marketData.ts, predictData.ts (types + formatters only)
+
+### ~~Prediction Markets Mock → On-Chain~~ ✅ DONE (GOO-215)
+**Status:** All mock prediction data replaced with on-chain hooks
+**Completed:** 2026-04-03
+**What was done:**
+- Deployed 10 prediction markets with seeded YES/NO liquidity via SeedPredictMarkets.s.sol
+- Built useOnChainPredict.ts hook (reads MarketFactory + ConditionalTokens)
+- Stripped MOCK_MARKETS/MOCK_POSITIONS/MOCK_RESOLVED from predictData.ts
+- Updated all predict pages + portfolio to use on-chain data
+- predictData.ts is now types + utilities only (no mock data)
