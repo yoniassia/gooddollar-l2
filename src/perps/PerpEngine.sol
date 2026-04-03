@@ -33,6 +33,7 @@ interface IFeeSplitterPerp {
 
 interface IMarginToken2 {
     function transfer(address to, uint256 amount) external returns (bool);
+    function approve(address spender, uint256 amount) external returns (bool);
 }
 
 contract PerpEngine {
@@ -220,12 +221,13 @@ contract PerpEngine {
         uint256 markPrice = oracle.getPriceByKey(m.oracleKey);
         funding.applyFunding(marketId, markPrice, markPrice); // mark == index at open
 
-        // Debit fee from vault
-        vault.debit(msg.sender, fee);
-        // Route fee to UBI
-        // Note: vault holds G$; for fee routing we'd need the vault to transfer
-        // out. In production, vault.debit burns the tokens or transfers to splitter.
-        // Here we simplify: fee is deducted from margin and accounted as protocol revenue.
+        // Debit fee from vault and route to UBI fee splitter
+        if (fee > 0) {
+            vault.debit(msg.sender, fee);
+            vault.flushFee(address(this), fee);
+            IMarginToken2(address(vault.collateral())).approve(feeSplitter, fee);
+            IFeeSplitterPerp(feeSplitter).splitFee(fee, address(this));
+        }
 
         pos.isOpen = true;
         pos.isLong = isLong;

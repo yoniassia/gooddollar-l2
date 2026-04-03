@@ -21,6 +21,7 @@ import "./PriceOracle.sol";
 interface IGoodDollarToken {
     function transfer(address to, uint256 amount) external returns (bool);
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function approve(address spender, uint256 amount) external returns (bool);
     function balanceOf(address account) external view returns (uint256);
 }
 
@@ -237,8 +238,10 @@ contract CollateralVault {
         totalCollateral[key] -= fee;
         debt[msg.sender][key] += syntheticAmount;
 
-        bool ok = goodDollar.transfer(feeSplitter, fee);
-        if (!ok) revert TransferFailed();
+        if (fee > 0) {
+            goodDollar.approve(feeSplitter, fee);
+            IUBIFeeSplitter(feeSplitter).splitFee(fee, address(this));
+        }
 
         SyntheticAsset(syntheticAsset).mint(msg.sender, syntheticAmount);
         emit Minted(msg.sender, key, syntheticAmount, requiredCollateralG, fee);
@@ -296,8 +299,8 @@ contract CollateralVault {
         SyntheticAsset(syntheticAsset).burn(msg.sender, syntheticAmount);
 
         if (fee > 0) {
-            bool ok = goodDollar.transfer(feeSplitter, fee);
-            if (!ok) revert TransferFailed();
+            goodDollar.approve(feeSplitter, fee);
+            IUBIFeeSplitter(feeSplitter).splitFee(fee, address(this));
         }
 
         if (collateralToRelease > 0) {
@@ -362,8 +365,8 @@ contract CollateralVault {
 
         // Remaining collateral goes to feeSplitter (funds UBI)
         if (remainingCollateral > 0) {
-            bool ok2 = goodDollar.transfer(feeSplitter, remainingCollateral);
-            if (!ok2) revert TransferFailed();
+            goodDollar.approve(feeSplitter, remainingCollateral);
+            IUBIFeeSplitter(feeSplitter).splitFee(remainingCollateral, address(this));
         }
 
         emit Liquidated(msg.sender, user, key, userDebt, userCollateral, liquidatorReward);

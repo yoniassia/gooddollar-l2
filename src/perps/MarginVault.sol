@@ -10,6 +10,7 @@ pragma solidity ^0.8.20;
 interface IMarginToken {
     function transfer(address to, uint256 amount) external returns (bool);
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function approve(address spender, uint256 amount) external returns (bool);
 }
 
 contract MarginVault {
@@ -114,5 +115,15 @@ contract MarginVault {
         if (balances[from] < amount) revert InsufficientBalance(balances[from], amount);
         balances[from] -= amount;
         balances[to] += amount;
+    }
+
+    /// @notice Transfer fee tokens out of the vault to an external recipient.
+    ///         Called by PerpEngine to forward collected trade fees to the UBI
+    ///         fee splitter. Tokens were previously debited from user balances
+    ///         via debit() and are now unaccounted-for in totalDeposited.
+    function flushFee(address to, uint256 amount) external onlyEngine {
+        if (to == address(0)) revert ZeroAddress();
+        bool ok = collateral.transfer(to, amount);
+        if (!ok) revert TransferFailed();
     }
 }

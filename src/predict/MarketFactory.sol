@@ -20,7 +20,12 @@ import "./ConditionalTokens.sol";
 interface IPredictToken {
     function transfer(address to, uint256 amount) external returns (bool);
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function approve(address spender, uint256 amount) external returns (bool);
     function balanceOf(address account) external view returns (uint256);
+}
+
+interface IUBIFeeSplitterPredict {
+    function splitFee(uint256 totalFee, address dAppRecipient) external returns (uint256 ubiShare, uint256 protocolShare, uint256 dAppShare);
 }
 
 contract MarketFactory {
@@ -231,13 +236,13 @@ contract MarketFactory {
             // Pro-rata share of total collateral
             payout = (amount * m.collateral) / winningSupply;
 
-            // Deduct 1% fee, route to UBI
+            // Deduct 1% fee, route to UBI via fee splitter
             uint256 fee = (payout * REDEEM_FEE_BPS) / BPS;
             payout -= fee;
 
             if (fee > 0) {
-                bool ok = goodDollar.transfer(feeSplitter, fee);
-                if (!ok) revert TransferFailed();
+                goodDollar.approve(feeSplitter, fee);
+                IUBIFeeSplitterPredict(feeSplitter).splitFee(fee, address(this));
             }
         }
 
