@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { getMarketStatus, getDaysLeftLabel, filterAndSortMarkets, getMarkets } from '../predictData'
+import { getMarketStatus, getDaysLeftLabel, filterAndSortMarkets, type PredictionMarket } from '../predictData'
 
 describe('getMarketStatus', () => {
   beforeEach(() => {
@@ -60,7 +60,11 @@ describe('filterAndSortMarkets - ending sort with expired', () => {
   })
 
   it('places expired markets after active ones when sorting by ending', () => {
-    const markets = getMarkets()
+    const markets: PredictionMarket[] = [
+      { id: '0', question: 'Expired market', category: 'Crypto', yesPrice: 0.5, volume: 1000, liquidity: 500, endDate: '2025-12-31', resolved: false, resolutionSource: 'test', createdAt: '2025-01-01', totalShares: 100 },
+      { id: '1', question: 'Active market 1', category: 'Crypto', yesPrice: 0.7, volume: 2000, liquidity: 1000, endDate: '2026-12-31', resolved: false, resolutionSource: 'test', createdAt: '2026-01-01', totalShares: 200 },
+      { id: '2', question: 'Active market 2', category: 'AI & Tech', yesPrice: 0.3, volume: 500, liquidity: 200, endDate: '2027-06-01', resolved: false, resolutionSource: 'test', createdAt: '2026-02-01', totalShares: 50 },
+    ]
     const sorted = filterAndSortMarkets(markets, 'All', 'ending', '')
     const statuses = sorted.map(m => getMarketStatus(m.endDate))
     const firstExpiredIdx = statuses.indexOf('expired')

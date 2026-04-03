@@ -102,7 +102,7 @@ export function useStockTrades(
         fee: bigint
       }
 
-      const mintedTrades: TradeRecord[] = mintedLogs
+      const mintedTrades = mintedLogs
         .map(log => {
           const args = log.args as MintedArgs
           const ticker = tickerFromKey(args.ticker, tickers)
@@ -119,9 +119,9 @@ export function useStockTrades(
             pnl: 0,
           }
         })
-        .filter((t): t is TradeRecord => t !== null)
+        .filter(Boolean) as TradeRecord[]
 
-      const burnedTrades: TradeRecord[] = burnedLogs
+      const burnedTrades = burnedLogs
         .map(log => {
           const args = log.args as BurnedArgs
           const ticker = tickerFromKey(args.ticker, tickers)
@@ -139,7 +139,7 @@ export function useStockTrades(
             pnl: 0,
           }
         })
-        .filter((t): t is TradeRecord => t !== null)
+        .filter(Boolean) as TradeRecord[]
 
       return [...mintedTrades, ...burnedTrades].sort(
         (a, b) => b.timestamp - a.timestamp,

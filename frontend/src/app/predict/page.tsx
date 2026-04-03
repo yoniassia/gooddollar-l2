@@ -2,8 +2,8 @@
 
 import { useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { useChainId } from 'wagmi'
-import { getMarkets, filterAndSortMarkets, formatVolume, ALL_CATEGORIES, getMarketStatus, getDaysLeftLabel, generateProbabilityHistory, type MarketCategory, type SortOption, type PredictionMarket } from '@/lib/predictData'
+
+import { filterAndSortMarkets, formatVolume, ALL_CATEGORIES, getMarketStatus, getDaysLeftLabel, generateProbabilityHistory, type MarketCategory, type SortOption, type PredictionMarket } from '@/lib/predictData'
 import { useMarketCount, useAllOnChainMarkets, type OnChainMarket } from '@/lib/useMarkets'
 import { InfoBanner } from '@/components/InfoBanner'
 
@@ -96,7 +96,7 @@ function MarketIcon({ category }: { category: MarketCategory }) {
   )
 }
 
-function MarketCard({ market }: { market: ReturnType<typeof getMarkets>[0] }) {
+function MarketCard({ market }: { market: PredictionMarket }) {
   const router = useRouter()
   const [isTrading, setIsTrading] = useState(false)
   const yesPct = Math.round(market.yesPrice * 100)
@@ -187,7 +187,7 @@ function MarketCard({ market }: { market: ReturnType<typeof getMarkets>[0] }) {
   )
 }
 
-function FeaturedMarket({ markets }: { markets: ReturnType<typeof getMarkets> }) {
+function FeaturedMarket({ markets }: { markets: PredictionMarket[] }) {
   const router = useRouter()
   const [isTrading, setIsTrading] = useState(false)
 
@@ -294,41 +294,46 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'ending', label: 'Ending Soon' },
 ]
 
+function inferCategory(question: string): MarketCategory {
+  const q = question.toLowerCase()
+  if (q.includes('bitcoin') || q.includes('ethereum') || q.includes('crypto') || q.includes('gooddollar') || q.includes('etoro') || q.includes('etor')) return 'Crypto'
+  if (q.includes('election') || q.includes('fed ') || q.includes('regulation') || q.includes('legislation') || q.includes('congress') || q.includes('stablecoin')) return 'Politics'
+  if (q.includes('champion') || q.includes('nba') || q.includes('fifa') || q.includes('world cup') || q.includes('olympic')) return 'Sports'
+  if (q.includes('ai ') || q.includes('agi') || q.includes('gpt') || q.includes('openai') || q.includes('nvidia') || q.includes('apple') || q.includes('agent')) return 'AI & Tech'
+  if (q.includes('spacex') || q.includes('mars') || q.includes('climate') || q.includes('pandemic') || q.includes('who ')) return 'World Events'
+  return 'Culture'
+}
+
 function onChainToMarket(m: OnChainMarket): PredictionMarket {
   const endDate = new Date(m.endTimeMs).toISOString().slice(0, 10)
   const totalTokens = Number(m.totalYES + m.totalNO)
   return {
     id: m.id.toString(),
     question: m.question,
-    category: 'Crypto',
+    category: inferCategory(m.question),
     yesPrice: m.yesPrice,
     volume: totalTokens / 1e18,
     liquidity: Number(m.collateral) / 1e18,
     endDate,
     resolved: m.isResolved,
-    outcome: m.status === 1 ? 'yes' : m.status === 2 ? 'no' : undefined,
-    resolutionSource: 'On-chain resolution',
+    outcome: m.status === 2 ? 'yes' : m.status === 3 ? 'no' : undefined,
+    resolutionSource: 'On-chain oracle resolution',
     createdAt: endDate,
     totalShares: totalTokens / 1e18,
   }
 }
 
 export default function PredictPage() {
-  const chainId = useChainId()
   const { count } = useMarketCount()
   const { markets: onChainMarkets } = useAllOnChainMarkets(count)
   const [category, setCategory] = useState<MarketCategory | 'All'>('All')
   const [sort, setSort] = useState<SortOption>('trending')
   const [query, setQuery] = useState('')
   const [showExpired, setShowExpired] = useState(false)
-  const mockMarkets = useMemo(() => getMarkets(), [])
 
   const allMarkets = useMemo(() => {
-    if (chainId === 42069 && onChainMarkets.length > 0) {
-      return onChainMarkets.map(onChainToMarket)
-    }
-    return mockMarkets
-  }, [chainId, onChainMarkets, mockMarkets])
+    return onChainMarkets.map(onChainToMarket)
+  }, [onChainMarkets])
 
   const filtered = useMemo(
     () => filterAndSortMarkets(allMarkets, category, sort, query),

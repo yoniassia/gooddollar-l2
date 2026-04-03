@@ -3,7 +3,8 @@
 import { useMemo } from 'react'
 import Link from 'next/link'
 import { formatStockPrice, formatLargeNumber } from '@/lib/stockData'
-import { getUserPositions, getPortfolioSummary as getPredictSummary, getMarketById, formatVolume } from '@/lib/predictData'
+import { formatVolume } from '@/lib/predictData'
+import { useOnChainPredictPositions, useOnChainPredictSummary, useOnChainMarkets } from '@/lib/useOnChainPredict'
 import { formatPerpsPrice } from '@/lib/perpsData'
 import { useOnChainHoldings } from '@/lib/useOnChainStocks'
 import { useOnChainPositions, useOnChainAccountSummary } from '@/lib/useOnChainPerps'
@@ -37,10 +38,20 @@ function SectionHeader({ title, href, icon }: { title: string; href: string; ico
 
 export default function PortfolioPage() {
   const { holdings: stockHoldings } = useOnChainHoldings()
-  const predictPositions = useMemo(() => getUserPositions(), [])
-  const predictSummary = useMemo(() => getPredictSummary(), [])
+  const { positions: predictPositions } = useOnChainPredictPositions()
+  const predictSummary = useOnChainPredictSummary()
+  const { markets: predictMarkets } = useOnChainMarkets()
   const { positions: perpsPositions } = useOnChainPositions()
   const { summary: perpsAccount } = useOnChainAccountSummary()
+
+  // Build predict market lookup
+  const predictMarketMap = useMemo(() => {
+    const m = new Map<string, { question: string; yesPrice: number }>()
+    for (const market of predictMarkets) {
+      m.set(market.id, { question: market.question, yesPrice: market.yesPrice })
+    }
+    return m
+  }, [predictMarkets])
 
   // Compute stock summary from on-chain holdings
   const stockSummary = useMemo(() => {
@@ -137,19 +148,18 @@ export default function PortfolioPage() {
         ) : (
           <div className="space-y-2">
             {predictPositions.slice(0, 3).map(pos => {
-              const market = getMarketById(pos.marketId)
-              if (!market) return null
+              const market = predictMarketMap.get(pos.marketId)
               const currentVal = pos.side === 'yes' ? pos.currentPrice : 1 - pos.currentPrice
               const pnl = pos.shares * (currentVal - pos.avgPrice)
               return (
                 <Link key={pos.marketId} href={`/predict/${pos.marketId}`} className="flex items-center justify-between py-2 px-3 rounded-xl hover:bg-dark-50/30 transition-colors">
                   <div className="flex-1 min-w-0 mr-3">
-                    <p className="text-sm text-white truncate">{market.question}</p>
+                    <p className="text-sm text-white truncate">{market?.question ?? `Market #${pos.marketId}`}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${pos.side === 'yes' ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
                         {pos.side.toUpperCase()}
                       </span>
-                      <span className="text-xs text-gray-500">{pos.shares} shares</span>
+                      <span className="text-xs text-gray-500">{pos.shares.toFixed(1)} shares</span>
                     </div>
                   </div>
                   <div className={`text-sm font-medium shrink-0 ${pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>

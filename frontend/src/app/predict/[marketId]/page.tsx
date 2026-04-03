@@ -5,7 +5,8 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 
 import Link from 'next/link'
-import { getMarketById, formatVolume, getMarketStatus, getDaysLeftLabel } from '@/lib/predictData'
+import { formatVolume, getMarketStatus, getDaysLeftLabel, type MarketCategory, type PredictionMarket } from '@/lib/predictData'
+import { useOnChainMarket, type OnChainMarket } from '@/lib/useMarkets'
 import { formatLargeValue } from '@/lib/perpsData'
 import { generateProbabilityHistory } from '@/lib/chartData'
 import { ChartErrorBoundary } from '@/components/ChartErrorBoundary'
@@ -58,7 +59,7 @@ function formatShares(n: number): string {
   return n.toFixed(1)
 }
 
-function TradePanel({ market, initialSide }: { market: ReturnType<typeof getMarketById> & {}, initialSide?: 'yes' | 'no' }) {
+function TradePanel({ market, initialSide }: { market: PredictionMarket, initialSide?: 'yes' | 'no' }) {
   const [side, setSide] = useState<'yes' | 'no'>(initialSide ?? 'yes')
   const [amount, setAmount] = useState('')
   const walletReady = useWalletReady()
@@ -174,18 +175,61 @@ function TradePanel({ market, initialSide }: { market: ReturnType<typeof getMark
   )
 }
 
+function inferCategory(question: string): MarketCategory {
+  const q = question.toLowerCase()
+  if (q.includes('bitcoin') || q.includes('ethereum') || q.includes('crypto') || q.includes('gooddollar') || q.includes('etoro') || q.includes('etor')) return 'Crypto'
+  if (q.includes('election') || q.includes('fed ') || q.includes('regulation') || q.includes('legislation') || q.includes('stablecoin')) return 'Politics'
+  if (q.includes('champion') || q.includes('nba') || q.includes('olympic')) return 'Sports'
+  if (q.includes('ai ') || q.includes('agi') || q.includes('gpt') || q.includes('nvidia') || q.includes('agent')) return 'AI & Tech'
+  if (q.includes('spacex') || q.includes('mars') || q.includes('climate')) return 'World Events'
+  return 'Culture'
+}
+
+function chainToMarket(m: OnChainMarket): PredictionMarket {
+  const endDate = new Date(m.endTimeMs).toISOString().slice(0, 10)
+  const totalTokens = Number(m.totalYES + m.totalNO)
+  return {
+    id: m.id.toString(),
+    question: m.question,
+    category: inferCategory(m.question),
+    yesPrice: m.yesPrice,
+    volume: totalTokens / 1e18,
+    liquidity: Number(m.collateral) / 1e18,
+    endDate,
+    resolved: m.isResolved,
+    outcome: m.status === 2 ? 'yes' : m.status === 3 ? 'no' : undefined,
+    resolutionSource: 'On-chain oracle resolution',
+    createdAt: endDate,
+    totalShares: totalTokens / 1e18,
+  }
+}
+
 export default function MarketDetailPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const marketId = params.marketId as string
-  const market = getMarketById(marketId)
   const sideParam = searchParams.get('side')
   const initialSide = sideParam === 'yes' || sideParam === 'no' ? sideParam : undefined
+
+  const { market: onChainMarket, isLoading } = useOnChainMarket(BigInt(marketId || '0'))
+
+  const market = useMemo(() => {
+    if (!onChainMarket) return null
+    return chainToMarket(onChainMarket)
+  }, [onChainMarket])
 
   const probData = useMemo(() => {
     if (!market) return []
     return generateProbabilityHistory(market.yesPrice, 90)
   }, [market])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-goodgreen/30 border-t-goodgreen rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   if (!market) {
     return (

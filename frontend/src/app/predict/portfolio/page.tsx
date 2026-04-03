@@ -2,19 +2,29 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { getUserPositions, getResolvedPositions, getMarketById, getPortfolioSummary as getPredictPortfolioSummary, formatVolume } from '@/lib/predictData'
+import { formatVolume } from '@/lib/predictData'
+import { useOnChainPredictPositions, useOnChainPredictSummary, useOnChainMarkets } from '@/lib/useOnChainPredict'
 import { ConnectWalletEmptyState } from '@/components/ConnectWalletEmptyState'
 
 type Tab = 'positions' | 'pending' | 'history'
 
 export default function PredictPortfolioPage() {
   const [tab, setTab] = useState<Tab>('positions')
-  const positions = useMemo(() => getUserPositions(), [])
-  const resolved = useMemo(() => getResolvedPositions(), [])
-  const summary = useMemo(() => getPredictPortfolioSummary(), [])
+  const { positions, resolved } = useOnChainPredictPositions()
+  const summary = useOnChainPredictSummary()
+  const { markets } = useOnChainMarkets()
+
+  // Build a lookup from market ID → question
+  const marketMap = useMemo(() => {
+    const m = new Map<string, { question: string; yesPrice: number; endDate: string; resolved: boolean }>()
+    for (const market of markets) {
+      m.set(market.id, { question: market.question, yesPrice: market.yesPrice, endDate: market.endDate, resolved: market.resolved })
+    }
+    return m
+  }, [markets])
 
   const pendingPositions = positions.filter(p => {
-    const market = getMarketById(p.marketId)
+    const market = marketMap.get(p.marketId)
     return market && new Date(market.endDate) < new Date() && !market.resolved
   })
 
@@ -69,20 +79,19 @@ export default function PredictPortfolioPage() {
           ) : (
             <div className="divide-y divide-gray-700/10">
               {positions.map(pos => {
-                const market = getMarketById(pos.marketId)
-                if (!market) return null
+                const market = marketMap.get(pos.marketId)
                 const currentVal = pos.side === 'yes' ? pos.currentPrice : 1 - pos.currentPrice
                 const pnl = pos.shares * (currentVal - pos.avgPrice)
                 return (
                   <Link key={pos.marketId} href={`/predict/${pos.marketId}`} className="block px-5 py-4 hover:bg-dark-50/30 transition-colors">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{market.question}</p>
+                        <p className="text-sm font-medium text-white truncate">{market?.question ?? `Market #${pos.marketId}`}</p>
                         <div className="flex items-center gap-3 mt-1 text-xs">
                           <span className={`px-2 py-0.5 rounded font-medium ${pos.side === 'yes' ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
                             {pos.side.toUpperCase()}
                           </span>
-                          <span className="text-gray-500">{pos.shares} shares @ {(pos.avgPrice * 100).toFixed(0)}¢</span>
+                          <span className="text-gray-500">{pos.shares.toFixed(1)} shares @ {(pos.avgPrice * 100).toFixed(0)}¢</span>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
@@ -90,7 +99,7 @@ export default function PredictPortfolioPage() {
                           {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {Math.round(market.yesPrice * 100)}% YES
+                          {market ? `${Math.round(market.yesPrice * 100)}% YES` : ''}
                         </div>
                       </div>
                     </div>
@@ -109,12 +118,11 @@ export default function PredictPortfolioPage() {
           ) : (
             <div className="divide-y divide-gray-700/10">
               {pendingPositions.map(pos => {
-                const market = getMarketById(pos.marketId)
-                if (!market) return null
+                const market = marketMap.get(pos.marketId)
                 return (
                   <div key={pos.marketId} className="px-5 py-4">
-                    <p className="text-sm text-white">{market.question}</p>
-                    <p className="text-xs text-gray-500 mt-1">Ended {new Date(market.endDate).toLocaleDateString()} — awaiting resolution</p>
+                    <p className="text-sm text-white">{market?.question ?? `Market #${pos.marketId}`}</p>
+                    <p className="text-xs text-gray-500 mt-1">Ended {market ? new Date(market.endDate).toLocaleDateString() : ''} — awaiting resolution</p>
                   </div>
                 )
               })}
@@ -130,14 +138,14 @@ export default function PredictPortfolioPage() {
           ) : (
             <div className="divide-y divide-gray-700/10">
               {resolved.map(pos => {
-                const market = getMarketById(pos.marketId)
+                const market = marketMap.get(pos.marketId)
                 const won = pos.side === pos.outcome
                 const pnl = won ? pos.payout - pos.shares * pos.avgPrice : -(pos.shares * pos.avgPrice)
                 return (
                   <div key={pos.marketId} className="px-5 py-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-sm text-white">{market?.question ?? pos.marketId}</p>
+                        <p className="text-sm text-white">{market?.question ?? `Market #${pos.marketId}`}</p>
                         <div className="flex items-center gap-2 mt-1 text-xs">
                           <span className={`px-2 py-0.5 rounded font-medium ${won ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
                             {won ? 'WON' : 'LOST'}
