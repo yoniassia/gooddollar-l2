@@ -1,0 +1,82 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "forge-std/Script.sol";
+import "../src/UBIFeeSplitter.sol";
+import "../src/swap/LiFiBridgeAggregator.sol";
+
+/**
+ * @title RedeployUBIAndLiFi
+ * @notice Redeploys UBIFeeSplitter (with receive()) and LiFiBridgeAggregator.
+ *
+ * Required because the previously deployed UBIFeeSplitter at 0xe7f1725E...
+ * was deployed before receive() was added, causing initiateSwapETH to fail
+ * when routing ETH fees to the splitter.
+ *
+ * After running this script:
+ *   1. Update op-stack/addresses.json: UBIFeeSplitter → new address
+ *   2. Update frontend/src/lib/devnet.ts: UBIFeeSplitter → new address
+ *   3. Call setFeeBeneficiary(newSplitter) on each GoodPool
+ *      - SwapPoolGdWeth:  0xA4899D35897033b927acFCf422bc745916139776
+ *      - SwapPoolGdUsdc:  0xf953b3A269d80e3eB0F2947630Da976B896A8C5b
+ *      - SwapPoolWethUsdc: 0xAA292E8611aDF267e563f334Ee42320aC96D0463
+ *
+ * Usage (devnet):
+ *   PRIVATE_KEY=<key> GOOD_DOLLAR_TOKEN=0x5FbDB2315678afecb367f032d93F642f64180aa3 \
+ *     forge script script/RedeployUBIAndLiFi.s.sol \
+ *     --rpc-url $DEVNET_RPC --broadcast --legacy
+ */
+contract RedeployUBIAndLiFi is Script {
+    // ── Token addresses (devnet) ──────────────────────────────────────────────
+    address constant GDOLLAR  = 0x5FbDB2315678afecb367f032d93F642f64180aa3;
+    address constant MOCK_WETH = 0x959922be3caee4b8cd9a407cc3ac1c251c2007b1;
+    address constant MOCK_USDC = 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0;
+    address constant MOCK_WBTC = 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9;
+
+    // ── GoodPool addresses (need feeBeneficiary update) ───────────────────────
+    address constant POOL_GD_WETH   = 0xA4899D35897033b927acFCf422bc745916139776;
+    address constant POOL_GD_USDC   = 0xf953b3A269d80e3eB0F2947630Da976B896A8C5b;
+    address constant POOL_WETH_USDC = 0xAA292E8611aDF267e563f334Ee42320aC96D0463;
+
+    function run() external {
+        uint256 deployerKey = vm.envOr(
+            "PRIVATE_KEY",
+            uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80)
+        );
+        address deployer = vm.addr(deployerKey);
+
+        address gdollar = vm.envOr("GOOD_DOLLAR_TOKEN", GDOLLAR);
+
+        vm.startBroadcast(deployerKey);
+
+        // 1. Deploy new UBIFeeSplitter (with receive() for ETH fees)
+        UBIFeeSplitter splitter = new UBIFeeSplitter(gdollar, deployer, deployer);
+        console.log("UBIFeeSplitter (new):", address(splitter));
+
+        // 2. Deploy LiFiBridgeAggregator with correct addresses
+        LiFiBridgeAggregator lifi = new LiFiBridgeAggregator(deployer, address(splitter));
+        console.log("LiFiBridgeAggregator (new):", address(lifi));
+
+        // 3. Whitelist tokens
+        address[] memory tokens = new address[](4);
+        tokens[0] = gdollar;
+        tokens[1] = MOCK_WETH;
+        tokens[2] = MOCK_USDC;
+        tokens[3] = MOCK_WBTC;
+        lifi.batchWhitelistTokens(tokens);
+        console.log("Whitelisted 4 tokens: G$, WETH, USDC, WBTC");
+
+        vm.stopBroadcast();
+
+        console.log("");
+        console.log("=== Redeployment Complete ===");
+        console.log("New UBIFeeSplitter:", address(splitter));
+        console.log("New LiFiBridgeAggregator:", address(lifi));
+        console.log("");
+        console.log("TODO: Update op-stack/addresses.json and devnet.ts");
+        console.log("TODO: Call setFeeBeneficiary(newSplitter) on each GoodPool:");
+        console.log("  GoodPool G$/WETH  :", POOL_GD_WETH);
+        console.log("  GoodPool G$/USDC  :", POOL_GD_USDC);
+        console.log("  GoodPool WETH/USDC:", POOL_WETH_USDC);
+    }
+}
