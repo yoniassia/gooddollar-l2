@@ -116,6 +116,7 @@ contract OptimisticResolver {
     // ============ Errors ============
 
     error NotAdmin();
+    error NotMarketFactory();
     error ZeroAddress();
     error AlreadyProposed(uint256 marketId);
     error NotProposed(uint256 marketId);
@@ -131,6 +132,11 @@ contract OptimisticResolver {
 
     modifier onlyAdmin() {
         if (msg.sender != admin) revert NotAdmin();
+        _;
+    }
+
+    modifier onlyMarketFactoryOrAdmin() {
+        if (msg.sender != address(marketFactory) && msg.sender != admin) revert NotMarketFactory();
         _;
     }
 
@@ -177,11 +183,11 @@ contract OptimisticResolver {
     // ============ Resolution Flow ============
 
     /**
-     * @notice Mark a market as needing resolution (called after market ends)
-     * @dev Can be called by anyone once market end time has passed.
-     *      In practice, the backend MarketResolverService triggers this.
+     * @notice Mark a market as needing resolution. Only callable by MarketFactory or admin.
+     * @dev MarketFactory calls this after confirming the market end time has passed.
+     *      Admin access is preserved for emergency use only.
      */
-    function requestResolution(uint256 marketId) external {
+    function requestResolution(uint256 marketId) external onlyMarketFactoryOrAdmin {
         resolutionRequested[marketId] = true;
     }
 

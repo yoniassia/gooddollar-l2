@@ -18,6 +18,8 @@ import "./interfaces/IGoodDollarToken.sol";
 
 interface IUBIFeeSplitter {
     function claimableBalance() external view returns (uint256);
+    /// @notice Transfer `amount` G$ from feeSplitter to recipient (UBI funding).
+    function releaseToUBI(address recipient, uint256 amount) external;
 }
 
 contract UBIClaimV2 {
@@ -82,6 +84,7 @@ contract UBIClaimV2 {
         address _admin
     ) {
         if (_goodDollar == address(0) || _admin == address(0)) revert ZeroAddress();
+        // _feeSplitter is optional (address(0) means no supplemental UBI funding)
         goodDollar = IGoodDollarToken(_goodDollar);
         feeSplitter = IUBIFeeSplitter(_feeSplitter);
         admin = _admin;
@@ -191,6 +194,22 @@ contract UBIClaimV2 {
         emit UBIClaimed(user, amount, epoch);
     }
 
+    // ============ Pool Supplement ============
+
+    /**
+     * @notice Pull accrued G$ fees from the feeSplitter into the GoodDollar UBI pool.
+     *         Anyone can call this — it only moves funds that feeSplitter already holds.
+     *         No-op if feeSplitter is not set or has no claimable balance.
+     */
+    function supplementPool() external {
+        if (address(feeSplitter) == address(0)) return;
+        uint256 available = feeSplitter.claimableBalance();
+        if (available == 0) return;
+        // Pull G$ from feeSplitter to this contract, then forward to the UBI pool.
+        feeSplitter.releaseToUBI(address(this), available);
+        goodDollar.fundUBIPool(available);
+    }
+
     // ============ Governance ============
 
     function setRelayer(address relayer, bool authorized) external onlyAdmin {
@@ -203,6 +222,7 @@ contract UBIClaimV2 {
     }
 
     function setFeeSplitter(address _feeSplitter) external onlyAdmin {
+        if (_feeSplitter == address(0)) revert ZeroAddress();
         feeSplitter = IUBIFeeSplitter(_feeSplitter);
     }
 

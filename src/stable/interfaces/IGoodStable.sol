@@ -56,4 +56,9 @@ interface IUBIFeeSplitter {
     function splitFee(uint256 totalFee, address dAppRecipient)
         external
         returns (uint256 ubiShare, uint256 protocolShare, uint256 dAppShare);
+
+    /// @notice Token-agnostic variant — use when fees are in any ERC-20 other than G$.
+    function splitFeeToken(uint256 totalFee, address dAppRecipient, address token)
+        external
+        returns (uint256 ubiShare, uint256 protocolShare, uint256 dAppShare);
 }

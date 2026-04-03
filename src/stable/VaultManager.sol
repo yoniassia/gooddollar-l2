@@ -199,10 +199,12 @@ contract VaultManager {
             return;
         }
 
-        // Mint accrued fee gUSD and route to UBIFeeSplitter
+        // Mint accrued fee gUSD and route to UBIFeeSplitter.
+        // Use splitFeeToken (not splitFee) because stability fees are in gUSD,
+        // not G$. splitFee would revert — it pulls G$ via transferFrom.
         gusd.mint(address(this), feeWAD);
         gusd.approve(address(feeSplitter), feeWAD);
-        feeSplitter.splitFee(feeWAD, dAppRecipient);
+        feeSplitter.splitFeeToken(feeWAD, dAppRecipient, address(gusd));
 
         ilkDebt[ilk] += feeWAD;
 

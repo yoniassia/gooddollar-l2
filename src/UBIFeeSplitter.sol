@@ -5,20 +5,30 @@ pragma solidity ^0.8.20;
  * @title UBI Fee Splitter
  * @notice Every dApp on GoodDollar L2 routes fees through this contract.
  *         A percentage of ALL fees goes to the UBI pool.
- * @dev dApps call `splitFee()` to automatically route the UBI portion.
+ * @dev dApps call `splitFee()` (for G$) or `splitFeeToken()` (any ERC-20) to
+ *      automatically route the UBI portion.
  */
 import "./interfaces/IGoodDollarToken.sol";
 
+interface IERC20Transfer {
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function transfer(address to, uint256 amount) external returns (bool);
+}
+
 contract UBIFeeSplitter {
     IGoodDollarToken public immutable goodDollar;
-    
+
     // Fee split configuration (in basis points, 10000 = 100%)
     uint256 public ubiBPS = 3333;      // 33.33% to UBI pool
     uint256 public protocolBPS = 1667; // 16.67% to protocol treasury
     // Remaining 50% goes back to the dApp (liquidity providers, lenders, etc.)
-    
+
     address public protocolTreasury;
     address public admin;
+
+    /// @notice Where non-G$ UBI shares (e.g. gUSD) are sent.
+    ///         Defaults to address(0) (no-op) until set by admin.
+    address public ubiRecipient;
     
     // Registered dApps
     mapping(address => bool) public registeredDApps;
@@ -46,6 +56,7 @@ contract UBIFeeSplitter {
         goodDollar = IGoodDollarToken(_goodDollar);
         protocolTreasury = _treasury;
         admin = _admin;
+        ubiRecipient = _treasury; // fallback — admin should update via setUBIRecipient()
     }
     
     /**
@@ -105,7 +116,57 @@ contract UBIFeeSplitter {
     function setTreasury(address _treasury) external onlyAdmin {
         protocolTreasury = _treasury;
     }
-    
+
+    function setUBIRecipient(address _ubiRecipient) external onlyAdmin {
+        require(_ubiRecipient != address(0), "zero address");
+        ubiRecipient = _ubiRecipient;
+    }
+
+    /**
+     * @notice Token-agnostic fee split. Use this when fees are denominated in any
+     *         ERC-20 other than G$ (e.g. gUSD from VaultManager stability fees).
+     *         UBI share is transferred to `ubiRecipient`; protocol and dApp shares
+     *         go to their respective addresses. Does NOT call fundUBIPool().
+     * @param totalFee  Fee amount in `token` units.
+     * @param dAppRecipient Where the dApp's share is sent.
+     * @param token     The ERC-20 token in which the fee is denominated.
+     */
+    function splitFeeToken(
+        uint256 totalFee,
+        address dAppRecipient,
+        address token
+    ) external returns (uint256 ubiShare, uint256 protocolShare, uint256 dAppShare) {
+        require(totalFee > 0, "Zero fee");
+        require(ubiRecipient != address(0), "ubiRecipient not set");
+
+        ubiShare = (totalFee * ubiBPS) / 10000;
+        protocolShare = (totalFee * protocolBPS) / 10000;
+        dAppShare = totalFee - ubiShare - protocolShare;
+
+        IERC20Transfer t = IERC20Transfer(token);
+        t.transferFrom(msg.sender, address(this), totalFee);
+        t.transfer(ubiRecipient, ubiShare);
+        t.transfer(protocolTreasury, protocolShare);
+        t.transfer(dAppRecipient, dAppShare);
+
+        totalFeesCollected += totalFee;
+
+        emit FeeSplit(msg.sender, totalFee, ubiShare, protocolShare, dAppShare);
+    }
+
+    /**
+     * @notice Transfer G$ held by this contract to `recipient` for UBI pool funding.
+     *         Called by UBIClaimV2.supplementPool(). No access control — only moves
+     *         funds already present in this contract, so there is no risk of draining
+     *         funds that were not already routed here.
+     * @param recipient Where to send the G$ (typically UBIClaimV2).
+     * @param amount    Amount to transfer. Must be ≤ claimableBalance().
+     */
+    function releaseToUBI(address recipient, uint256 amount) external {
+        require(amount <= goodDollar.balanceOf(address(this)), "insufficient balance");
+        goodDollar.transfer(recipient, amount);
+    }
+
     function dAppCount() external view returns (uint256) {
         return dAppList.length;
     }
