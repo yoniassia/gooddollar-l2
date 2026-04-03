@@ -114,4 +114,12 @@ contract UBIFeeSplitter {
     function dAppCount() external view returns (uint256) {
         return dAppList.length;
     }
+
+    /**
+     * @notice Returns the G$ balance held in this contract available for UBI claims.
+     *         UBIClaimV2 queries this to determine if supplemental pool funds are ready.
+     */
+    function claimableBalance() external view returns (uint256) {
+        return goodDollar.balanceOf(address(this));
+    }
 }

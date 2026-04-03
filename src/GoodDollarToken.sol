@@ -35,7 +35,10 @@ contract GoodDollarToken {
     // Governance
     address public admin;
     address public identityOracle; // Updates verified status
-    
+
+    // Authorized minters (e.g. UBIClaimV2)
+    mapping(address => bool) public minters;
+
     // Fee Splitter — dApps register here
     uint256 public constant UBI_FEE_BPS = 1000; // 10% of fees go to UBI pool
     
@@ -54,6 +57,11 @@ contract GoodDollarToken {
     
     modifier onlyIdentityOracle() {
         require(msg.sender == identityOracle, "Not identity oracle");
+        _;
+    }
+
+    modifier onlyMinter() {
+        require(minters[msg.sender], "Not authorized minter");
         _;
     }
     
@@ -171,6 +179,17 @@ contract GoodDollarToken {
     
     function setAdmin(address _admin) external onlyAdmin {
         admin = _admin;
+    }
+
+    function setMinter(address minter, bool authorized) external onlyAdmin {
+        minters[minter] = authorized;
+    }
+
+    /**
+     * @notice Mint G$ tokens. Only callable by authorized minters (e.g. UBIClaimV2).
+     */
+    function mint(address to, uint256 amount) external onlyMinter {
+        _mint(to, amount);
     }
     
     // ============ Internal ============
