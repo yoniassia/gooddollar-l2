@@ -19,7 +19,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 **Status:** Frontend live, PerpEngine + MarginVault + FundingRate deployed
 **Next:**
 - [x] Backend order matching service (off-chain order book → on-chain settlement)
-- [ ] Connect to Hyperliquid API for external liquidity/price feeds
+- [x] Connect to Hyperliquid API for external liquidity/price feeds — HyperliquidRouter + SmartOrderRouter with book walking, simulation mode
 - [ ] Connect to dYdX, GMX for additional liquidity routing
 - [x] Implement oracle price feeds (Pyth/Chainlink) — PerpPriceOracle.sol with keeper push + staleness/deviation
 - [x] Frontend → real contract interaction (openPosition + closePosition wired via usePerps hooks)
@@ -67,7 +67,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Real price oracle integration (Chainlink/Pyth for stock prices) — PriceOracle deployed with manual prices + backend/stocks-keeper for live Yahoo Finance feeds
 - [x] Create initial synthetic stocks (sAAPL, sTSLA, sGOOG, sNVDA) — 12 stocks deployed via DeployGoodStocks, 4 seeded with positions
 - [x] Frontend → real contract interaction — useMintSynthetic/useRedeemSynthetic wired in stocks/[ticker]
-- [ ] Portfolio tracking (blocked until initial synthetic stocks are deployed)
+- [x] Portfolio tracking — stocks/portfolio page with holdings, trade history, collateral health, P&L
 **Research:** Study Synthetix V3, Mirror Protocol (Terra), dHedge
 
 ### 7. GoodBridge — Cross-Chain Bridge (PRIORITY: MEDIUM)
