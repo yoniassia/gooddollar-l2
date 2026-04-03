@@ -57,24 +57,8 @@ export function Header() {
         <nav className="hidden sm:flex items-center gap-6 text-sm text-gray-400">
           <Link href="/" className={isSwap ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Swap</Link>
           <Link href="/explore" className={isExplore ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Explore</Link>
-          <Link href="/pool" className={`relative group flex items-center gap-1.5 ${isPool ? 'text-white font-medium' : 'opacity-60 hover:opacity-80 transition-opacity'}`}>
-            Pool
-            <span data-testid="soon-badge" className="text-[10px] leading-none text-goodgreen/60 bg-goodgreen/10 px-1.5 py-0.5 rounded-full">Soon</span>
-            {!isPool && (
-              <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-2.5 py-1 rounded-lg bg-dark-50 border border-gray-700/50 text-xs text-gray-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                Coming Soon
-              </span>
-            )}
-          </Link>
-          <Link href="/bridge" className={`relative group flex items-center gap-1.5 ${isBridge ? 'text-white font-medium' : 'opacity-60 hover:opacity-80 transition-opacity'}`}>
-            Bridge
-            <span data-testid="soon-badge" className="text-[10px] leading-none text-goodgreen/60 bg-goodgreen/10 px-1.5 py-0.5 rounded-full">Soon</span>
-            {!isBridge && (
-              <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-2.5 py-1 rounded-lg bg-dark-50 border border-gray-700/50 text-xs text-gray-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                Coming Soon
-              </span>
-            )}
-          </Link>
+          <Link href="/pool" className={isPool ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Pool</Link>
+          <Link href="/bridge" className={isBridge ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Bridge</Link>
           <Link href="/stocks" className={isStocks ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Stocks</Link>
           <Link href="/predict" className={isPredict ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Predict</Link>
           <Link href="/perps" className={isPerps ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Perps</Link>
@@ -142,18 +126,16 @@ export function Header() {
             <Link
               href="/pool"
               onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isPool ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 py-2.5 rounded-lg ${isPool ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
             >
-              <span className={isPool ? '' : 'opacity-60'}>Pool</span>
-              <span className="text-xs text-goodgreen/60 bg-goodgreen/10 px-2 py-0.5 rounded-full">Coming Soon</span>
+              Pool
             </Link>
             <Link
               href="/bridge"
               onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isBridge ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 py-2.5 rounded-lg ${isBridge ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
             >
-              <span className={isBridge ? '' : 'opacity-60'}>Bridge</span>
-              <span className="text-xs text-goodgreen/60 bg-goodgreen/10 px-2 py-0.5 rounded-full">Coming Soon</span>
+              Bridge
             </Link>
             <Link
               href="/stocks"
