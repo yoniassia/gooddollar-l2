@@ -224,7 +224,17 @@ export class HyperliquidRouter extends EventEmitter {
     if (book && book.levels) {
       // Walk the book to simulate fill
       const levels = request.side === Side.Buy ? book.levels[1] : book.levels[0]; // asks for buy, bids for sell
-      avgPrice = this.walkBook(levels, size);
+      if (!levels || levels.length === 0) {
+        // Empty levels array — fall back to mid price rather than returning zero
+        const mid = this.hlFeed.getMidPrice(hlCoin);
+        if (mid) {
+          avgPrice = new BigNumber(mid);
+        } else {
+          throw new Error(`No price data available for ${hlCoin} on Hyperliquid`);
+        }
+      } else {
+        avgPrice = this.walkBook(levels, size);
+      }
     } else {
       // Use mid price as fallback
       const mid = this.hlFeed.getMidPrice(hlCoin);
@@ -326,6 +336,10 @@ export class HyperliquidRouter extends EventEmitter {
    * Walk an order book to calculate average fill price for a given size.
    */
   private walkBook(levels: HyperliquidL2Level[], targetSize: BigNumber): BigNumber {
+    if (levels.length === 0) {
+      return new BigNumber(0); // Caller must guard against empty levels before calling
+    }
+
     let remainingSize = targetSize;
     let totalCost = new BigNumber(0);
 

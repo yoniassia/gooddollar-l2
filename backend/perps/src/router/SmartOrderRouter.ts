@@ -112,9 +112,24 @@ export class SmartOrderRouter {
           bestRoute = 'internal';
           estimatedAvgPrice = intPrice;
         } else {
-          // Check if split would help
-          bestRoute = 'external';
-          estimatedAvgPrice = extPrice;
+          // External is better — only switch if it can fill the full order
+          // AND the improvement exceeds MIN_SPLIT_IMPROVEMENT_BPS
+          if (extAvail.gte(sizeBN)) {
+            const improvementBps = isBuy
+              ? intPrice.minus(extPrice).div(intPrice).times(10000)
+              : extPrice.minus(intPrice).div(intPrice).times(10000);
+            if (improvementBps.gte(MIN_SPLIT_IMPROVEMENT_BPS)) {
+              bestRoute = 'external';
+              estimatedAvgPrice = extPrice;
+            } else {
+              bestRoute = 'internal';
+              estimatedAvgPrice = intPrice;
+            }
+          } else {
+            // External can't fill the full order; internal can — stay internal
+            bestRoute = 'internal';
+            estimatedAvgPrice = intPrice;
+          }
         }
       } else {
         bestRoute = 'internal';
