@@ -19,9 +19,10 @@ interface TokenRowProps {
   token: TokenMarketData
   idx: number
   onRowClick: (symbol: string) => void
+  onSwapClick: (symbol: string) => void
 }
 
-const TokenRow = memo(function TokenRow({ token, idx, onRowClick }: TokenRowProps) {
+const TokenRow = memo(function TokenRow({ token, idx, onRowClick, onSwapClick }: TokenRowProps) {
   return (
     <tr
       onClick={() => onRowClick(token.symbol)}
@@ -77,7 +78,7 @@ const TokenRow = memo(function TokenRow({ token, idx, onRowClick }: TokenRowProp
       </td>
       <td className="py-3 px-1 text-right w-20 hidden sm:table-cell">
         <button
-          onClick={(e) => { e.stopPropagation(); onRowClick(token.symbol) }}
+          onClick={(e) => { e.stopPropagation(); onSwapClick(token.symbol) }}
           className="opacity-0 group-hover:opacity-100 transition-opacity px-3 py-1 text-xs font-medium rounded-lg bg-goodgreen/10 text-goodgreen hover:bg-goodgreen/20"
         >
           Swap
@@ -205,6 +206,10 @@ export default function ExplorePage() {
   }, [data, query, selectedCategory, sortField, sortDir])
 
   const handleRowClick = useCallback((symbol: string) => {
+    router.push(`/explore/${symbol}`)
+  }, [router])
+
+  const handleSwapClick = useCallback((symbol: string) => {
     router.push(`/?buy=${symbol}`)
   }, [router])
 
@@ -301,7 +306,7 @@ export default function ExplorePage() {
                 </tr>
               ) : (
                 filtered.map((token, idx) => (
-                  <TokenRow key={token.symbol} token={token} idx={idx} onRowClick={handleRowClick} />
+                  <TokenRow key={token.symbol} token={token} idx={idx} onRowClick={handleRowClick} onSwapClick={handleSwapClick} />
                 ))
               )}
             </tbody>
