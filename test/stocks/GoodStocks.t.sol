@@ -389,30 +389,52 @@ contract GoodStocksTest is Test {
         vm.prank(alice);
         vault.mint("AAPL", 1e18); // 1 share
 
-        // Price crashes: AAPL drops from $175 to $300 (CR drops below 120%)
-        // New CR = $350 / $300 = 116.7% < 120% → liquidatable
+        // Price crashes: AAPL from $175 to $300 (CR drops below 120%)
+        // Alice's collateral ≈ 349.475 G$ (after 0.525 G$ mint fee)
+        // New CR = 349.475 / 300 ≈ 116.5% < 120% → liquidatable
         aaplFeed.setPrice(30_000_000_000); // $300
 
-        // Bob accumulates sAAPL to liquidate alice
+        // Bob acquires sAAPL to liquidate Alice
         vm.prank(bob);
         vault.depositCollateral("AAPL", 10_000e18);
         vm.prank(bob);
         vault.mint("AAPL", 1e18);
 
-        // Transfer sAAPL to bob's wallet (already there from mint)
         uint256 bobGBefore = gd.balanceOf(bob);
+        uint256 feeSplitterBefore = gd.balanceOf(address(feeSplitter));
         uint256 aliceCollateral = vault.collateral(alice, keccak256("AAPL"));
 
         vm.prank(bob);
         vault.liquidate(alice, "AAPL");
 
-        // Bob received 10% of alice's collateral as bonus
-        uint256 expectedBonus = (aliceCollateral * 1000) / 10000; // 10%
-        assertGe(gd.balanceOf(bob), bobGBefore + expectedBonus - 1); // small rounding
+        // Bob burned 1 sAAPL worth $300. He should receive:
+        //   debtValue = 300 G$  +  10% bonus = 30 G$  → 330 G$ total
+        uint256 debtValueG = 300e18;
+        uint256 expectedReward = debtValueG + (debtValueG * 1000) / 10000; // 330 G$
+        assertGe(gd.balanceOf(bob), bobGBefore + expectedReward - 1e9);
+
+        // Remaining collateral (aliceCollateral - 330) went to fee splitter
+        uint256 expectedRemaining = aliceCollateral > expectedReward
+            ? aliceCollateral - expectedReward
+            : 0;
+        assertGe(
+            gd.balanceOf(address(feeSplitter)),
+            feeSplitterBefore + expectedRemaining - 1e9
+        );
 
         // Alice's position cleared
         assertEq(vault.debt(alice, keccak256("AAPL")), 0);
         assertEq(vault.collateral(alice, keccak256("AAPL")), 0);
+    }
+
+    function test_vault_liquidate_noDebt_reverts() public {
+        // Alice deposits collateral but never mints — must not be liquidatable
+        vm.prank(alice);
+        vault.depositCollateral("AAPL", 100e18);
+
+        vm.prank(bob);
+        vm.expectRevert();
+        vault.liquidate(alice, "AAPL");
     }
 
     function test_vault_liquidate_healthyPosition_reverts() public {
