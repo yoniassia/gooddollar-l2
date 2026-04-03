@@ -218,6 +218,7 @@ contract MarketFactory {
         uint256 tokenId;
         uint256 payout;
         uint256 collateralDecrement;
+        uint256 fee;
 
         if (isVoided) {
             // Redeem either YES or NO at 1:1 (both valid)
@@ -239,18 +240,19 @@ contract MarketFactory {
             uint256 grossPayout = (amount * m.collateral) / winningSupply;
 
             // Deduct 1% fee, route to UBI via fee splitter
-            uint256 fee = (grossPayout * REDEEM_FEE_BPS) / BPS;
+            fee = (grossPayout * REDEEM_FEE_BPS) / BPS;
             payout = grossPayout - fee;
             collateralDecrement = grossPayout; // full gross amount leaves the contract
-
-            if (fee > 0) {
-                goodDollar.approve(feeSplitter, fee);
-                IUBIFeeSplitterPredict(feeSplitter).splitFee(fee, address(this));
-            }
         }
 
+        // CEI: effects before interactions
         tokens.burn(msg.sender, tokenId, amount);
         m.collateral -= collateralDecrement;
+
+        if (fee > 0) {
+            goodDollar.approve(feeSplitter, fee);
+            IUBIFeeSplitterPredict(feeSplitter).splitFee(fee, address(this));
+        }
 
         bool ok2 = goodDollar.transfer(msg.sender, payout);
         if (!ok2) revert TransferFailed();

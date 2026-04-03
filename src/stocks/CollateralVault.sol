@@ -340,9 +340,6 @@ contract CollateralVault {
             revert PositionHealthy(ratio, LIQUIDATION_RATIO);
         }
 
-        // Liquidator repays full synthetic debt
-        SyntheticAsset(syntheticAsset).burn(msg.sender, userDebt);
-
         // Liquidator receives: debt value in G$ + 10% bonus
         // This makes liquidations economically rational: liquidator breaks even on the
         // synthetic tokens they burn and earns the bonus as profit.
@@ -354,9 +351,13 @@ contract CollateralVault {
         if (liquidatorReward > userCollateral) liquidatorReward = userCollateral;
         uint256 remainingCollateral = userCollateral - liquidatorReward;
 
+        // CEI: clear state before external calls
         collateral[user][key] = 0;
         debt[user][key] = 0;
         totalCollateral[key] -= userCollateral;
+
+        // Liquidator repays full synthetic debt
+        SyntheticAsset(syntheticAsset).burn(msg.sender, userDebt);
 
         if (liquidatorReward > 0) {
             bool ok = goodDollar.transfer(msg.sender, liquidatorReward);
