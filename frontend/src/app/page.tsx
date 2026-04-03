@@ -35,6 +35,13 @@ export default function Home() {
         <p className="text-sm text-gray-400">
           Every swap, prediction, and trade on GoodDollar automatically funds universal basic income for verified humans worldwide.
         </p>
+        <p className="mt-3 text-xs text-gray-500 flex items-center justify-center gap-1.5">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-goodgreen animate-pulse" />
+          <span className="text-goodgreen/80 font-medium">$2.4M</span>
+          already distributed to
+          <span className="text-goodgreen/80 font-medium">640K+</span>
+          people worldwide
+        </p>
       </div>
 
       {/* Swap card wrapper with glow */}
