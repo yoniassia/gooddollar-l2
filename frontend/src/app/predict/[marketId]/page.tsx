@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 
 import Link from 'next/link'
 import { getMarketById, formatVolume, getMarketStatus, getDaysLeftLabel } from '@/lib/predictData'
@@ -9,16 +10,22 @@ import { formatLargeValue } from '@/lib/perpsData'
 import { generateProbabilityHistory } from '@/lib/chartData'
 import { ChartErrorBoundary } from '@/components/ChartErrorBoundary'
 import { useWalletReady } from '@/lib/WalletReadyContext'
+import { usePredictTrade } from '@/lib/usePredictTrade'
 import dynamic from 'next/dynamic'
 
-function WalletGatedTradeButton({ hasAmount, children }: { hasAmount: boolean; children: React.ReactNode }) {
-  const isConnected = false // demo mode
+function WalletGatedTradeButton({ isConnected, hasAmount, children }: { isConnected: boolean; hasAmount: boolean; children: React.ReactNode }) {
   if (!isConnected) {
     return (
-      <button type="button" disabled
-        className="w-full py-3 rounded-xl font-semibold text-sm bg-goodgreen/30 text-goodgreen border border-goodgreen/40 cursor-not-allowed">
-        Connect Wallet to Trade
-      </button>
+      <div className="w-full">
+        <ConnectButton.Custom>
+          {({ openConnectModal }) => (
+            <button type="button" onClick={openConnectModal}
+              className="w-full py-3 rounded-xl font-semibold text-sm bg-goodgreen text-white hover:bg-goodgreen/90 transition-colors">
+              Connect Wallet to Trade
+            </button>
+          )}
+        </ConnectButton.Custom>
+      </div>
     )
   }
   if (!hasAmount) {
@@ -54,8 +61,8 @@ function formatShares(n: number): string {
 function TradePanel({ market, initialSide }: { market: ReturnType<typeof getMarketById> & {}, initialSide?: 'yes' | 'no' }) {
   const [side, setSide] = useState<'yes' | 'no'>(initialSide ?? 'yes')
   const [amount, setAmount] = useState('')
-  const [submitted, setSubmitted] = useState(false)
   const walletReady = useWalletReady()
+  const { isConnected, phase, error, buy, reset } = usePredictTrade()
 
   const price = side === 'yes' ? market.yesPrice : 1 - market.yesPrice
   const shares = amount && price > 0 ? parseFloat(amount) / price : 0
@@ -63,12 +70,25 @@ function TradePanel({ market, initialSide }: { market: ReturnType<typeof getMark
   const fee = amount ? parseFloat(amount) * 0.01 : 0
   const ubiFee = fee * 0.33
   const hasAmount = !!amount && parseFloat(amount) > 0
+  const isBusy = phase === 'approving' || phase === 'buying'
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!amount || parseFloat(amount) <= 0) return
-    setSubmitted(true)
-    setTimeout(() => setSubmitted(false), 3000)
+    // on-chain market ID: markets in predictData use string slugs; the on-chain
+    // ID is derived from the market's position in the MarketFactory array.
+    // market.onChainId is populated when data comes from the backend API.
+    // Fall back to 0 for demo purposes until predictApi integration is live.
+    const onChainId = BigInt((market as any).onChainId ?? 0)
+    await buy(onChainId, side === 'yes', amount)
+  }
+
+  const phaseLabel = () => {
+    if (phase === 'approving') return 'Approving G$...'
+    if (phase === 'buying') return `Buying ${side.toUpperCase()}...`
+    if (phase === 'confirmed') return 'Trade Confirmed!'
+    if (phase === 'error') return 'Transaction Failed'
+    return `Buy ${side.toUpperCase()}`
   }
 
   return (
@@ -76,18 +96,18 @@ function TradePanel({ market, initialSide }: { market: ReturnType<typeof getMark
       <h3 className="text-sm font-semibold text-white mb-4">Place Trade</h3>
 
       <div className="flex gap-2 mb-4">
-        <button type="button" onClick={() => setSide('yes')}
+        <button type="button" onClick={() => { setSide('yes'); reset() }}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${side === 'yes' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-dark-50/50 text-gray-400 border border-transparent'}`}>
           YES {Math.round(market.yesPrice * 100)}¢
         </button>
-        <button type="button" onClick={() => setSide('no')}
+        <button type="button" onClick={() => { setSide('no'); reset() }}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${side === 'no' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-dark-50/50 text-gray-400 border border-transparent'}`}>
           NO {Math.round((1 - market.yesPrice) * 100)}¢
         </button>
       </div>
 
       <div className="mb-3">
-        <label className="text-xs text-gray-400 mb-1 block">Amount (USD)</label>
+        <label className="text-xs text-gray-400 mb-1 block">Amount (G$)</label>
         <input type="number" step="0.01" min="0" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)}
           className="w-full px-3 py-2.5 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
       </div>
@@ -117,13 +137,24 @@ function TradePanel({ market, initialSide }: { market: ReturnType<typeof getMark
         </div>
       )}
 
-      {walletReady ? (
-        <WalletGatedTradeButton hasAmount={hasAmount}>
-          <button type="submit"
-            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
+      {error && (
+        <div className="mb-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
+          {error}
+        </div>
+      )}
+
+      {phase === 'confirmed' ? (
+        <button type="button" onClick={() => { reset(); setAmount('') }}
+          className="w-full py-3 rounded-xl font-semibold text-sm bg-green-500/20 text-green-400 border border-green-500/30">
+          Trade Confirmed — Place Another
+        </button>
+      ) : walletReady ? (
+        <WalletGatedTradeButton isConnected={isConnected} hasAmount={hasAmount}>
+          <button type="submit" disabled={isBusy}
+            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
               side === 'yes' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
             }`}>
-            {submitted ? 'Order Placed!' : `Buy ${side.toUpperCase()}`}
+            {phaseLabel()}
           </button>
         </WalletGatedTradeButton>
       ) : (
@@ -131,7 +162,7 @@ function TradePanel({ market, initialSide }: { market: ReturnType<typeof getMark
           className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
             side === 'yes' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
           }`}>
-          {submitted ? 'Order Placed!' : `Buy ${side.toUpperCase()}`}
+          {phaseLabel()}
         </button>
       )}
 
