@@ -21,18 +21,18 @@ export default function PredictPortfolioPage() {
     <div className="w-full max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Predictions Portfolio</h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
-          <div className="text-xs text-gray-400 mb-1">Total Invested</div>
-          <div className="text-xl font-bold text-white">{formatVolume(summary.totalInvested)}</div>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+        <div className="bg-dark-100 rounded-xl sm:rounded-2xl border border-gray-700/20 p-3 sm:p-5">
+          <div className="text-[10px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">Total Invested</div>
+          <div className="text-lg sm:text-xl font-bold text-white">{formatVolume(summary.totalInvested)}</div>
         </div>
-        <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
-          <div className="text-xs text-gray-400 mb-1">Current Value</div>
-          <div className="text-xl font-bold text-white">{formatVolume(summary.currentValue)}</div>
+        <div className="bg-dark-100 rounded-xl sm:rounded-2xl border border-gray-700/20 p-3 sm:p-5">
+          <div className="text-[10px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">Current Value</div>
+          <div className="text-lg sm:text-xl font-bold text-white">{formatVolume(summary.currentValue)}</div>
         </div>
-        <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
-          <div className="text-xs text-gray-400 mb-1">Unrealized P&L</div>
-          <div className={`text-xl font-bold ${summary.unrealizedPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+        <div className="bg-dark-100 rounded-xl sm:rounded-2xl border border-gray-700/20 p-3 sm:p-5">
+          <div className="text-[10px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">Unrealized P&L</div>
+          <div className={`text-lg sm:text-xl font-bold ${summary.unrealizedPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {summary.unrealizedPnl >= 0 ? '+' : ''}{formatVolume(Math.abs(summary.unrealizedPnl))}
           </div>
         </div>

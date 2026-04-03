@@ -8,9 +8,9 @@ import { getOpenPositions, getAccountSummary, formatPerpsPrice } from '@/lib/per
 
 function SummaryCard({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
-      <div className="text-xs text-gray-400 mb-1">{label}</div>
-      <div className={`text-xl font-bold ${color ?? 'text-white'}`}>{value}</div>
+    <div className="bg-dark-100 rounded-xl sm:rounded-2xl border border-gray-700/20 p-3 sm:p-5">
+      <div className="text-[10px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">{label}</div>
+      <div className={`text-lg sm:text-xl font-bold ${color ?? 'text-white'}`}>{value}</div>
     </div>
   )
 }
@@ -51,7 +51,7 @@ export default function PortfolioPage() {
     <div className="w-full max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Portfolio Overview</h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
         <SummaryCard label="Total Value" value={formatLargeNumber(totalValue)} />
         <SummaryCard
           label="Unrealized P&L"

@@ -106,26 +106,26 @@ export default function PerpsPortfolioPage() {
     <div className="w-full max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Perps Portfolio</h1>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="bg-dark-100 rounded-xl border border-gray-700/20 p-4">
-          <div className="text-xs text-gray-400 mb-0.5">Equity</div>
-          <div className="text-lg font-bold text-white">{formatPerpsPrice(account.equity)}</div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
+        <div className="bg-dark-100 rounded-xl border border-gray-700/20 p-3 sm:p-4">
+          <div className="text-[10px] sm:text-xs text-gray-400 mb-0.5">Equity</div>
+          <div className="text-base sm:text-lg font-bold text-white">{formatPerpsPrice(account.equity)}</div>
         </div>
-        <div className="bg-dark-100 rounded-xl border border-gray-700/20 p-4">
-          <div className="text-xs text-gray-400 mb-0.5">Unrealized P&L</div>
-          <div className={`text-lg font-bold ${totalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+        <div className="bg-dark-100 rounded-xl border border-gray-700/20 p-3 sm:p-4">
+          <div className="text-[10px] sm:text-xs text-gray-400 mb-0.5">Unrealized P&L</div>
+          <div className={`text-base sm:text-lg font-bold ${totalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {totalPnl >= 0 ? '+' : ''}{formatPerpsPrice(totalPnl)}
           </div>
         </div>
-        <div className="bg-dark-100 rounded-xl border border-gray-700/20 p-4">
-          <div className="text-xs text-gray-400 mb-0.5">Net Funding</div>
-          <div className={`text-lg font-bold ${totalFunding >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+        <div className="bg-dark-100 rounded-xl border border-gray-700/20 p-3 sm:p-4">
+          <div className="text-[10px] sm:text-xs text-gray-400 mb-0.5">Net Funding</div>
+          <div className={`text-base sm:text-lg font-bold ${totalFunding >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {totalFunding >= 0 ? '+' : ''}{formatPerpsPrice(totalFunding)}
           </div>
         </div>
-        <div className="bg-dark-100 rounded-xl border border-gray-700/20 p-4">
-          <div className="text-xs text-gray-400 mb-0.5">Available</div>
-          <div className="text-lg font-bold text-goodgreen">{formatPerpsPrice(account.availableMargin)}</div>
+        <div className="bg-dark-100 rounded-xl border border-gray-700/20 p-3 sm:p-4">
+          <div className="text-[10px] sm:text-xs text-gray-400 mb-0.5">Available</div>
+          <div className="text-base sm:text-lg font-bold text-goodgreen">{formatPerpsPrice(account.availableMargin)}</div>
         </div>
       </div>
 

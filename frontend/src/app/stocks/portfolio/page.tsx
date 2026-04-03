@@ -15,9 +15,9 @@ function CollateralHealth({ ratio }: { ratio: number }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs text-gray-400">Collateral Health</span>
-        <span className={`text-xs font-medium ${color}`}>{ratio.toFixed(0)}% — {label}</span>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-1.5 gap-0.5">
+        <span className="text-[10px] sm:text-xs text-gray-400">Collateral Health</span>
+        <span className={`text-[10px] sm:text-xs font-medium ${color}`}>{ratio.toFixed(0)}% — {label}</span>
       </div>
       <div className="h-1.5 bg-dark-50 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all ${bgColor}`} style={{ width: `${barWidth}%` }} />
@@ -91,21 +91,21 @@ export default function StocksPortfolioPage() {
     <div className="w-full max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Stock Portfolio</h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
-          <div className="text-xs text-gray-400 mb-1">Total Value</div>
-          <div className="text-xl font-bold text-white">{formatLargeNumber(summary.totalValue)}</div>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+        <div className="bg-dark-100 rounded-xl sm:rounded-2xl border border-gray-700/20 p-3 sm:p-5">
+          <div className="text-[10px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">Total Value</div>
+          <div className="text-lg sm:text-xl font-bold text-white">{formatLargeNumber(summary.totalValue)}</div>
         </div>
-        <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
-          <div className="text-xs text-gray-400 mb-1">Unrealized P&L</div>
-          <div className={`text-xl font-bold ${summary.unrealizedPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+        <div className="bg-dark-100 rounded-xl sm:rounded-2xl border border-gray-700/20 p-3 sm:p-5">
+          <div className="text-[10px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">Unrealized P&L</div>
+          <div className={`text-lg sm:text-xl font-bold ${summary.unrealizedPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {summary.unrealizedPnl >= 0 ? '+' : ''}{formatStockPrice(summary.unrealizedPnl)}
-            <span className="text-sm ml-1 opacity-70">({summary.pnlPercent >= 0 ? '+' : ''}{summary.pnlPercent.toFixed(1)}%)</span>
+            <span className="hidden sm:inline text-sm ml-1 opacity-70">({summary.pnlPercent >= 0 ? '+' : ''}{summary.pnlPercent.toFixed(1)}%)</span>
           </div>
         </div>
-        <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
+        <div className="bg-dark-100 rounded-xl sm:rounded-2xl border border-gray-700/20 p-3 sm:p-5">
           <CollateralHealth ratio={summary.healthRatio} />
-          <div className="mt-2 text-xs text-gray-500">
+          <div className="hidden sm:block mt-2 text-xs text-gray-500">
             {formatStockPrice(summary.totalCollateral)} / {formatStockPrice(summary.totalRequired)} required
           </div>
         </div>
