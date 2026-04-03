@@ -23,6 +23,8 @@ import { GoodPerpsWebSocketServer } from './ws/WebSocketServer';
 import { ContractInteraction, ContractAddresses } from './contracts/ContractInteraction';
 import { LiquidationKeeper } from './keeper/LiquidationKeeper';
 import { FundingKeeper } from './keeper/FundingKeeper';
+import { HyperliquidRouter, ExternalRouteRequest } from './router/HyperliquidRouter';
+import { SmartOrderRouter } from './router/SmartOrderRouter';
 import { MarketConfig, Side, OrderType } from './orderbook/types';
 
 dotenv.config();
@@ -160,6 +162,54 @@ async function main() {
     res.json(rate);
   });
 
+  // Smart Order Router endpoints
+  app.get('/api/quote/:market', (req, res) => {
+    const { market } = req.params;
+    const side = (req.query.side as string)?.toLowerCase() === 'sell' ? Side.Sell : Side.Buy;
+    const size = req.query.size as string;
+    if (!size) return res.status(400).json({ error: 'Missing size query parameter' });
+    try {
+      const quote = sor.getQuote(market, side, size);
+      res.json(quote);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/sor/execute', async (req, res) => {
+    const { userId, market, side, size } = req.body;
+    if (!userId || !market || !side || !size) {
+      return res.status(400).json({ error: 'Missing required fields: userId, market, side, size' });
+    }
+    try {
+      const result = await sor.executeOrder(
+        userId,
+        market,
+        side === 'sell' ? Side.Sell : Side.Buy,
+        size,
+      );
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // External router endpoints
+  app.get('/api/router/stats', (_req, res) => {
+    res.json(hlRouter.getStats());
+  });
+
+  app.get('/api/router/fills', (req, res) => {
+    const limit = parseInt(req.query.limit as string) || 50;
+    res.json(hlRouter.getRecentFills(limit));
+  });
+
+  app.get('/api/router/liquidity/:market', (req, res) => {
+    const side = (req.query.side as string)?.toLowerCase() === 'sell' ? Side.Sell : Side.Buy;
+    const liquidity = hlRouter.getExternalLiquidity(req.params.market, side);
+    res.json(liquidity);
+  });
+
   app.get('/api/stats', (_req, res) => {
     res.json({
       engine: {
@@ -171,6 +221,7 @@ async function main() {
       oracle: Object.fromEntries(
         engine.getMarkets().map(m => [m, oracle.getPrice(m)])
       ),
+      router: hlRouter.getStats(),
       liquidationKeeper: liquidationKeeper?.getStats(),
       fundingKeeper: fundingKeeper?.getStats(),
     });
@@ -181,7 +232,34 @@ async function main() {
   // 5. Initialize WebSocket Server
   const wsServer = new GoodPerpsWebSocketServer(httpServer, engine, oracle);
 
-  // 6. Initialize Keepers
+  // 6. Initialize Hyperliquid Router + Smart Order Router
+  const hlRouter = new HyperliquidRouter(hlFeed, {
+    mode: process.env.HL_ROUTER_MODE === 'production' ? 'production' : 'simulation',
+    hlAccountAddress: process.env.HL_ACCOUNT_ADDRESS,
+    hlPrivateKey: process.env.HL_PRIVATE_KEY,
+  });
+  const sor = new SmartOrderRouter(engine, hlRouter, hlFeed);
+
+  // Wire external routing: when engine can't fill a market order, route to Hyperliquid
+  engine.on('routeExternal', async (req: ExternalRouteRequest) => {
+    try {
+      const fill = await hlRouter.routeOrder(req);
+      if (fill) {
+        logger.info({
+          orderId: req.orderId,
+          market: req.market,
+          fillPrice: fill.price,
+          fillSize: fill.size,
+        }, 'External fill mirrored to user position');
+        // Notify the user's WS clients about the external fill
+        wsServer?.emit('externalFill', fill);
+      }
+    } catch (err) {
+      logger.error({ err, orderId: req.orderId }, 'External route handler failed');
+    }
+  });
+
+  // 7. Initialize Keepers
   let liquidationKeeper: LiquidationKeeper | null = null;
   let fundingKeeper: FundingKeeper | null = null;
 
@@ -190,7 +268,7 @@ async function main() {
     fundingKeeper = new FundingKeeper(oracle, contracts, MARKETS.map(m => m.symbol));
   }
 
-  // 7. Wire up settlement
+  // 8. Wire up settlement
   if (contracts) {
     engine.on('settlement', async (batch) => {
       try {
