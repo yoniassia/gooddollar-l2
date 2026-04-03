@@ -12,7 +12,7 @@ vi.mock('@/components/TokenIcon', () => ({
 
 import ExplorePage from '../page'
 
-describe('ExplorePage — explore-to-swap navigation', () => {
+describe('ExplorePage', () => {
   beforeEach(() => {
     pushMock.mockClear()
   })
@@ -23,20 +23,12 @@ describe('ExplorePage — explore-to-swap navigation', () => {
     expect(rows.length).toBeGreaterThan(1)
   })
 
-  it('navigates to swap with ?buy= param when row is clicked', () => {
+  it('navigates to token detail page when row is clicked', () => {
     render(<ExplorePage />)
     const rows = screen.getAllByRole('row')
     expect(rows.length).toBeGreaterThan(1)
     fireEvent.click(rows[1])
-    expect(pushMock).toHaveBeenCalledWith(expect.stringContaining('/?buy='))
-  })
-
-  it('uses ?buy= param (not ?token=) for explore-to-swap navigation', () => {
-    render(<ExplorePage />)
-    const rows = screen.getAllByRole('row')
-    fireEvent.click(rows[1])
-    expect(pushMock).toHaveBeenCalledWith(expect.stringContaining('/?buy='))
-    expect(pushMock).not.toHaveBeenCalledWith(expect.stringContaining('?token='))
+    expect(pushMock).toHaveBeenCalledWith(expect.stringContaining('/explore/'))
   })
 
   it('shows a Swap button on each data row', () => {
@@ -45,7 +37,7 @@ describe('ExplorePage — explore-to-swap navigation', () => {
     expect(swapButtons.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('Swap button click navigates to ?buy= param', () => {
+  it('Swap button click navigates to swap with ?buy= param', () => {
     render(<ExplorePage />)
     const swapButtons = screen.getAllByRole('button', { name: /swap/i })
     fireEvent.click(swapButtons[0])

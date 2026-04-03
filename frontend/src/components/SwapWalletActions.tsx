@@ -93,12 +93,17 @@ function SwapButton({
   return (
     <>
       {!hasAmount ? (
-        <button
-          disabled
-          className="w-full py-4 rounded-xl font-semibold text-base bg-dark-50 text-gray-400 cursor-not-allowed"
-        >
-          Enter an Amount
-        </button>
+        <>
+          <button
+            disabled
+            className="w-full py-4 rounded-xl font-semibold text-base bg-dark-50 text-gray-400 cursor-not-allowed"
+          >
+            Enter an Amount
+          </button>
+          <p className="text-xs text-gray-500 text-center mt-3">
+            Try swapping {inputToken.symbol} → {outputToken.symbol} — 0.1% of fees fund basic income for 640K+ people
+          </p>
+        </>
       ) : (
         <button
           onClick={handleSwapClick}
