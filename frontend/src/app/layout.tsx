@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/Providers'
 import { Header } from '@/components/Header'
+import { UBIBanner } from '@/components/UBIBanner'
 import { LandingFooter } from '@/components/LandingFooter'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} min-h-screen flex flex-col`}>
         <Providers>
           <Header />
+          <UBIBanner />
           <main className="flex-1 flex flex-col items-center px-4 pt-8 pb-12">
             {children}
           </main>
