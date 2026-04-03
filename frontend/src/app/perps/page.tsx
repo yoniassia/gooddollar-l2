@@ -4,7 +4,8 @@ import { useState, useMemo, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 
-import { getPairs, getPairBySymbol, getAccountSummary, formatPerpsPrice, formatLargeValue, formatFundingRate, getFundingCountdown, type PerpPair, type AccountSummaryData } from '@/lib/perpsData'
+import { formatPerpsPrice, formatLargeValue, formatFundingRate, getFundingCountdown, type PerpPair, type AccountSummaryData } from '@/lib/perpsData'
+import { useOnChainPairs, useOnChainAccountSummary } from '@/lib/useOnChainPerps'
 import { sanitizeNumericInput } from '@/lib/format'
 import { getChartData, type Timeframe } from '@/lib/chartData'
 import { useWalletReady } from '@/lib/WalletReadyContext'
@@ -432,7 +433,7 @@ function OrderForm({ pair, account, marketId }: { pair: PerpPair; account: Accou
 }
 
 function AccountPanel() {
-  const account = getAccountSummary()
+  const { summary: account } = useOnChainAccountSummary()
   return (
     <div className="space-y-2.5 text-xs">
       <h3 className="text-sm font-semibold text-white mb-3">Account</h3>
@@ -474,13 +475,13 @@ function AccountPanel() {
 type MobileTab = 'chart' | 'book' | 'trade'
 
 export default function PerpsPage() {
-  const pairs = useMemo(() => getPairs(), [])
-  const account = useMemo(() => getAccountSummary(), [])
+  const { pairs } = useOnChainPairs()
+  const { summary: account } = useOnChainAccountSummary()
   const [selectedSymbol, setSelectedSymbol] = useState('BTC-USD')
   const [timeframe, setTimeframe] = useState<Timeframe>('1M')
   const [mobileTab, setMobileTab] = useState<MobileTab>('trade')
 
-  const pair = getPairBySymbol(selectedSymbol) ?? pairs[0]
+  const pair = pairs.find(p => p.symbol === selectedSymbol) ?? pairs[0]
 
   const chartData = useMemo(() => {
     return getChartData(pair.symbol, timeframe, pair.markPrice)

@@ -1,9 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { getPortfolioHoldings, getTradeHistory, getPortfolioSummary, getStockByTicker, formatStockPrice, formatLargeNumber, type PortfolioHolding, type TradeRecord } from '@/lib/stockData'
+import { useAccount } from 'wagmi'
+import { formatStockPrice, formatLargeNumber, type PortfolioHolding, type TradeRecord } from '@/lib/stockData'
+import { useOnChainStocks } from '@/lib/useOnChainStocks'
+import { useStockHoldings } from '@/lib/useStockHoldings'
+import { useStockTrades } from '@/lib/useStockTrades'
 import { ConnectWalletEmptyState } from '@/components/ConnectWalletEmptyState'
 
 type Tab = 'holdings' | 'history'
@@ -28,7 +32,7 @@ function CollateralHealth({ ratio }: { ratio: number }) {
 }
 
 function HoldingRow({ holding, onClick }: { holding: PortfolioHolding; onClick: () => void }) {
-  const stock = getStockByTicker(holding.ticker)
+  const stockName: string | null = null // on-chain doesn't store display names
   const value = holding.shares * holding.currentPrice
   const cost = holding.shares * holding.avgCost
   const pnl = value - cost
@@ -43,7 +47,7 @@ function HoldingRow({ holding, onClick }: { holding: PortfolioHolding; onClick: 
           </div>
           <div>
             <span className="font-medium text-white text-sm">{holding.ticker}</span>
-            {stock && <span className="text-gray-500 text-xs ml-1 hidden sm:inline">{stock.name}</span>}
+            {stockName && <span className="text-gray-500 text-xs ml-1 hidden sm:inline">{stockName}</span>}
           </div>
         </div>
       </td>
@@ -84,9 +88,21 @@ function TradeRow({ trade }: { trade: TradeRecord }) {
 export default function StocksPortfolioPage() {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('holdings')
-  const holdings = useMemo(() => getPortfolioHoldings(), [])
-  const trades = useMemo(() => getTradeHistory(), [])
-  const summary = useMemo(() => getPortfolioSummary(), [])
+  const { address } = useAccount()
+  const {
+    holdings,
+    totalValue,
+    unrealizedPnl,
+    pnlPercent,
+    totalCollateral,
+    totalRequired,
+    healthRatio,
+    isLoading: holdingsLoading,
+  } = useStockHoldings(address)
+  const { trades, isLoading: tradesLoading } = useStockTrades(address)
+
+  const summary = { totalValue, unrealizedPnl, pnlPercent, totalCollateral, totalRequired, healthRatio }
+  const isLoading = holdingsLoading || tradesLoading
 
   return (
     <ConnectWalletEmptyState
@@ -129,7 +145,11 @@ export default function StocksPortfolioPage() {
         </div>
 
         {tab === 'holdings' && (
-          holdings.length === 0 ? (
+          isLoading ? (
+            <div className="py-16 text-center">
+              <p className="text-gray-400 text-sm">Loading positions…</p>
+            </div>
+          ) : holdings.length === 0 ? (
             <div className="py-16 text-center">
               <svg className="w-10 h-10 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />

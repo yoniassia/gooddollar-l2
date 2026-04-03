@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { getOpenPositions, getPendingOrders, getTradeHistory, getFundingPayments, getAccountSummary, getPairs, formatPerpsPrice, formatLargeValue, type OpenPosition, type PendingOrder, type TradeHistoryRecord, type FundingPayment } from '@/lib/perpsData'
+import { formatPerpsPrice, formatLargeValue, type OpenPosition, type PendingOrder, type TradeHistoryRecord, type FundingPayment } from '@/lib/perpsData'
+import { useOnChainPairs, useOnChainPositions, useOnChainAccountSummary } from '@/lib/useOnChainPerps'
 import { useClosePosition } from '@/lib/usePerps'
 import { ConnectWalletEmptyState } from '@/components/ConnectWalletEmptyState'
 
@@ -109,12 +110,12 @@ function FundingRow({ payment }: { payment: FundingPayment }) {
 
 export default function PerpsPortfolioPage() {
   const [tab, setTab] = useState<Tab>('positions')
-  const positions = useMemo(() => getOpenPositions(), [])
-  const pairs = useMemo(() => getPairs(), [])
-  const orders = useMemo(() => getPendingOrders(), [])
-  const trades = useMemo(() => getTradeHistory(), [])
-  const funding = useMemo(() => getFundingPayments(), [])
-  const account = useMemo(() => getAccountSummary(), [])
+  const { positions } = useOnChainPositions()
+  const { pairs } = useOnChainPairs()
+  const orders: PendingOrder[] = []  // TODO: read from on-chain/backend
+  const trades: TradeHistoryRecord[] = []  // TODO: read from event logs
+  const funding: FundingPayment[] = []  // TODO: read from event logs
+  const { summary: account } = useOnChainAccountSummary()
 
   const totalPnl = positions.reduce((sum, p) => sum + p.unrealizedPnl, 0)
   const totalFunding = funding.reduce((sum, f) => sum + f.amount, 0)

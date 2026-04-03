@@ -2,9 +2,11 @@
 
 import { useMemo } from 'react'
 import Link from 'next/link'
-import { getPortfolioHoldings, getPortfolioSummary as getStockSummary, formatStockPrice, formatLargeNumber, getStockByTicker } from '@/lib/stockData'
+import { formatStockPrice, formatLargeNumber } from '@/lib/stockData'
 import { getUserPositions, getPortfolioSummary as getPredictSummary, getMarketById, formatVolume } from '@/lib/predictData'
-import { getOpenPositions, getAccountSummary, formatPerpsPrice } from '@/lib/perpsData'
+import { formatPerpsPrice } from '@/lib/perpsData'
+import { useOnChainHoldings } from '@/lib/useOnChainStocks'
+import { useOnChainPositions, useOnChainAccountSummary } from '@/lib/useOnChainPerps'
 import { ConnectWalletEmptyState } from '@/components/ConnectWalletEmptyState'
 import { PortfolioOnChain } from '@/components/PortfolioOnChain'
 
@@ -34,12 +36,18 @@ function SectionHeader({ title, href, icon }: { title: string; href: string; ico
 }
 
 export default function PortfolioPage() {
-  const stockHoldings = useMemo(() => getPortfolioHoldings(), [])
-  const stockSummary = useMemo(() => getStockSummary(), [])
+  const { holdings: stockHoldings } = useOnChainHoldings()
   const predictPositions = useMemo(() => getUserPositions(), [])
   const predictSummary = useMemo(() => getPredictSummary(), [])
-  const perpsPositions = useMemo(() => getOpenPositions(), [])
-  const perpsAccount = useMemo(() => getAccountSummary(), [])
+  const { positions: perpsPositions } = useOnChainPositions()
+  const { summary: perpsAccount } = useOnChainAccountSummary()
+
+  // Compute stock summary from on-chain holdings
+  const stockSummary = useMemo(() => {
+    const totalValue = stockHoldings.reduce((sum, h) => sum + h.shares * h.currentPrice, 0)
+    const totalCost = stockHoldings.reduce((sum, h) => sum + h.shares * h.avgCost, 0)
+    return { totalValue, unrealizedPnl: totalValue - totalCost }
+  }, [stockHoldings])
 
   const totalPerpsPnl = perpsPositions.reduce((sum, p) => sum + p.unrealizedPnl, 0)
 
@@ -83,7 +91,7 @@ export default function PortfolioPage() {
         ) : (
           <div className="space-y-2">
             {stockHoldings.slice(0, 3).map(h => {
-              const stock = getStockByTicker(h.ticker)
+              const stockName: string | null = null // on-chain doesn't store display names
               const value = h.shares * h.currentPrice
               const pnl = value - h.shares * h.avgCost
               return (
@@ -94,7 +102,7 @@ export default function PortfolioPage() {
                     </div>
                     <div>
                       <span className="text-sm font-medium text-white">{h.ticker}</span>
-                      {stock && <span className="text-xs text-gray-500 ml-1.5">{stock.name}</span>}
+                      {stockName && <span className="text-xs text-gray-500 ml-1.5">{stockName}</span>}
                     </div>
                   </div>
                   <div className="text-right">

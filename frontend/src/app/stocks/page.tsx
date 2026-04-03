@@ -2,7 +2,8 @@
 
 import { useState, useMemo, memo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { getStockData, formatStockPrice, formatLargeNumber, type Stock } from '@/lib/stockData'
+import { formatStockPrice, formatLargeNumber, type Stock } from '@/lib/stockData'
+import { useOnChainStocks } from '@/lib/useOnChainStocks'
 import { Sparkline } from '@/components/Sparkline'
 import { InfoBanner } from '@/components/InfoBanner'
 
@@ -93,7 +94,7 @@ export default function StocksPage() {
   const [query, setQuery] = useState('')
   const [sortField, setSortField] = useState<SortField>('marketCap')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
-  const [data] = useState(() => getStockData())
+  const { stocks: data, isLoading, isLive } = useOnChainStocks()
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {

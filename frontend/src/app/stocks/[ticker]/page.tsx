@@ -6,7 +6,8 @@ import { useAccount } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 
 import Link from 'next/link'
-import { getStockByTicker, formatStockPrice, formatLargeNumber } from '@/lib/stockData'
+import { formatStockPrice, formatLargeNumber } from '@/lib/stockData'
+import { useOnChainStocks } from '@/lib/useOnChainStocks'
 import { sanitizeNumericInput } from '@/lib/format'
 import { getChartData, type Timeframe } from '@/lib/chartData'
 import { useWalletReady } from '@/lib/WalletReadyContext'
@@ -190,7 +191,8 @@ function OrderForm({ stock }: { stock: { ticker: string; price: number } }) {
 export default function StockDetailPage() {
   const params = useParams()
   const ticker = (params.ticker as string)?.toUpperCase()
-  const stock = getStockByTicker(ticker || '')
+  const { stocks } = useOnChainStocks()
+  const stock = stocks.find(s => s.ticker === ticker?.toUpperCase())
   const [timeframe, setTimeframe] = useState<Timeframe>('3M')
 
   const chartData = useMemo(() => {

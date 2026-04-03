@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { getOpenPositions, formatPerpsPrice, type OpenPosition } from '@/lib/perpsData'
+import { formatPerpsPrice, type OpenPosition } from '@/lib/perpsData'
+import { useOnChainPositions } from '@/lib/useOnChainPerps'
 
 function PositionRow({ pos }: { pos: OpenPosition }) {
   const [showClose, setShowClose] = useState(false)
@@ -71,7 +72,7 @@ function PositionRow({ pos }: { pos: OpenPosition }) {
 }
 
 export function OpenPositions() {
-  const positions = getOpenPositions()
+  const { positions } = useOnChainPositions()
 
   if (positions.length === 0) {
     return (

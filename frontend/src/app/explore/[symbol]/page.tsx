@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { getTokenBySymbol, formatPrice, formatVolume, formatMarketCap } from '@/lib/marketData'
+import { formatPrice, formatVolume, formatMarketCap } from '@/lib/marketData'
+import { useOnChainMarketData } from '@/lib/useOnChainMarketData'
 import { TokenIcon } from '@/components/TokenIcon'
 import { getChartData, type Timeframe } from '@/lib/chartData'
 import dynamic from 'next/dynamic'
@@ -23,7 +24,8 @@ const TIMEFRAMES: Timeframe[] = ['1D', '1W', '1M', '3M', '1Y']
 export default function TokenDetailPage() {
   const params = useParams()
   const symbol = (params.symbol as string)?.toUpperCase()
-  const token = getTokenBySymbol(symbol || '')
+  const { tokens } = useOnChainMarketData()
+  const token = tokens.find(t => t.symbol.toUpperCase() === symbol)
   const [timeframe, setTimeframe] = useState<Timeframe>('1M')
 
   const chartData = useMemo(() => {

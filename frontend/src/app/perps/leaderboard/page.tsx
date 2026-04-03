@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { getLeaderboard, formatPerpsPrice } from '@/lib/perpsData'
+import { formatPerpsPrice, type LeaderboardEntry } from '@/lib/perpsData'
 
 type TimeFilter = '24h' | '7d' | '30d' | 'all'
 
 export default function PerpsLeaderboardPage() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
-  const leaderboard = useMemo(() => getLeaderboard(), [])
+  const leaderboard: LeaderboardEntry[] = []  // TODO: read from backend indexer
 
   return (
     <div className="w-full max-w-4xl mx-auto">
