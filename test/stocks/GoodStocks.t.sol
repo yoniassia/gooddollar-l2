@@ -214,6 +214,17 @@ contract GoodStocksTest is Test {
         assertEq(factory.listedCount(), 2); // AAPL + MSFT
     }
 
+    /// @dev listAsset() must stay under 500 k gas (the default call gas limit
+    ///      that triggered GOO-176).  The EIP-1167 clone approach keeps it
+    ///      comfortably below that threshold.
+    function test_factory_listAsset_gasUnder500k() public {
+        vm.prank(admin);
+        uint256 gasBefore = gasleft();
+        factory.listAsset("TSLA", "Tesla Synthetic", address(vault));
+        uint256 gasUsed = gasBefore - gasleft();
+        assertLt(gasUsed, 500_000, "listAsset() exceeded 500k gas");
+    }
+
     function test_factory_alreadyListed_reverts() public {
         vm.prank(admin);
         vm.expectRevert();
@@ -510,5 +521,124 @@ contract GoodStocksTest is Test {
         // Should still be above 150% CR
         uint256 ratio = vault.getCollateralRatio(alice, "AAPL");
         assertGe(ratio, 15000);
+    }
+
+    // ============ GOO-177: depositAndMint + getMintRequirements ============
+
+    /**
+     * @dev depositAndMint combines deposit + mint so the full flow can be
+     *      simulated as a single eth_call (fixing false InsufficientCollateral
+     *      reverts that occurred when simulating the two calls separately).
+     */
+    function test_vault_depositAndMint_basicFlow() public {
+        uint256 aliceGBefore = gd.balanceOf(alice);
+        uint256 sAAPLBefore = sAAPL.balanceOf(alice);
+
+        vm.prank(alice);
+        vault.depositAndMint("AAPL", 1_000e18, 1e18); // deposit 1000, mint 1 share
+
+        assertEq(sAAPL.balanceOf(alice), sAAPLBefore + 1e18);
+        assertEq(vault.debt(alice, keccak256("AAPL")), 1e18);
+        assertEq(vault.collateral(alice, keccak256("AAPL")), 1_000e18);
+        // Alice paid 1000 G$ collateral + 0.525 G$ fee from wallet
+        assertLt(gd.balanceOf(alice), aliceGBefore - 1_000e18);
+    }
+
+    function test_vault_depositAndMint_mintOnly_zeroCollateral() public {
+        // Pre-deposit collateral separately, then use depositAndMint with zero collateral
+        vm.prank(alice);
+        vault.depositCollateral("AAPL", 1_000e18);
+
+        vm.prank(alice);
+        vault.depositAndMint("AAPL", 0, 1e18); // mint against existing collateral
+
+        assertEq(sAAPL.balanceOf(alice), 1e18);
+        assertEq(vault.debt(alice, keccak256("AAPL")), 1e18);
+    }
+
+    function test_vault_depositAndMint_insufficientCollateral_reverts() public {
+        // 100 G$ is not enough for 1 share at $175 (needs ~262.5 G$ at 150% CR)
+        vm.prank(alice);
+        vm.expectRevert();
+        vault.depositAndMint("AAPL", 100e18, 1e18);
+    }
+
+    function test_vault_depositAndMint_emitsCollateralDepositedAndMinted() public {
+        bytes32 key = keccak256(abi.encodePacked("AAPL"));
+
+        vm.prank(alice);
+        vm.expectEmit(true, true, false, true);
+        emit CollateralVault.CollateralDeposited(alice, key, 1_000e18);
+        vault.depositAndMint("AAPL", 1_000e18, 1e18);
+    }
+
+    // getMintRequirements view function: allows simulating deposit+mint as single eth_call
+
+    function test_getMintRequirements_noExistingPosition() public view {
+        // AAPL @ $175, 1 share
+        (uint256 reqCol, uint256 fee, uint256 avail, bool canMint) =
+            vault.getMintRequirements(alice, "AAPL", 1e18, 0);
+
+        // requiredCollateral = 262.5 G$
+        assertEq(reqCol, 262_500_000_000_000_000_000);
+        // fee = 0.3% of 175 G$ = 0.525 G$
+        assertEq(fee, 525_000_000_000_000_000);
+        // alice has no collateral deposited
+        assertEq(avail, 0);
+        assertFalse(canMint);
+    }
+
+    function test_getMintRequirements_withAdditionalCollateral() public view {
+        // Simulate depositing 1000 G$ before minting
+        (uint256 reqCol,, uint256 avail, bool canMint) =
+            vault.getMintRequirements(alice, "AAPL", 1e18, 1_000e18);
+
+        // With 1000 G$ pending, alice should be able to mint
+        assertEq(avail, 1_000e18);
+        assertGe(avail, reqCol);
+        assertTrue(canMint);
+    }
+
+    function test_getMintRequirements_withExistingCollateral() public {
+        vm.prank(alice);
+        vault.depositCollateral("AAPL", 1_000e18);
+
+        (uint256 reqCol,, uint256 avail, bool canMint) =
+            vault.getMintRequirements(alice, "AAPL", 1e18, 0);
+
+        assertGe(avail, reqCol);
+        assertTrue(canMint);
+    }
+
+    function test_getMintRequirements_accountsForExistingDebt() public {
+        vm.prank(alice);
+        vault.depositCollateral("AAPL", 1_000e18);
+        vm.prank(alice);
+        vault.mint("AAPL", 3e18); // 3 shares @ $175 = $525 value, needs 787.5 G$
+
+        // Alice has 1000 G$ deposited, 787.5 G$ committed to 3 shares
+        // Available = 212.5 G$; need 262.5 G$ for 1 more share
+        (uint256 reqCol,, uint256 avail, bool canMint) =
+            vault.getMintRequirements(alice, "AAPL", 1e18, 0);
+
+        assertLt(avail, reqCol);
+        assertFalse(canMint);
+    }
+
+    function test_getMintRequirements_canMintWithPendingDeposit() public {
+        vm.prank(alice);
+        vault.depositCollateral("AAPL", 1_000e18);
+        vm.prank(alice);
+        vault.mint("AAPL", 3e18);
+        // After 3 shares @ $175: alreadyUsed = 787.5 G$, available = 212.5 G$
+        // 1 more share needs 262.5 G$ → need at least 50 G$ more
+
+        // 30 G$ additional → available = 242.5 G$ < 262.5 G$ → still can't mint
+        (, , , bool canMint30) = vault.getMintRequirements(alice, "AAPL", 1e18, 30e18);
+        assertFalse(canMint30);
+
+        // 100 G$ additional → available = 312.5 G$ >= 262.5 G$ → can mint
+        (, , , bool canMint100) = vault.getMintRequirements(alice, "AAPL", 1e18, 100e18);
+        assertTrue(canMint100);
     }
 }

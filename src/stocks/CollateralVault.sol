@@ -163,6 +163,10 @@ contract CollateralVault {
     function depositCollateral(string calldata ticker, uint256 amount) external whenNotPaused {
         if (amount == 0) revert ZeroAmount();
         bytes32 key = _key(ticker);
+        _depositCollateral(key, amount);
+    }
+
+    function _depositCollateral(bytes32 key, uint256 amount) internal {
         if (syntheticAssets[key] == address(0)) revert AssetNotRegistered(key);
 
         bool ok = goodDollar.transferFrom(msg.sender, address(this), amount);
@@ -172,6 +176,28 @@ contract CollateralVault {
         totalCollateral[key] += amount;
 
         emit CollateralDeposited(msg.sender, key, amount);
+    }
+
+    /**
+     * @notice Deposit collateral and immediately mint synthetic tokens in one transaction.
+     * @dev Fixes GOO-177: eth_call simulations of sequential depositCollateral+mint calls
+     *      returned false InsufficientCollateral reverts because state from the deposit
+     *      simulation was not visible to the separate mint simulation. This combined
+     *      function allows the full flow to be simulated as a single eth_call.
+     * @param ticker Stock ticker
+     * @param collateralAmount G$ to deposit as collateral (18 decimals)
+     * @param syntheticAmount Synthetic tokens to mint (18 decimals = 1 share)
+     */
+    function depositAndMint(
+        string calldata ticker,
+        uint256 collateralAmount,
+        uint256 syntheticAmount
+    ) external whenNotPaused {
+        bytes32 key = _key(ticker);
+        if (collateralAmount > 0) {
+            _depositCollateral(key, collateralAmount);
+        }
+        _mint(key, syntheticAmount);
     }
 
     /**
@@ -218,8 +244,11 @@ contract CollateralVault {
      * @param syntheticAmount Amount of synthetic tokens to mint (1e18 = 1 share)
      */
     function mint(string calldata ticker, uint256 syntheticAmount) external whenNotPaused {
+        _mint(_key(ticker), syntheticAmount);
+    }
+
+    function _mint(bytes32 key, uint256 syntheticAmount) internal {
         if (syntheticAmount == 0) revert ZeroAmount();
-        bytes32 key = _key(ticker);
         address syntheticAsset = syntheticAssets[key];
         if (syntheticAsset == address(0)) revert AssetNotRegistered(key);
 
@@ -414,6 +443,46 @@ contract CollateralVault {
             uint256 collateralUSD8 = (userCollateral * 1e8) / 1e18;
             ratio = (collateralUSD8 * BPS) / debtValueUSD8;
         }
+    }
+
+    /**
+     * @notice Preview a mint: returns collateral/fee requirements and whether the user
+     *         can mint now (with optional pending collateral deposit included).
+     * @dev Use this for eth_call simulations instead of simulating the full mint flow.
+     *      Passing additionalCollateral lets the frontend account for a pending deposit
+     *      in the same simulation without needing a sequential two-call approach.
+     * @param user        Position owner
+     * @param ticker      Stock ticker
+     * @param syntheticAmount Tokens to mint (1e18 = 1 share)
+     * @param additionalCollateral Extra G$ the user would deposit before minting (may be 0)
+     * @return requiredCollateral Minimum collateral backing needed for this mint at 150% CR
+     * @return fee               G$ fee charged from wallet (not from collateral)
+     * @return available         Collateral available after accounting for existing debt and pending deposit
+     * @return canMint           True if available >= requiredCollateral
+     */
+    function getMintRequirements(
+        address user,
+        string calldata ticker,
+        uint256 syntheticAmount,
+        uint256 additionalCollateral
+    ) external view returns (
+        uint256 requiredCollateral,
+        uint256 fee,
+        uint256 available,
+        bool canMint
+    ) {
+        bytes32 key = _key(ticker);
+        uint256 stockPrice = oracle.getPriceByKey(oracleKeys[key]);
+        uint256 positionValueUSD8 = (syntheticAmount * stockPrice) / 1e18;
+        uint256 requiredUSD8 = (positionValueUSD8 * MIN_COLLATERAL_RATIO) / BPS;
+        requiredCollateral = (requiredUSD8 * 1e18) / 1e8;
+        uint256 positionValueG = (positionValueUSD8 * 1e18) / 1e8;
+        fee = (positionValueG * TRADE_FEE_BPS) / BPS;
+
+        uint256 userCollateral = collateral[user][key] + additionalCollateral;
+        uint256 alreadyUsed = _collateralUsed(user, key);
+        available = userCollateral > alreadyUsed ? userCollateral - alreadyUsed : 0;
+        canMint = available >= requiredCollateral;
     }
 
     // ============ Internals ============
