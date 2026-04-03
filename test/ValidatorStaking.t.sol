@@ -300,14 +300,16 @@ contract ValidatorStakingTest is Test {
     // ============ GOO-97: Reward inflation on additional stake ============
 
     function test_additionalStake_doesNotInflateRewards() public {
-        uint256 t0 = block.timestamp;
+        // Use an explicit absolute start time to avoid block.timestamp re-evaluation issues
+        uint256 start = 1_000_000;
+        vm.warp(start);
 
-        // Alice stakes 1M G$ at t=0
+        // Alice stakes 1M G$ at start
         vm.prank(alice);
         staking.stake(MIN_STAKE, "Alice", "url");
 
         // Fast-forward 6 months — rewards accrue on 1M G$
-        vm.warp(t0 + 182 days);
+        vm.warp(start + 182 days);
         uint256 rewardsBeforeTopUp = staking.pendingRewards(alice);
         assertGt(rewardsBeforeTopUp, 0);
 
@@ -319,28 +321,28 @@ contract ValidatorStakingTest is Test {
         assertEq(staking.pendingRewards(alice), rewardsBeforeTopUp);
 
         // Fast-forward another 6 months — rewards should now accrue on 2M G$
-        vm.warp(t0 + 364 days);
-        uint256 elapsed2 = 364 days - 182 days; // 182 days on 2M stake
-        uint256 expectedNewRewards = (MIN_STAKE * 2 * 500 / 10000) * elapsed2 / 365 days;
+        vm.warp(start + 364 days);
+        uint256 expectedNewRewards = (MIN_STAKE * 2 * 500 / 10000) * 182 days / 365 days;
         uint256 totalPending = staking.pendingRewards(alice);
         assertApproxEqRel(totalPending, rewardsBeforeTopUp + expectedNewRewards, 1e15);
     }
 
     function test_additionalStake_claimIncludesAllAccruedRewards() public {
-        uint256 t0 = block.timestamp;
+        uint256 start = 1_000_000;
+        vm.warp(start);
 
         vm.prank(alice);
         staking.stake(MIN_STAKE, "Alice", "url");
 
         // Fast-forward 1 year — rewards accrue on 1M G$
-        vm.warp(t0 + 365 days);
+        vm.warp(start + 365 days);
 
         // Top-up — rewards from first year are saved as rewardDebt
         vm.prank(alice);
         staking.stake(MIN_STAKE, "Alice", "url");
 
         // Fast-forward another year — rewards accrue on 2M G$
-        vm.warp(t0 + 730 days);
+        vm.warp(start + 730 days);
 
         // Claim should include both year 1 rewards (on 1M) and year 2 rewards (on 2M)
         uint256 aliceBefore = token.balanceOf(alice);

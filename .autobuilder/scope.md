@@ -45,7 +45,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Frontend: supply/borrow UI — lend/page.tsx with useGoodLend wagmi hooks, blends on-chain rates
 - [x] Interest rate models (variable + stable)
 - [x] Flash loan support
-- [ ] Liquidation bot
+- [x] Liquidation bot — backend/liquidator/ with LendLiquidator engine
 **Research:** Study Aave V3 codebase, Compound V3, Morpho, Euler
 
 ### 5. GoodStable — Decentralized Stablecoin (PRIORITY: MEDIUM — NEW)
@@ -58,7 +58,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Liquidation engine (surplus → UBI)
 - [x] Peg stability module (PSM)
 - [x] Frontend: vault management UI — stable/page.tsx with VaultPanel per ilk, deposit/withdraw/mint/repay
-- [ ] Liquidation bot
+- [x] Liquidation bot — backend/liquidator/ with StableLiquidator engine
 **Research:** Study MakerDAO (DSS), Liquity, RAI, crvUSD, GHO (Aave)
 
 ### 6. GoodStocks — Tokenized Equities (PRIORITY: MEDIUM)
