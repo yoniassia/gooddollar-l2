@@ -7,11 +7,10 @@
  *   - CollateralVault: deposit G$ collateral → mint synthetic stocks → redeem
  *   - SyntheticAssetFactory: list of available synthetic assets
  *
- * NOTE: CollateralVault and SyntheticAssetFactory have not yet been deployed
- * to devnet (chain 42069). CONTRACTS.CollateralVault and
- * CONTRACTS.SyntheticAssetFactory are null until deployment.
- *
- * Wiring is complete — update CONTRACTS in chain.ts after deployment.
+ * CollateralVault and SyntheticAssetFactory are deployed to devnet (chain 42069).
+ * Addresses are set in CONTRACTS in chain.ts.
+ * Initial synthetic assets (sAAPL, sTSLA etc.) must be listed via listAsset()
+ * before users can mint positions.
  */
 
 import { useCallback, useState } from 'react'
