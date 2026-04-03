@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getPortfolioHoldings, getTradeHistory, getPortfolioSummary, getStockByTicker, formatStockPrice, formatLargeNumber, type PortfolioHolding, type TradeRecord } from '@/lib/stockData'
+import { ConnectWalletEmptyState } from '@/components/ConnectWalletEmptyState'
 
 type Tab = 'holdings' | 'history'
 
@@ -88,6 +89,10 @@ export default function StocksPortfolioPage() {
   const summary = useMemo(() => getPortfolioSummary(), [])
 
   return (
+    <ConnectWalletEmptyState
+      title="Connect to View Stocks"
+      description="Connect your wallet to view your tokenized stock holdings and trade history."
+    >
     <div className="w-full max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Stock Portfolio</h1>
 
@@ -183,5 +188,6 @@ export default function StocksPortfolioPage() {
         )}
       </div>
     </div>
+    </ConnectWalletEmptyState>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { createChart, CandlestickSeries, HistogramSeries, type IChartApi, ColorType } from 'lightweight-charts'
+import { createChart, CandlestickSeries, HistogramSeries, type IChartApi, ColorType, type Time } from 'lightweight-charts'
 import { type OHLCData } from '@/lib/chartData'
 
 interface PriceChartProps {
@@ -78,7 +78,7 @@ export function PriceChart({ data, height = 400 }: PriceChartProps) {
 
     candleRef.current.setData(
       data.map(d => ({
-        time: d.time,
+        time: d.time as Time,
         open: d.open,
         high: d.high,
         low: d.low,
@@ -88,7 +88,7 @@ export function PriceChart({ data, height = 400 }: PriceChartProps) {
 
     volumeRef.current.setData(
       data.map(d => ({
-        time: d.time,
+        time: d.time as Time,
         value: d.volume,
         color: d.close >= d.open ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
       }))

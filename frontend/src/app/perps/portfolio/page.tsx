@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { getOpenPositions, getPendingOrders, getTradeHistory, getFundingPayments, getAccountSummary, formatPerpsPrice, formatLargeValue, type OpenPosition, type PendingOrder, type TradeHistoryRecord, type FundingPayment } from '@/lib/perpsData'
+import { ConnectWalletEmptyState } from '@/components/ConnectWalletEmptyState'
 
 type Tab = 'positions' | 'orders' | 'history' | 'funding'
 
@@ -103,6 +104,10 @@ export default function PerpsPortfolioPage() {
   const totalFunding = funding.reduce((sum, f) => sum + f.amount, 0)
 
   return (
+    <ConnectWalletEmptyState
+      title="Connect to View Perps"
+      description="Connect your wallet to view your perpetual futures positions, orders, and trade history."
+    >
     <div className="w-full max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Perps Portfolio</h1>
 
@@ -245,5 +250,6 @@ export default function PerpsPortfolioPage() {
         )}
       </div>
     </div>
+    </ConnectWalletEmptyState>
   )
 }

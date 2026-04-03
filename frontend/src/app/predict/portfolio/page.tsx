@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { getUserPositions, getResolvedPositions, getMarketById, getPortfolioSummary as getPredictPortfolioSummary, formatVolume } from '@/lib/predictData'
+import { ConnectWalletEmptyState } from '@/components/ConnectWalletEmptyState'
 
 type Tab = 'positions' | 'pending' | 'history'
 
@@ -18,6 +19,10 @@ export default function PredictPortfolioPage() {
   })
 
   return (
+    <ConnectWalletEmptyState
+      title="Connect to View Predictions"
+      description="Connect your wallet to view your prediction market positions and resolved bets."
+    >
     <div className="w-full max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Predictions Portfolio</h1>
 
@@ -152,5 +157,6 @@ export default function PredictPortfolioPage() {
         )}
       </div>
     </div>
+    </ConnectWalletEmptyState>
   )
 }

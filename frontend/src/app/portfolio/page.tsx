@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { getPortfolioHoldings, getPortfolioSummary as getStockSummary, formatStockPrice, formatLargeNumber, getStockByTicker } from '@/lib/stockData'
 import { getUserPositions, getPortfolioSummary as getPredictSummary, getMarketById, formatVolume } from '@/lib/predictData'
 import { getOpenPositions, getAccountSummary, formatPerpsPrice } from '@/lib/perpsData'
+import { ConnectWalletEmptyState } from '@/components/ConnectWalletEmptyState'
 
 function SummaryCard({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
@@ -48,6 +49,7 @@ export default function PortfolioPage() {
   const pnlColor = totalPnl >= 0 ? 'text-green-400' : 'text-red-400'
 
   return (
+    <ConnectWalletEmptyState>
     <div className="w-full max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Portfolio Overview</h1>
 
@@ -189,5 +191,6 @@ export default function PortfolioPage() {
         )}
       </div>
     </div>
+    </ConnectWalletEmptyState>
   )
 }
