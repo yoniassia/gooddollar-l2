@@ -22,7 +22,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [ ] Connect to Hyperliquid API for external liquidity/price feeds
 - [ ] Connect to dYdX, GMX for additional liquidity routing
 - [x] Implement oracle price feeds (Pyth/Chainlink) — PerpPriceOracle.sol with keeper push + staleness/deviation
-- [ ] Frontend → real contract interaction
+- [x] Frontend → real contract interaction (openPosition + closePosition wired via usePerps hooks)
 **Research:** Study Hyperliquid architecture, dYdX v4 chain, GMX v2, Pyth Network
 
 ### 3. GoodPredict — Prediction Markets (PRIORITY: HIGH)
@@ -32,8 +32,8 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Connect to Polymarket API for external liquidity/odds
 - [x] Backend → on-chain contract interaction (MarketFactory settlement)
 - [x] Oracle/resolution system (UMA, Chainlink, manual) — OptimisticResolver.sol with bonded propose/dispute/finalize
-- [ ] Market creation flow (frontend → contract)
-- [ ] Frontend → real contract interaction
+- [x] Market creation flow (frontend → contract) — create/page.tsx calls MarketFactory.createMarket
+- [x] Frontend → real contract interaction — usePredictTrade wired in [marketId] page (approve + buy YES/NO)
 **Research:** Study Polymarket CLOB, Gnosis Conditional Tokens, UMA oracle
 
 ### 4. GoodLend — Lending & Borrowing (PRIORITY: HIGH — NEW)
@@ -42,7 +42,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Fork Aave V3 core contracts (Pool, PoolConfigurator, Oracle, etc.)
 - [x] Adapt for UBI fee routing (interest spread → UBIFeeSplitter)
 - [x] Deploy lending pool with G$, ETH, USDC markets
-- [ ] Frontend: supply/borrow UI
+- [x] Frontend: supply/borrow UI — lend/page.tsx with useGoodLend wagmi hooks, blends on-chain rates
 - [x] Interest rate models (variable + stable)
 - [x] Flash loan support
 - [ ] Liquidation bot
@@ -57,7 +57,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Stability fee → UBI pool
 - [x] Liquidation engine (surplus → UBI)
 - [x] Peg stability module (PSM)
-- [ ] Frontend: vault management UI
+- [x] Frontend: vault management UI — stable/page.tsx with VaultPanel per ilk, deposit/withdraw/mint/repay
 - [ ] Liquidation bot
 **Research:** Study MakerDAO (DSS), Liquity, RAI, crvUSD, GHO (Aave)
 
@@ -66,8 +66,8 @@ One chain where AI agents do everything in finance — and every transaction fun
 **Next:**
 - [ ] Real price oracle integration (Chainlink/Pyth for stock prices)
 - [ ] Create initial synthetic stocks (sAAPL, sTSLA, sGOOG, sNVDA)
-- [ ] Frontend → real contract interaction
-- [ ] Portfolio tracking
+- [x] Frontend → real contract interaction — useMintSynthetic/useRedeemSynthetic wired in stocks/[ticker]
+- [ ] Portfolio tracking (blocked until initial synthetic stocks are deployed)
 **Research:** Study Synthetix V3, Mirror Protocol (Terra), dHedge
 
 ### 7. GoodBridge — Cross-Chain Bridge (PRIORITY: MEDIUM)
