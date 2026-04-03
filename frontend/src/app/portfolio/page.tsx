@@ -6,6 +6,7 @@ import { getPortfolioHoldings, getPortfolioSummary as getStockSummary, formatSto
 import { getUserPositions, getPortfolioSummary as getPredictSummary, getMarketById, formatVolume } from '@/lib/predictData'
 import { getOpenPositions, getAccountSummary, formatPerpsPrice } from '@/lib/perpsData'
 import { ConnectWalletEmptyState } from '@/components/ConnectWalletEmptyState'
+import { PortfolioOnChain } from '@/components/PortfolioOnChain'
 
 function SummaryCard({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
@@ -52,6 +53,9 @@ export default function PortfolioPage() {
     <ConnectWalletEmptyState>
     <div className="w-full max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Portfolio Overview</h1>
+
+      {/* Live on-chain positions — only visible when connected to devnet (chain 42069) */}
+      <PortfolioOnChain />
 
       <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
         <SummaryCard label="Total Value" value={formatLargeNumber(totalValue)} />

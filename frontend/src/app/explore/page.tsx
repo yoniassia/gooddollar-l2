@@ -6,6 +6,7 @@ import { TokenIcon } from '@/components/TokenIcon'
 import { Sparkline } from '@/components/Sparkline'
 import { getTokenMarketData, formatPrice, formatVolume, formatMarketCap, type TokenMarketData } from '@/lib/marketData'
 import { TOKEN_CATEGORIES, type TokenCategory } from '@/lib/tokens'
+import { usePriceFeeds, getPrice } from '@/lib/usePriceFeeds'
 
 type SortField = 'price' | 'change1h' | 'change24h' | 'change7d' | 'volume24h' | 'marketCap'
 type SortDir = 'asc' | 'desc'
@@ -226,7 +227,17 @@ export default function ExplorePage() {
   const [selectedCategory, setSelectedCategory] = useState<TokenCategory | 'All'>('All')
   const [sortField, setSortField] = useState<SortField>('marketCap')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
-  const [data] = useState(() => getTokenMarketData())
+  const [staticData] = useState(() => getTokenMarketData())
+  const { prices: livePrices } = usePriceFeeds(staticData.map(t => t.symbol))
+
+  // Merge live CoinGecko prices into the static market data (other fields remain mock)
+  const data = useMemo<TokenMarketData[]>(() => {
+    return staticData.map(token => {
+      const live = getPrice(livePrices, token.symbol)
+      if (!live) return token
+      return { ...token, price: live }
+    })
+  }, [staticData, livePrices])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
