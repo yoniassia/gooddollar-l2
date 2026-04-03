@@ -296,4 +296,118 @@ contract ValidatorStakingTest is Test {
         staking.initiateUnstake(MIN_STAKE);
         assertEq(staking.activeValidatorCount(), 1);
     }
+
+    // ============ GOO-97: Reward inflation on additional stake ============
+
+    function test_additionalStake_doesNotInflateRewards() public {
+        uint256 t0 = block.timestamp;
+
+        // Alice stakes 1M G$ at t=0
+        vm.prank(alice);
+        staking.stake(MIN_STAKE, "Alice", "url");
+
+        // Fast-forward 6 months — rewards accrue on 1M G$
+        vm.warp(t0 + 182 days);
+        uint256 rewardsBeforeTopUp = staking.pendingRewards(alice);
+        assertGt(rewardsBeforeTopUp, 0);
+
+        // Alice adds another 1M G$ — should NOT retroactively inflate rewards
+        vm.prank(alice);
+        staking.stake(MIN_STAKE, "Alice", "url");
+
+        // Rewards right after top-up should equal what was accrued before it
+        assertEq(staking.pendingRewards(alice), rewardsBeforeTopUp);
+
+        // Fast-forward another 6 months — rewards should now accrue on 2M G$
+        vm.warp(t0 + 364 days);
+        uint256 elapsed2 = 364 days - 182 days; // 182 days on 2M stake
+        uint256 expectedNewRewards = (MIN_STAKE * 2 * 500 / 10000) * elapsed2 / 365 days;
+        uint256 totalPending = staking.pendingRewards(alice);
+        assertApproxEqRel(totalPending, rewardsBeforeTopUp + expectedNewRewards, 1e15);
+    }
+
+    function test_additionalStake_claimIncludesAllAccruedRewards() public {
+        uint256 t0 = block.timestamp;
+
+        vm.prank(alice);
+        staking.stake(MIN_STAKE, "Alice", "url");
+
+        // Fast-forward 1 year — rewards accrue on 1M G$
+        vm.warp(t0 + 365 days);
+
+        // Top-up — rewards from first year are saved as rewardDebt
+        vm.prank(alice);
+        staking.stake(MIN_STAKE, "Alice", "url");
+
+        // Fast-forward another year — rewards accrue on 2M G$
+        vm.warp(t0 + 730 days);
+
+        // Claim should include both year 1 rewards (on 1M) and year 2 rewards (on 2M)
+        uint256 aliceBefore = token.balanceOf(alice);
+        vm.prank(alice);
+        staking.claimRewards();
+
+        uint256 claimed = token.balanceOf(alice) - aliceBefore;
+        uint256 year1Expected = (MIN_STAKE * 500 / 10000); // 5% of 1M = 50k
+        uint256 year2Expected = (MIN_STAKE * 2 * 500 / 10000); // 5% of 2M = 100k
+        assertApproxEqRel(claimed, year1Expected + year2Expected, 1e15);
+    }
+
+    // ============ GOO-98: O(1) activeValidatorCount ============
+
+    function test_activeValidatorCount_isO1_notLoop() public {
+        // Verify activeCount is tracked as a state variable (O(1))
+        vm.prank(alice);
+        staking.stake(MIN_STAKE, "Alice", "url");
+
+        assertEq(staking.activeCount(), 1);
+
+        vm.prank(bob);
+        staking.stake(MIN_STAKE, "Bob", "url");
+
+        assertEq(staking.activeCount(), 2);
+        assertEq(staking.activeValidatorCount(), 2);
+
+        vm.prank(alice);
+        staking.initiateUnstake(MIN_STAKE);
+
+        assertEq(staking.activeCount(), 1);
+        assertEq(staking.activeValidatorCount(), 1);
+    }
+
+    function test_slash_decrementsActiveCount() public {
+        vm.prank(alice);
+        staking.stake(MIN_STAKE, "Alice", "url");
+
+        assertEq(staking.activeCount(), 1);
+
+        vm.prank(admin);
+        staking.slash(alice, "Double-sign");
+
+        // 10% slashed → staked = 900k < MIN_STAKE → deactivated
+        assertEq(staking.activeCount(), 0);
+        assertEq(staking.activeValidatorCount(), 0);
+    }
+
+    function test_validatorList_noduplicateOnReactivation() public {
+        // Alice stakes, falls below min, then re-stakes — should not duplicate validatorList
+        vm.prank(alice);
+        staking.stake(MIN_STAKE, "Alice", "url");
+
+        assertEq(staking.validatorCount(), 1);
+
+        // Alice initiates full unstake → inactive
+        vm.prank(alice);
+        staking.initiateUnstake(MIN_STAKE);
+
+        assertEq(staking.validatorCount(), 1);
+
+        // Alice re-stakes
+        vm.prank(alice);
+        staking.stake(MIN_STAKE, "Alice", "url");
+
+        // validatorList should still have only 1 entry for Alice
+        assertEq(staking.validatorCount(), 1);
+        assertEq(staking.activeValidatorCount(), 1);
+    }
 }

@@ -651,3 +651,109 @@ export const CollateralRegistryABI = [
     type: 'function',
   },
 ] as const
+
+// ─── GoodPool (x*y=k AMM) ABI ──────────────────────────────────────────────
+export const GoodPoolABI = [
+  {
+    inputs: [],
+    name: 'tokenA',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'tokenB',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'reserveA',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'reserveB',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'totalLiquidity',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: '', type: 'address' }],
+    name: 'liquidity',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'spotPrice',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'tokenIn', type: 'address' },
+      { name: 'amountIn', type: 'uint256' },
+    ],
+    name: 'getAmountOut',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'tokenIn', type: 'address' },
+      { name: 'amountIn', type: 'uint256' },
+      { name: 'minOut', type: 'uint256' },
+    ],
+    name: 'swap',
+    outputs: [{ name: 'amountOut', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'amountA', type: 'uint256' },
+      { name: 'amountB', type: 'uint256' },
+    ],
+    name: 'addLiquidity',
+    outputs: [{ name: 'lp', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'lpAmount', type: 'uint256' }],
+    name: 'removeLiquidity',
+    outputs: [
+      { name: 'outA', type: 'uint256' },
+      { name: 'outB', type: 'uint256' },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'trader', type: 'address' },
+      { indexed: false, name: 'tokenIn', type: 'address' },
+      { indexed: false, name: 'amountIn', type: 'uint256' },
+      { indexed: false, name: 'amountOut', type: 'uint256' },
+      { indexed: false, name: 'fee', type: 'uint256' },
+    ],
+    name: 'Swap',
+    type: 'event',
+  },
+] as const

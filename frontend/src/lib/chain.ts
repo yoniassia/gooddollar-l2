@@ -42,6 +42,14 @@ export const CONTRACTS = {
   // GoodSwap — deployed to devnet (chain 42069), 2026-04-03
   PoolManager: '0xC9a43158891282A2B1475592D5719c001986Aaec' as `0x${string}`,
   GoodSwapRouter: '0x1c85638e118b37167e9298c2268758e058DdfDA0' as `0x${string}`,
+  // GoodSwap Liquidity Pools — deployed 2026-04-03
+  SwapPoolGdWeth: '0xA4899D35897033b927acFCf422bc745916139776' as `0x${string}`,
+  SwapPoolGdUsdc: '0xf953b3A269d80e3eB0F2947630Da976B896A8C5b' as `0x${string}`,
+  SwapPoolWethUsdc: '0xAA292E8611aDF267e563f334Ee42320aC96D0463' as `0x${string}`,
+  // GoodSwap pool tokens (devnet mocks for swap pools)
+  SwapGD: '0x367761085BF3C12e5DA2Df99AC6E1a824612b8fb' as `0x${string}`,
+  SwapWETH: '0x7A9Ec1d04904907De0ED7b6839CcdD59c3716AC9' as `0x${string}`,
+  SwapUSDC: '0x4631BCAbD6dF18D94796344963cB60d44a4136b6' as `0x${string}`,
   // GoodPerps — deployed to devnet (chain 42069), 2026-04-03
   PerpEngine: '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853' as `0x${string}`,
   MarginVault: '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707' as `0x${string}`,

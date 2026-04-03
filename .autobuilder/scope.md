@@ -8,9 +8,9 @@ One chain where AI agents do everything in finance — and every transaction fun
 ### 1. GoodSwap — DEX & Cross-Chain Swaps (PRIORITY: HIGH)
 **Status:** Frontend live, Uniswap V4 hook deployed, no real swaps yet
 **Next:**
-- [ ] Deploy Uniswap V4 pool factory + router on devnet
-- [ ] Create initial liquidity pools (G$/ETH, G$/USDC, ETH/USDC)
-- [ ] Connect frontend to real on-chain swap execution
+- [x] Deploy Uniswap V4 pool factory + router on devnet
+- [x] Create initial liquidity pools (G$/ETH, G$/USDC, ETH/USDC) — GoodPool x*y=k AMMs deployed with UBI fee routing
+- [x] Connect frontend to real on-chain swap execution — useGoodSwap hook + GoodPoolABI wired
 - [ ] Li.Fi / bridge aggregator integration for cross-chain swaps
 - [ ] Price feed integration (CoinGecko API → on-chain oracles)
 **Research:** Study Uniswap V4 hooks, Li.Fi SDK, 1inch aggregator

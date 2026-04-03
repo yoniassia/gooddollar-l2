@@ -46,6 +46,7 @@ contract ValidatorStaking {
     mapping(address => Validator) public validators;
     address[] public validatorList;
     uint256 public totalStaked;
+    uint256 public activeCount;
 
     address public admin;
 
@@ -85,11 +86,23 @@ contract ValidatorStaking {
 
         Validator storage v = validators[msg.sender];
         if (!v.isActive) {
+            // Only push to validatorList on first-ever stake (not on re-activation)
+            if (v.lastStakeTime == 0) {
+                validatorList.push(msg.sender);
+            }
             v.isActive = true;
             v.name = name;
             v.endpoint = endpoint;
             v.lastStakeTime = block.timestamp;
-            validatorList.push(msg.sender);
+            activeCount++;
+        } else {
+            // Existing active validator adding more stake: accrue pending rewards
+            // before increasing staked amount to prevent retroactive reward inflation.
+            uint256 accrued = pendingRewards(msg.sender);
+            if (accrued > 0) {
+                v.rewardDebt += accrued;
+            }
+            v.lastStakeTime = block.timestamp;
         }
         v.staked += amount;
         totalStaked += amount;
@@ -119,6 +132,7 @@ contract ValidatorStaking {
 
         if (v.staked < MIN_STAKE) {
             v.isActive = false;
+            activeCount--;
         }
 
         emit UnstakeInitiated(msg.sender, amount, block.timestamp + UNBONDING_PERIOD);
@@ -172,6 +186,7 @@ contract ValidatorStaking {
         }
 
         if (v.staked < MIN_STAKE) {
+            if (v.isActive) activeCount--;
             v.isActive = false;
         }
 
@@ -190,7 +205,7 @@ contract ValidatorStaking {
 
         uint256 elapsed = block.timestamp - v.lastStakeTime;
         uint256 annualReward = (v.staked * rewardRateBPS) / 10000;
-        return (annualReward * elapsed) / 365 days;
+        return v.rewardDebt + (annualReward * elapsed) / 365 days;
     }
 
     /**
@@ -202,6 +217,7 @@ contract ValidatorStaking {
         uint256 rewards = pendingRewards(msg.sender);
         require(rewards > 0, "No rewards");
         v.lastStakeTime = block.timestamp;
+        v.rewardDebt = 0;
         goodDollar.transfer(msg.sender, rewards);
         emit RewardsClaimed(msg.sender, rewards);
     }
@@ -209,11 +225,7 @@ contract ValidatorStaking {
     // ============ View ============
 
     function activeValidatorCount() external view returns (uint256) {
-        uint256 count = 0;
-        for (uint256 i = 0; i < validatorList.length; i++) {
-            if (validators[validatorList[i]].isActive) count++;
-        }
-        return count;
+        return activeCount;
     }
 
     function validatorCount() external view returns (uint256) {
