@@ -17,6 +17,7 @@ export function Header() {
   const isStocks = pathname?.startsWith('/stocks')
   const isPredict = pathname?.startsWith('/predict')
   const isPerps = pathname?.startsWith('/perps')
+  const isLend = pathname?.startsWith('/lend')
   const isPortfolio = pathname === '/portfolio'
 
   useEffect(() => {
@@ -76,6 +77,7 @@ export function Header() {
           <Link href="/stocks" className={isStocks ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Stocks</Link>
           <Link href="/predict" className={isPredict ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Predict</Link>
           <Link href="/perps" className={isPerps ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Perps</Link>
+          <Link href="/lend" className={isLend ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Lend</Link>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -171,6 +173,13 @@ export function Header() {
               className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isPerps ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
             >
               Perps
+            </Link>
+            <Link
+              href="/lend"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isLend ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
+            >
+              Lend
             </Link>
             <div className="border-t border-dark-50/50 my-1" />
             <Link
