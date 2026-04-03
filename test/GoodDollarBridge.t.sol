@@ -582,4 +582,49 @@ contract GoodDollarBridgeTest is Test {
         emit log_named_uint("depositETH gas", gasUsed);
         assertLt(gasUsed, 250_000);
     }
+
+    // ============ PeerNotConfigured Guard Tests ============
+
+    function test_l1Bridge_depositGDollar_revertsIfPeerNotSet() public {
+        GoodDollarBridgeL1 freshL1 = new GoodDollarBridgeL1(
+            address(l1Messenger), address(gd), address(usdc), admin
+        );
+        vm.prank(admin);
+        gd.transfer(user, 1000e18);
+        vm.prank(user);
+        gd.approve(address(freshL1), type(uint256).max);
+        vm.prank(user);
+        vm.expectRevert(GoodDollarBridgeL1.PeerNotConfigured.selector);
+        freshL1.depositGDollar(recipient, 100e18);
+    }
+
+    function test_l1Bridge_depositETH_revertsIfPeerNotSet() public {
+        GoodDollarBridgeL1 freshL1 = new GoodDollarBridgeL1(
+            address(l1Messenger), address(gd), address(usdc), admin
+        );
+        vm.deal(user, 1 ether);
+        vm.prank(user);
+        vm.expectRevert(GoodDollarBridgeL1.PeerNotConfigured.selector);
+        freshL1.depositETH{value: 1 ether}(recipient);
+    }
+
+    function test_l2Bridge_withdrawGDollar_revertsIfPeerNotSet() public {
+        GoodDollarBridgeL2 freshL2 = new GoodDollarBridgeL2(address(l2Messenger), admin);
+        MockL2Token freshToken = new MockL2Token("G$L2", "G$", address(freshL2));
+        vm.prank(admin);
+        freshL2.mapToken(address(gd), address(freshToken));
+        vm.prank(address(freshL2));
+        freshToken.mint(user, 100e18);
+        vm.prank(user);
+        vm.expectRevert(GoodDollarBridgeL2.PeerNotConfigured.selector);
+        freshL2.withdrawGDollar(address(gd), recipient, 100e18);
+    }
+
+    function test_l2Bridge_withdrawETH_revertsIfPeerNotSet() public {
+        GoodDollarBridgeL2 freshL2 = new GoodDollarBridgeL2(address(l2Messenger), admin);
+        vm.deal(user, 1 ether);
+        vm.prank(user);
+        vm.expectRevert(GoodDollarBridgeL2.PeerNotConfigured.selector);
+        freshL2.withdrawETH{value: 1 ether}(recipient, 1 ether);
+    }
 }

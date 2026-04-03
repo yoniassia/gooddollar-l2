@@ -56,6 +56,7 @@ contract GoodDollarBridgeL2 {
     error TokenNotMapped();
     error TransferFailed();
     error InsufficientETH();
+    error PeerNotConfigured();
 
     modifier onlyAdmin() {
         if (msg.sender != admin) revert NotAdmin();
@@ -70,6 +71,13 @@ contract GoodDollarBridgeL2 {
     modifier onlyFromL1Bridge() {
         if (msg.sender != address(messenger)) revert NotMessenger();
         if (messenger.xDomainMessageSender() != l1Bridge) revert NotL1Bridge();
+        _;
+    }
+
+    /// @dev Guard against withdrawals before setL1Bridge() is called — would burn
+    ///      L2 tokens permanently since the cross-domain message targets address(0).
+    modifier peerConfigured() {
+        if (l1Bridge == address(0)) revert PeerNotConfigured();
         _;
     }
 
@@ -126,7 +134,7 @@ contract GoodDollarBridgeL2 {
     // ============ Withdrawals (L2 → L1) ============
     // User initiates on L2, finalized on L1 after 7-day challenge
 
-    function withdrawGDollar(address l1Token, address to, uint256 amount) external whenNotPaused {
+    function withdrawGDollar(address l1Token, address to, uint256 amount) external whenNotPaused peerConfigured {
         if (amount == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
 
@@ -145,7 +153,7 @@ contract GoodDollarBridgeL2 {
         emit WithdrawalInitiated(l1Token, msg.sender, to, amount);
     }
 
-    function withdrawUSDC(address l1Token, address to, uint256 amount) external whenNotPaused {
+    function withdrawUSDC(address l1Token, address to, uint256 amount) external whenNotPaused peerConfigured {
         if (amount == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
 
@@ -164,7 +172,7 @@ contract GoodDollarBridgeL2 {
         emit WithdrawalInitiated(l1Token, msg.sender, to, amount);
     }
 
-    function withdrawETH(address to, uint256 amount) external payable whenNotPaused {
+    function withdrawETH(address to, uint256 amount) external payable whenNotPaused peerConfigured {
         if (amount == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
         if (msg.value != amount) revert InsufficientETH();

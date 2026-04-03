@@ -59,6 +59,7 @@ contract GoodDollarBridgeL1 {
     error NotAdmin();
     error TransferFailed();
     error InsufficientETH();
+    error PeerNotConfigured();
 
     modifier onlyAdmin() {
         if (msg.sender != admin) revert NotAdmin();
@@ -73,6 +74,13 @@ contract GoodDollarBridgeL1 {
     modifier onlyFromL2Bridge() {
         if (msg.sender != address(messenger)) revert NotMessenger();
         if (messenger.xDomainMessageSender() != l2Bridge) revert NotL2Bridge();
+        _;
+    }
+
+    /// @dev Guard against deposits before setL2Bridge() is called — would lock
+    ///      funds permanently since the cross-domain message targets address(0).
+    modifier peerConfigured() {
+        if (l2Bridge == address(0)) revert PeerNotConfigured();
         _;
     }
 
@@ -100,7 +108,7 @@ contract GoodDollarBridgeL1 {
 
     // ============ Deposits (L1 → L2) ============
 
-    function depositGDollar(address to, uint256 amount) external whenNotPaused {
+    function depositGDollar(address to, uint256 amount) external whenNotPaused peerConfigured {
         if (amount == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
 
@@ -120,7 +128,7 @@ contract GoodDollarBridgeL1 {
         emit DepositInitiated(address(goodDollar), msg.sender, to, amount, depositHash);
     }
 
-    function depositUSDC(address to, uint256 amount) external whenNotPaused {
+    function depositUSDC(address to, uint256 amount) external whenNotPaused peerConfigured {
         if (amount == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
 
@@ -140,7 +148,7 @@ contract GoodDollarBridgeL1 {
         emit DepositInitiated(address(usdc), msg.sender, to, amount, depositHash);
     }
 
-    function depositETH(address to) external payable whenNotPaused {
+    function depositETH(address to) external payable whenNotPaused peerConfigured {
         if (msg.value == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
 
