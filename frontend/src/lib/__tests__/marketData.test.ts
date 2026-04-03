@@ -42,27 +42,16 @@ describe('formatVolume', () => {
   })
 })
 
-describe('getTokenMarketData', () => {
-  it('returns an array of tokens', () => {
+describe('getTokenMarketData (deprecated — returns empty, use hooks)', () => {
+  it('returns an empty array (data now comes from useOnChainMarketData hook)', () => {
     const data = getTokenMarketData()
-    expect(data.length).toBeGreaterThan(0)
-  })
-
-  it('each token has required fields', () => {
-    const data = getTokenMarketData()
-    for (const token of data) {
-      expect(token.symbol).toBeTruthy()
-      expect(token.name).toBeTruthy()
-      expect(typeof token.price).toBe('number')
-    }
+    expect(data).toEqual([])
   })
 })
 
-describe('getTokenBySymbol', () => {
-  it('returns token when found', () => {
-    const token = getTokenBySymbol('ETH')
-    expect(token).toBeDefined()
-    expect(token?.symbol).toBe('ETH')
+describe('getTokenBySymbol (deprecated — returns undefined, use hooks)', () => {
+  it('returns undefined (data now comes from useOnChainMarketData hook)', () => {
+    expect(getTokenBySymbol('ETH')).toBeUndefined()
   })
 
   it('returns undefined for unknown symbol', () => {

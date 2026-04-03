@@ -43,27 +43,16 @@ describe('formatLargeNumber', () => {
   })
 })
 
-describe('getStockData', () => {
-  it('returns an array of stocks', () => {
+describe('getStockData (deprecated — returns empty, use hooks)', () => {
+  it('returns an empty array (data now comes from useOnChainStocks hook)', () => {
     const stocks = getStockData()
-    expect(stocks.length).toBeGreaterThan(0)
-  })
-
-  it('each stock has required fields', () => {
-    const stocks = getStockData()
-    for (const stock of stocks) {
-      expect(stock.ticker).toBeTruthy()
-      expect(stock.name).toBeTruthy()
-      expect(typeof stock.price).toBe('number')
-    }
+    expect(stocks).toEqual([])
   })
 })
 
-describe('getStockByTicker', () => {
-  it('returns a stock when found', () => {
-    const stock = getStockByTicker('AAPL')
-    expect(stock).toBeDefined()
-    expect(stock?.ticker).toBe('AAPL')
+describe('getStockByTicker (deprecated — returns undefined, use hooks)', () => {
+  it('returns undefined (data now comes from useOnChainStocks hook)', () => {
+    expect(getStockByTicker('AAPL')).toBeUndefined()
   })
 
   it('returns undefined for unknown ticker', () => {
