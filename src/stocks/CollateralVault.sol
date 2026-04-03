@@ -10,7 +10,7 @@ import "./PriceOracle.sol";
  *         synthetic stock tokens at a minimum 150% collateral ratio.
  *
  *         Fee model: 0.3% of the USD value of each mint/burn is charged in G$
- *         and forwarded to the UBI fee splitter (33% → UBI pool).
+ *         and forwarded to the UBI fee splitter (33% -> UBI pool).
  *
  *         Liquidation: anyone can liquidate a position whose collateral ratio
  *         falls below LIQUIDATION_RATIO (120%). The liquidator provides the
@@ -55,18 +55,18 @@ contract CollateralVault {
 
     bool public paused;
 
-    /// @notice user → ticker key → collateral deposited (G$ with 18 decimals)
+    /// @notice user -> ticker key -> collateral deposited (G$ with 18 decimals)
     mapping(address => mapping(bytes32 => uint256)) public collateral;
 
-    /// @notice user → ticker key → synthetic tokens minted (18 decimals = 1 share)
+    /// @notice user -> ticker key -> synthetic tokens minted (18 decimals = 1 share)
     mapping(address => mapping(bytes32 => uint256)) public debt;
 
     /// @notice total G$ locked per ticker
     mapping(bytes32 => uint256) public totalCollateral;
 
-    /// @notice Registered synthetic assets: ticker key → SyntheticAsset
+    /// @notice Registered synthetic assets: ticker key -> SyntheticAsset
     mapping(bytes32 => address) public syntheticAssets;
-    /// @notice ticker key → oracle key (same by default, but separable)
+    /// @notice ticker key -> oracle key (same by default, but separable)
     mapping(bytes32 => bytes32) public oracleKeys;
 
     // ============ Events ============
@@ -329,7 +329,7 @@ contract CollateralVault {
         uint256 userDebt = debt[user][key];
         uint256 userCollateral = collateral[user][key];
 
-        // No debt means nothing to liquidate — prevents free collateral drain
+        // No debt means nothing to liquidate -- prevents free collateral drain
         if (userDebt == 0) revert PositionHealthy(type(uint256).max, LIQUIDATION_RATIO);
 
         uint256 stockPrice = oracle.getPriceByKey(oracleKeys[key]);
@@ -370,7 +370,10 @@ contract CollateralVault {
             IUBIFeeSplitter(feeSplitter).splitFee(remainingCollateral, address(this));
         }
 
-        emit Liquidated(msg.sender, user, key, userDebt, userCollateral, liquidatorReward);
+        // Actual bonus paid out: amount above the raw debt value, zero-floored if the
+        // collateral cap reduced the reward below the full debt value.
+        uint256 actualBonus = liquidatorReward > debtValueG ? liquidatorReward - debtValueG : 0;
+        emit Liquidated(msg.sender, user, key, userDebt, liquidatorReward, actualBonus);
     }
 
     // ============ View ============
