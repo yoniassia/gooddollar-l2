@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 import {
   getReserves,
   getReserveBySymbol,
@@ -14,6 +15,28 @@ import {
   type LendReserve,
 } from '@/lib/lendData'
 import { sanitizeNumericInput } from '@/lib/format'
+import {
+  useLendAction,
+  useReserveData,
+  useUserAccountData as useOnChainAccountData,
+  useConnectedAccount,
+  useTokenBalance,
+  parseTokenAmount,
+  formatTokenAmount,
+} from '@/lib/useGoodLend'
+import { CONTRACTS } from '@/lib/chain'
+
+// Map reserve symbols to devnet contract addresses
+const DEVNET_RESERVE_ADDRESSES: Record<string, `0x${string}`> = {
+  USDC: CONTRACTS.MockUSDC,
+  WETH: CONTRACTS.MockWETH,
+}
+
+// Real devnet decimals
+const DEVNET_DECIMALS: Record<string, number> = {
+  USDC: 6,
+  WETH: 18,
+}
 
 // ─── Health Factor Gauge ──────────────────────────────────────────────────────
 
@@ -51,7 +74,41 @@ function HealthFactorGauge({ hf }: { hf: number }) {
 // ─── Portfolio Dashboard ──────────────────────────────────────────────────────
 
 function Dashboard() {
-  const account = useMemo(() => getUserAccountData(), [])
+  const { address, isConnected } = useConnectedAccount()
+  const { data: onChainAccount, isLoading } = useOnChainAccountData(address)
+  const mockAccount = useMemo(() => getUserAccountData(), [])
+
+  // Use on-chain data when available, fall back to mock
+  const account = useMemo(() => {
+    if (onChainAccount && isConnected) {
+      return {
+        ...mockAccount,
+        totalCollateralUSD: onChainAccount.totalCollateralFloat,
+        totalBorrowedUSD: onChainAccount.totalDebtFloat,
+        healthFactor: onChainAccount.healthFactorFloat,
+        availableToBorrowUSD: Math.max(0, onChainAccount.totalCollateralFloat * 0.75 - onChainAccount.totalDebtFloat),
+      }
+    }
+    return mockAccount
+  }, [onChainAccount, isConnected, mockAccount])
+
+  if (!isConnected) {
+    return (
+      <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-10 text-center">
+        <p className="text-gray-400 text-sm mb-4">Connect your wallet to view your lending positions.</p>
+        <ConnectButton />
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-10 text-center">
+        <p className="text-gray-400 text-sm">Loading positions…</p>
+      </div>
+    )
+  }
+
   const { healthFactor: hf } = account
 
   return (
@@ -179,23 +236,34 @@ type ActionTab = 'supply' | 'withdraw' | 'borrow' | 'repay'
 function ActionPanel({ reserve, onClose }: { reserve: LendReserve; onClose: () => void }) {
   const [tab, setTab] = useState<ActionTab>('supply')
   const [amount, setAmount] = useState('')
-  const [submitted, setSubmitted] = useState(false)
+
+  const { address, isConnected } = useConnectedAccount()
+  const { execute, phase, error: txError, reset: resetTx } = useLendAction()
+
+  // Resolve devnet address for this reserve
+  const reserveAddress = DEVNET_RESERVE_ADDRESSES[reserve.symbol]
+  const decimals = DEVNET_DECIMALS[reserve.symbol] ?? reserve.decimals
+
+  // User's token balance (for supply max)
+  const { balance: tokenBalance } = useTokenBalance(reserveAddress, address)
+  const tokenBalanceFloat = formatTokenAmount(tokenBalance, decimals)
 
   const parsedAmount = parseFloat(amount) || 0
   const valueUSD = parsedAmount * reserve.price
 
   const available = getAvailableLiquidity(reserve)
-  const maxWithdraw = 1.5    // mock: user's supplied gWETH balance
+  const maxSupply = reserveAddress ? tokenBalanceFloat : Infinity
   const maxBorrow = available * 0.9
-  const maxRepay = 1200      // mock: user's USDC debt
 
-  const maxAmount = tab === 'supply' ? Infinity
-    : tab === 'withdraw' ? maxWithdraw
+  const maxAmount = tab === 'supply' ? maxSupply
     : tab === 'borrow' ? maxBorrow
-    : maxRepay
+    : Infinity  // withdraw/repay: let contract validate
 
-  const isOverMax = parsedAmount > maxAmount && maxAmount !== Infinity
+  const isOverMax = maxAmount !== Infinity && parsedAmount > maxAmount
   const hasAmount = parsedAmount > 0
+
+  const isPending = phase === 'approving' || phase === 'pending'
+  const isDone = phase === 'done'
 
   const tabLabels: { id: ActionTab; label: string }[] = [
     { id: 'supply', label: 'Supply' },
@@ -207,12 +275,21 @@ function ActionPanel({ reserve, onClose }: { reserve: LendReserve; onClose: () =
   const apy = tab === 'supply' || tab === 'withdraw' ? reserve.supplyAPY : reserve.borrowAPY
   const apyColor = tab === 'supply' ? 'text-goodgreen' : tab === 'borrow' ? 'text-red-400' : 'text-gray-400'
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!hasAmount || isOverMax) return
-    setSubmitted(true)
+    if (!hasAmount || isOverMax || isPending) return
+    if (!reserveAddress) return  // reserve not on devnet yet
+
+    const amountBigInt = parseTokenAmount(amount, decimals)
+    await execute(tab, reserveAddress, amountBigInt)
+    if (phase !== 'error') setAmount('')
+  }
+
+  // Reset tx state when tab changes
+  const handleTabChange = (t: ActionTab) => {
+    setTab(t)
     setAmount('')
-    setTimeout(() => setSubmitted(false), 2500)
+    resetTx()
   }
 
   return (
@@ -238,7 +315,7 @@ function ActionPanel({ reserve, onClose }: { reserve: LendReserve; onClose: () =
       {/* Tabs */}
       <div className="flex gap-1 mb-4">
         {tabLabels.map(t => (
-          <button key={t.id} onClick={() => { setTab(t.id); setAmount('') }}
+          <button key={t.id} onClick={() => handleTabChange(t.id)}
             className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
               tab === t.id
                 ? 'bg-goodgreen/15 text-goodgreen border border-goodgreen/20'
@@ -249,15 +326,25 @@ function ActionPanel({ reserve, onClose }: { reserve: LendReserve; onClose: () =
         ))}
       </div>
 
+      {!isConnected ? (
+        <div className="text-center py-6 space-y-3">
+          <p className="text-gray-400 text-sm">Connect your wallet to {tab}.</p>
+          <ConnectButton />
+        </div>
+      ) : !reserveAddress ? (
+        <div className="text-center py-6">
+          <p className="text-gray-500 text-sm">This reserve is not yet deployed on devnet.</p>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Amount input */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs text-gray-400">Amount</label>
-            {maxAmount !== Infinity && (
-              <button type="button" onClick={() => setAmount(maxAmount.toString())}
+            {tab === 'supply' && tokenBalanceFloat > 0 && (
+              <button type="button" onClick={() => setAmount(tokenBalanceFloat.toString())}
                 className="text-[10px] text-goodgreen/70 hover:text-goodgreen transition-colors">
-                MAX {maxAmount.toLocaleString()}
+                MAX {tokenBalanceFloat.toLocaleString(undefined, { maximumFractionDigits: 6 })}
               </button>
             )}
           </div>
@@ -268,7 +355,8 @@ function ActionPanel({ reserve, onClose }: { reserve: LendReserve; onClose: () =
               placeholder="0.00"
               value={amount}
               onChange={e => setAmount(sanitizeNumericInput(e.target.value))}
-              className={`w-full px-3 py-2.5 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 pr-16 ${
+              disabled={isPending}
+              className={`w-full px-3 py-2.5 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 pr-16 disabled:opacity-50 ${
                 isOverMax ? 'border-red-500/50' : 'border-gray-700/30'
               }`}
             />
@@ -320,14 +408,30 @@ function ActionPanel({ reserve, onClose }: { reserve: LendReserve; onClose: () =
           </div>
         </div>
 
+        {/* Tx status */}
+        {phase === 'approving' && (
+          <p className="text-xs text-yellow-400 text-center">Approving token spend… confirm in wallet</p>
+        )}
+        {phase === 'pending' && (
+          <p className="text-xs text-blue-400 text-center">Transaction pending… confirm in wallet</p>
+        )}
+        {isDone && (
+          <p className="text-xs text-goodgreen text-center">Transaction confirmed!</p>
+        )}
+        {phase === 'error' && txError && (
+          <p className="text-xs text-red-400 text-center">{txError}</p>
+        )}
+
         {/* Submit */}
         <button
           type="submit"
-          disabled={!hasAmount || isOverMax}
+          disabled={!hasAmount || isOverMax || isPending}
           className="w-full py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-goodgreen hover:bg-goodgreen/90 text-dark"
         >
-          {submitted
-            ? `${tab.charAt(0).toUpperCase() + tab.slice(1)} submitted!`
+          {isPending
+            ? phase === 'approving' ? 'Approving…' : 'Confirming…'
+            : isDone
+            ? 'Done!'
             : `${tab.charAt(0).toUpperCase() + tab.slice(1)} ${reserve.symbol}`}
         </button>
 
@@ -338,6 +442,7 @@ function ActionPanel({ reserve, onClose }: { reserve: LendReserve; onClose: () =
           <span>Protocol fees fund GoodDollar UBI</span>
         </div>
       </form>
+      )}
     </div>
   )
 }
@@ -440,15 +545,50 @@ function MarketsTable({
 type PageTab = 'markets' | 'dashboard'
 
 export default function LendPage() {
-  const reserves = useMemo(() => getReserves(), [])
-  const account = useMemo(() => getUserAccountData(), [])
+  const mockReserves = useMemo(() => getReserves(), [])
   const [pageTab, setPageTab] = useState<PageTab>('markets')
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null)
 
-  const selectedReserve = selectedSymbol ? getReserveBySymbol(selectedSymbol) ?? null : null
+  // On-chain reserve data for the two devnet markets
+  const { data: usdcData } = useReserveData(CONTRACTS.MockUSDC)
+  const { data: wethData } = useReserveData(CONTRACTS.MockWETH)
 
-  const { healthFactor: hf } = account
-  const hasWarning = isFinite(hf) && hf < 1.2
+  // Blend mock config with on-chain rates
+  const reserves = useMemo(() => {
+    return mockReserves.map(r => {
+      if (r.symbol === 'USDC' && usdcData) {
+        return {
+          ...r,
+          address: CONTRACTS.MockUSDC,
+          totalSupplied: formatTokenAmount(usdcData.totalDeposits, 6),
+          totalBorrowed: formatTokenAmount(usdcData.totalBorrows, 6),
+          supplyAPY: usdcData.supplyAPY,
+          borrowAPY: usdcData.borrowAPY,
+        }
+      }
+      if (r.symbol === 'WETH' && wethData) {
+        return {
+          ...r,
+          address: CONTRACTS.MockWETH,
+          totalSupplied: formatTokenAmount(wethData.totalDeposits, 18),
+          totalBorrowed: formatTokenAmount(wethData.totalBorrows, 18),
+          supplyAPY: wethData.supplyAPY,
+          borrowAPY: wethData.borrowAPY,
+        }
+      }
+      return r
+    })
+  }, [mockReserves, usdcData, wethData])
+
+  const { address, isConnected } = useConnectedAccount()
+  const { data: onChainAccount } = useOnChainAccountData(address)
+
+  const hfFloat = onChainAccount && isConnected
+    ? onChainAccount.healthFactorFloat
+    : getUserAccountData().healthFactor
+  const hasWarning = isFinite(hfFloat) && hfFloat < 1.2
+
+  const selectedReserve = selectedSymbol ? reserves.find(r => r.symbol === selectedSymbol) ?? null : null
 
   return (
     <div className="w-full max-w-6xl mx-auto">
@@ -469,14 +609,14 @@ export default function LendPage() {
         {/* Health factor badge in header (mobile-friendly) */}
         {hasWarning && (
           <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium ${
-            hf < 1.0
+            hfFloat < 1.0
               ? 'bg-red-500/10 border-red-500/30 text-red-300'
               : 'bg-yellow-400/10 border-yellow-400/30 text-yellow-300'
           }`}>
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
-            HF {formatHealthFactor(hf)} — {hf < 1.0 ? 'At risk!' : 'Low'}
+            HF {formatHealthFactor(hfFloat)} — {hfFloat < 1.0 ? 'At risk!' : 'Low'}
           </div>
         )}
       </div>

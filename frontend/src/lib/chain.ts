@@ -39,4 +39,10 @@ export const CONTRACTS = {
   // Debt tokens
   debtUSDC: '0x4a679253410272dd5232b3ff7cf5dbb88f295319' as `0x${string}`,
   debtWETH: '0x09635f643e140090a9a8dcd712ed6285858cebef' as `0x${string}`,
+  // GoodPerps — PerpEngine (TODO: deploy to devnet, update address)
+  PerpEngine: null as `0x${string}` | null,
+  MarginVault: null as `0x${string}` | null,
+  // GoodStocks — CollateralVault + SyntheticAssetFactory (TODO: deploy to devnet)
+  CollateralVault: null as `0x${string}` | null,
+  SyntheticAssetFactory: null as `0x${string}` | null,
 } as const

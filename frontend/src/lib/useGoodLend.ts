@@ -7,11 +7,13 @@
  *   - useReserveData(assetAddress): live reserve data (supply/borrow rates, TVL)
  *   - useUserAccountData(userAddress): health factor, collateral, debt
  *   - useSupply / useWithdraw / useBorrow / useRepay: write hooks
+ *   - useLendAction: approve + action in one async flow
  *
  * Falls back to mock data when the wallet is not connected or the
  * devnet is unreachable (so the UI always renders something useful).
  */
 
+import { useCallback, useState } from 'react'
 import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi'
 import { parseUnits, maxUint256 } from 'viem'
 import { GoodLendPoolABI, ERC20ABI } from './abi'
@@ -245,4 +247,75 @@ export function formatTokenAmount(amount: bigint, decimals: number): number {
 export function useConnectedAccount() {
   const { address, isConnected } = useAccount()
   return { address: address as `0x${string}` | undefined, isConnected }
+}
+
+// ─── Combined approve + action hook ──────────────────────────────────────────
+
+export type LendActionPhase = 'idle' | 'approving' | 'pending' | 'done' | 'error'
+
+export function useLendAction() {
+  const [phase, setPhase] = useState<LendActionPhase>('idle')
+  const [error, setError] = useState<string | null>(null)
+  const { writeContractAsync } = useWriteContract()
+  const { isConnected } = useAccount()
+
+  const reset = useCallback(() => {
+    setPhase('idle')
+    setError(null)
+  }, [])
+
+  const execute = useCallback(async (
+    action: 'supply' | 'withdraw' | 'borrow' | 'repay',
+    assetAddress: `0x${string}`,
+    amount: bigint,
+  ) => {
+    if (!isConnected) {
+      setError('Wallet not connected')
+      return
+    }
+    try {
+      if (action === 'supply' || action === 'repay') {
+        setPhase('approving')
+        await writeContractAsync({
+          address: assetAddress,
+          abi: ERC20ABI,
+          functionName: 'approve',
+          args: [POOL, amount],
+        })
+      }
+      setPhase('pending')
+      await writeContractAsync({
+        address: POOL,
+        abi: GoodLendPoolABI,
+        functionName: action,
+        args: [assetAddress, amount],
+      })
+      setPhase('done')
+    } catch (err: unknown) {
+      const e = err as { shortMessage?: string; message?: string }
+      setError(e?.shortMessage ?? e?.message ?? 'Transaction failed')
+      setPhase('error')
+    }
+  }, [isConnected, writeContractAsync])
+
+  return { execute, phase, error, reset, isConnected }
+}
+
+// ─── Read: ERC20 token balance ────────────────────────────────────────────────
+
+export function useTokenBalance(
+  tokenAddress: `0x${string}` | undefined,
+  userAddress: `0x${string}` | undefined,
+): { balance: bigint; isLoading: boolean } {
+  const result = useReadContract({
+    address: tokenAddress,
+    abi: ERC20ABI,
+    functionName: 'balanceOf',
+    args: tokenAddress && userAddress ? [userAddress] : undefined,
+    query: { enabled: !!(tokenAddress && userAddress), refetchInterval: 10_000 },
+  })
+  return {
+    balance: (result.data as bigint | undefined) ?? BigInt(0),
+    isLoading: result.isLoading,
+  }
 }

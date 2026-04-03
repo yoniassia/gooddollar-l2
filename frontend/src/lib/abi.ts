@@ -313,6 +313,151 @@ export const GoodLendPoolABI = [
   },
 ] as const
 
+// ─── PerpEngine ABI (open/close positions, read markets + positions) ──────────
+export const PerpEngineABI = [
+  {
+    inputs: [
+      { name: 'marketId', type: 'uint256' },
+      { name: 'size', type: 'uint256' },
+      { name: 'isLong', type: 'bool' },
+      { name: 'minPrice', type: 'uint256' },
+    ],
+    name: 'openPosition',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'marketId', type: 'uint256' }],
+    name: 'closePosition',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'marketId', type: 'uint256' }],
+    name: 'markets',
+    outputs: [
+      { name: 'key', type: 'bytes32' },
+      { name: 'maxLeverage', type: 'uint256' },
+      { name: 'isActive', type: 'bool' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'marketCount',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }, { name: 'marketId', type: 'uint256' }],
+    name: 'positions',
+    outputs: [
+      { name: 'size', type: 'uint256' },
+      { name: 'entryPrice', type: 'uint256' },
+      { name: 'isLong', type: 'bool' },
+      { name: 'collateral', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }, { name: 'marketId', type: 'uint256' }],
+    name: 'marginRatio',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }, { name: 'marketId', type: 'uint256' }],
+    name: 'unrealizedPnL',
+    outputs: [{ name: '', type: 'int256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const
+
+// ─── CollateralVault ABI (mint/burn synthetic assets, manage collateral) ──────
+export const CollateralVaultABI = [
+  {
+    inputs: [{ name: 'ticker', type: 'string' }, { name: 'amount', type: 'uint256' }],
+    name: 'depositCollateral',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'ticker', type: 'string' }, { name: 'amount', type: 'uint256' }],
+    name: 'withdrawCollateral',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'ticker', type: 'string' }, { name: 'amount', type: 'uint256' }],
+    name: 'mint',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'ticker', type: 'string' }, { name: 'amount', type: 'uint256' }],
+    name: 'burn',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }, { name: 'ticker', type: 'string' }],
+    name: 'getPosition',
+    outputs: [
+      { name: 'collateralAmount', type: 'uint256' },
+      { name: 'debtAmount', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }, { name: 'ticker', type: 'string' }],
+    name: 'getCollateralRatio',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const
+
+// ─── SyntheticAssetFactory ABI (list/get synthetic assets) ───────────────────
+export const SyntheticAssetFactoryABI = [
+  {
+    inputs: [{ name: 'ticker', type: 'string' }],
+    name: 'getAsset',
+    outputs: [
+      { name: 'name', type: 'string' },
+      { name: 'ticker', type: 'string' },
+      { name: 'tokenAddress', type: 'address' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'listedCount',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'index', type: 'uint256' }],
+    name: 'listedKeys',
+    outputs: [{ name: '', type: 'bytes32' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const
+
 // ─── ERC20 minimal ABI (approve + allowance + balanceOf) ─────────────────────
 export const ERC20ABI = [
   {
