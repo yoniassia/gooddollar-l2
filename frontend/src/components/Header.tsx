@@ -19,6 +19,7 @@ export function Header() {
   const isPredict = pathname?.startsWith('/predict')
   const isPerps = pathname?.startsWith('/perps')
   const isLend = pathname?.startsWith('/lend')
+  const isGovernance = pathname?.startsWith('/governance')
   const isActivity = pathname?.startsWith('/activity')
   const isPortfolio = pathname === '/portfolio'
 
@@ -65,6 +66,7 @@ export function Header() {
           <Link href="/perps" className={isPerps ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Perps</Link>
           <Link href="/lend" className={isLend ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Lend</Link>
           <Link href="/stable" className={isStable ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Stable</Link>
+          <Link href="/governance" className={isGovernance ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Govern</Link>
           <Link href="/activity" className={isActivity ? 'text-goodgreen font-medium' : 'text-goodgreen/60 hover:text-goodgreen transition-colors'}>
             <span className="flex items-center gap-1">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-goodgreen animate-pulse" />
@@ -178,6 +180,13 @@ export function Header() {
               className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isStable ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
             >
               Stable
+            </Link>
+            <Link
+              href="/governance"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isGovernance ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
+            >
+              Govern
             </Link>
             <Link
               href="/activity"

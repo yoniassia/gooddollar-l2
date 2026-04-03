@@ -90,6 +90,10 @@ export const CONTRACTS = {
   sNFLX:                 '0x63dF691A295f0c59980bC0B388B26E897885C603' as `0x${string}`,
   sAMD:                  '0xeBE18012222d1bDdA9eaFeD66d3259c11fbebd61' as `0x${string}`,
 
+  // ── Governance — deployed 2026-04-03 (GOO-218) ──────────────────────────────
+  VoteEscrowedGD:        '0x4eaB29997D332A666c3C366217Ab177cF9A7C436' as `0x${string}`,
+  GoodDAO:               '0x5Ffe31E4676D3466268e28a75E51d1eFa4298620' as `0x${string}`,
+
   // ── GoodStable — CDP vault system (chain 42069), redeployed 2026-04-03 ─────
   gUSD:                  '0x0e801d84fa97b50751dbf25036d067dcf18858bf' as `0x${string}`,
   VaultManager:          '0xe039608E695D21aB11675EBBA00261A0e750526c' as `0x${string}`,
@@ -127,4 +131,6 @@ export {
   CollateralRegistryABI,
   GoodPoolABI,
   GoodSwapRouterABI,
+  VoteEscrowedGDABI,
+  GoodDAOABI,
 } from './abi'
