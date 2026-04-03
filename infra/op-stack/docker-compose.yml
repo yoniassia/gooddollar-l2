@@ -1,0 +1,152 @@
+# GoodDollar L2 — Full OP Stack Local Devnet
+# Replaces single Anvil node with proper rollup architecture
+#
+# Components:
+#   l1-anvil    — L1 chain (simulated Ethereum)
+#   op-geth     — L2 execution engine
+#   op-node     — L2 consensus/derivation from L1
+#   op-batcher  — Posts L2 batches to L1
+#   op-proposer — Posts output roots to L1
+#   blockscout  — Block explorer (reuse existing)
+
+version: "3.8"
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # ─── L1: Simulated Ethereum ───────────────────────
+  l1-anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    entrypoint: ["anvil"]
+    command:
+      - --host=0.0.0.0
+      - --port=8545
+      - --chain-id=900
+      - --block-time=12
+      - --accounts=10
+      - --balance=10000
+      - --gas-limit=30000000
+      - --mnemonic=test test test test test test test test test test test junk
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test: ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:8545"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    logging: *logging
+
+  # ─── L2: Execution Engine ─────────────────────────
+  op-geth:
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-geth:v1.101408.0
+    entrypoint: ["geth"]
+    command:
+      - --datadir=/data
+      - --http
+      - --http.addr=0.0.0.0
+      - --http.port=9545
+      - --http.corsdomain=*
+      - --http.vhosts=*
+      - --http.api=web3,debug,eth,txpool,net,engine
+      - --ws
+      - --ws.addr=0.0.0.0
+      - --ws.port=9546
+      - --ws.origins=*
+      - --ws.api=debug,eth,txpool,net,engine
+      - --authrpc.addr=0.0.0.0
+      - --authrpc.port=9551
+      - --authrpc.jwtsecret=/config/jwt-secret.txt
+      - --authrpc.vhosts=*
+      - --networkid=42069
+      - --gcmode=archive
+      - --nodiscover
+      - --maxpeers=0
+      - --rollup.disabletxpoolgossip
+      - --rollup.sequencerhttp=http://localhost:9545
+    volumes:
+      - op-geth-data:/data
+      - ./jwt-secret.txt:/config/jwt-secret.txt:ro
+      - ./genesis.json:/config/genesis.json:ro
+    ports:
+      - "9545:9545"
+      - "9546:9546"
+    depends_on:
+      l1-anvil:
+        condition: service_healthy
+    logging: *logging
+
+  # ─── L2: Consensus / Derivation ───────────────────
+  op-node:
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:v1.10.2
+    entrypoint: ["op-node"]
+    command:
+      - --l1=ws://l1-anvil:8545
+      - --l2=http://op-geth:9551
+      - --l2.jwt-secret=/config/jwt-secret.txt
+      - --rollup.config=/config/rollup.json
+      - --rpc.addr=0.0.0.0
+      - --rpc.port=7545
+      - --p2p.disable
+      - --sequencer.enabled
+      - --sequencer.l1-confs=0
+      - --verifier.l1-confs=0
+      - --l1.trustrpc
+    volumes:
+      - ./jwt-secret.txt:/config/jwt-secret.txt:ro
+      - ./rollup.json:/config/rollup.json:ro
+    ports:
+      - "7545:7545"
+    depends_on:
+      - op-geth
+      - l1-anvil
+    logging: *logging
+
+  # ─── Batcher: Posts L2 txs to L1 ──────────────────
+  op-batcher:
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-batcher:v1.10.2
+    entrypoint: ["op-batcher"]
+    command:
+      - --l1-eth-rpc=http://l1-anvil:8545
+      - --l2-eth-rpc=http://op-geth:9545
+      - --rollup-rpc=http://op-node:7545
+      - --max-channel-duration=1
+      - --sub-safety-margin=4
+      - --poll-interval=1s
+      - --num-confirmations=1
+      - --private-key=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
+      - --rpc.addr=0.0.0.0
+      - --rpc.port=6545
+    ports:
+      - "6545:6545"
+    depends_on:
+      - op-node
+      - op-geth
+      - l1-anvil
+    logging: *logging
+
+  # ─── Proposer: Posts output roots to L1 ────────────
+  op-proposer:
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-proposer:v1.10.2
+    entrypoint: ["op-proposer"]
+    command:
+      - --l1-eth-rpc=http://l1-anvil:8545
+      - --rollup-rpc=http://op-node:7545
+      - --l2oo-address=${L2OO_ADDRESS:-0x0000000000000000000000000000000000000000}
+      - --poll-interval=6s
+      - --num-confirmations=1
+      - --private-key=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+      - --rpc.addr=0.0.0.0
+      - --rpc.port=5545
+    ports:
+      - "5545:5545"
+    depends_on:
+      - op-node
+      - l1-anvil
+    logging: *logging
+
+volumes:
+  op-geth-data:

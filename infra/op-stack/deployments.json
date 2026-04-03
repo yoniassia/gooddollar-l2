@@ -1,0 +1,26 @@
+{
+  "chainId": 42069,
+  "deployedAt": "2026-04-03T19:48:00Z",
+  "contracts": {
+    "L2OutputOracle": {
+      "address": "0x967AB65ef14c58bD4DcfFeaAA1ADb40a022140E5",
+      "txHash": "0xd88df297f5e4235132282d32a15cfc576d4e76d93ebbce4147afdb240b760ae7"
+    },
+    "OptimismPortal": {
+      "address": "0xe1708FA6bb2844D5384613ef0846F9Bc1e8eC55E",
+      "txHash": "0x01311f0c336917fcd5b7260e6f0f8e5fcdff762e3fa9d1d401beb03066e742e0"
+    },
+    "SystemConfig": {
+      "address": "0x0aec7c174554AF8aEc3680BB58431F6618311510",
+      "txHash": "0x38f66e7ed53f9207470de2095e83a8192d9d3bfa7069b9d4c194b4acc24abdef"
+    },
+    "L1StandardBridge": {
+      "address": "0x8e264821AFa98DD104eEcfcfa7FD9f8D8B320adA",
+      "txHash": "0xce3274b10413c779efbd280af93781bbbc7fd1c46875d585bc1bea632159df7b"
+    }
+  },
+  "initializationTxs": {
+    "OptimismPortal.initialize(L2OutputOracle)": "0x507952cf5fa13368c86b7156ded92a703d98d0a4380e1ba1aa4dd6056976b267",
+    "L1StandardBridge.initialize(OptimismPortal)": "0x84152dcae6566ccba44e768a57f517f31e30af00bba02a42e7a4aa25205a807a"
+  }
+}

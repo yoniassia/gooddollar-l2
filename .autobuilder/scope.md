@@ -85,7 +85,8 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Subgraph / indexer for each protocol — backend/indexer/ with SQLite + REST API (GOO-210)
 - [x] RPC load balancing — backend/rpc-balancer with weighted-least-connections, health checks, failover, metrics
 - [x] Monitoring & alerting — backend/monitor/ with CLI checks + daemon API (GOO-211)
-- [ ] Move from Anvil to full OP Stack (op-geth + op-node + op-batcher)
+- [x] OP Stack L1 contracts (L2OutputOracle, OptimismPortal, SystemConfig, L1StandardBridge) — deployed + verified + 25 tests
+- [ ] Move from Anvil to full OP Stack runtime (op-geth + op-node + op-batcher docker-compose)
 
 ## Research Queue (Study Open Source Projects)
 
