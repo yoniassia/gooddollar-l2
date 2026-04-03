@@ -245,7 +245,7 @@ contract GoodSwapRouterTest is Test {
 
     // ─── Pool not found ───────────────────────────────────────────────────────
 
-    function test_poolNotFound_revert() public view {
+    function test_poolNotFound_revert() public {
         address unknownToken = makeAddr("unknownToken");
         assertEq(router.getPool(address(gd), unknownToken), address(0));
     }
