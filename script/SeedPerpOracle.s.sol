@@ -52,8 +52,8 @@ contract SeedPerpOracle is Script {
             PerpMarket("ETH",    320_000_000_000,    319_800_000_000, 50),
             PerpMarket("SOL",      180_00_000_000,     179_90_000_000, 25),
             PerpMarket("BNB",      600_00_000_000,     599_80_000_000, 25),
-            PerpMarket("MATIC",      0_90_000_000,       0_89_500_000, 20),
-            PerpMarket("ARB",        1_20_000_000,       1_19_800_000, 20)
+            PerpMarket("MATIC",       90_000_000,        89_500_000, 20),
+            PerpMarket("ARB",       120_000_000,       119_800_000, 20)
         ];
 
         for (uint256 i = 0; i < markets.length; i++) {

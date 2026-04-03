@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { InfoBanner } from '@/components/InfoBanner'
 import {
   getReserves,
   getReserveBySymbol,
@@ -621,6 +622,12 @@ export default function LendPage() {
         )}
       </div>
 
+      <InfoBanner
+        title="Devnet Preview — Mock Data"
+        description="Most market figures (WBTC, DAI, G$) are hardcoded demo values. USDC and WETH supply/borrow rates are live from devnet contracts. Real on-chain data for all markets coming soon."
+        storageKey="gd-banner-dismissed-lend"
+      />
+
       {/* Page tabs */}
       <div className="flex gap-1 mb-6">
         {([
@@ -738,6 +745,10 @@ export default function LendPage() {
           )}
         </div>
       )}
+
+      <p className="text-xs text-gray-600 text-center mt-4">
+        Market figures shown are devnet demo values. Live on-chain data coming soon.
+      </p>
     </div>
   )
 }

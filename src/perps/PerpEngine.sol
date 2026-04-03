@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "./MarginVault.sol";
 import "./FundingRate.sol";
+import {IPriceOraclePerp} from "./PerpPriceOracle.sol";
 
 /**
  * @title PerpEngine
@@ -20,10 +21,6 @@ import "./FundingRate.sol";
  *
  *         Fee model: 0.1% on notional, routed to UBI fee splitter.
  */
-
-interface IPriceOraclePerp {
-    function getPriceByKey(bytes32 key) external view returns (uint256);
-}
 
 interface IFeeSplitterPerp {
     function splitFee(uint256 totalFee, address dAppRecipient)

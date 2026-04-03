@@ -34,18 +34,19 @@ contract GoodSwapRouterTest is Test {
         gdWeth = new GoodPool(address(gd), address(weth), address(this));
         gdUsdc = new GoodPool(address(gd), address(usdc), address(this));
 
-        // Seed liquidity: G$/WETH at 3000:1
-        gd.mint(address(this),   3_000_000e18);
+        // Seed liquidity — amounts must match canonical (tokenA, tokenB) order
+        // GoodPool sorts by address: lower address = tokenA
+        gd.mint(address(this),   4_000_000e18);  // extra for both pools
         weth.mint(address(this),     1_000e18);
         usdc.mint(address(this), 1_000_000e6);
 
         gd.approve(address(gdWeth), type(uint256).max);
         weth.approve(address(gdWeth), type(uint256).max);
-        gdWeth.addLiquidity(3_000_000e18, 1_000e18);
+        _addSorted(gdWeth, address(gd), address(weth), 3_000_000e18, 1_000e18);
 
         gd.approve(address(gdUsdc), type(uint256).max);
         usdc.approve(address(gdUsdc), type(uint256).max);
-        gdUsdc.addLiquidity(1_000_000e18, 1_000_000e6);
+        _addSorted(gdUsdc, address(gd), address(usdc), 1_000_000e18, 1_000_000e6);
 
         // Deploy router and register pools
         router = new GoodSwapRouter(address(this));
@@ -56,6 +57,15 @@ contract GoodSwapRouterTest is Test {
         gd.mint(alice,   100_000e18);
         weth.mint(alice,      10e18);
         usdc.mint(alice, 100_000e6);
+    }
+
+    /// @dev Pass amounts as (tok1Amount, tok2Amount) and sort to match pool's canonical order.
+    function _addSorted(GoodPool pool, address tok1, address tok2, uint256 amt1, uint256 amt2) internal {
+        if (tok1 < tok2) {
+            pool.addLiquidity(amt1, amt2);
+        } else {
+            pool.addLiquidity(amt2, amt1);
+        }
     }
 
     // ─── Pool registry ────────────────────────────────────────────────────────
