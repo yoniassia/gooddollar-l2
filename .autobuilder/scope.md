@@ -21,7 +21,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Backend order matching service (off-chain order book → on-chain settlement)
 - [ ] Connect to Hyperliquid API for external liquidity/price feeds
 - [ ] Connect to dYdX, GMX for additional liquidity routing
-- [ ] Implement oracle price feeds (Pyth/Chainlink)
+- [x] Implement oracle price feeds (Pyth/Chainlink) — PerpPriceOracle.sol with keeper push + staleness/deviation
 - [ ] Frontend → real contract interaction
 **Research:** Study Hyperliquid architecture, dYdX v4 chain, GMX v2, Pyth Network
 
@@ -31,7 +31,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Backend CLOB matching engine for YES/NO order books
 - [x] Connect to Polymarket API for external liquidity/odds
 - [x] Backend → on-chain contract interaction (MarketFactory settlement)
-- [ ] Oracle/resolution system (UMA, Chainlink, manual)
+- [x] Oracle/resolution system (UMA, Chainlink, manual) — OptimisticResolver.sol with bonded propose/dispute/finalize
 - [ ] Market creation flow (frontend → contract)
 - [ ] Frontend → real contract interaction
 **Research:** Study Polymarket CLOB, Gnosis Conditional Tokens, UMA oracle
