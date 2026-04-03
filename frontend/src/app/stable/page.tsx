@@ -10,6 +10,7 @@ import {
   ILK_USDC,
   useVault,
   useGUSDBalance,
+  useGUSDTotalSupply,
   useCollateralBalance,
   useStableAction,
   useConnectedAccount,
@@ -212,10 +213,17 @@ function VaultPanel({ ilkKey }: { ilkKey: IlkKey }) {
 // ─── Protocol stats bar ───────────────────────────────────────────────────────
 
 function ProtocolStats() {
+  const { totalSupplyFloat, isLoading } = useGUSDTotalSupply()
+  const supplyDisplay = isLoading
+    ? '…'
+    : totalSupplyFloat > 0
+      ? totalSupplyFloat.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' gUSD'
+      : '—'
+
   return (
     <div className="grid grid-cols-3 gap-3 mb-6">
       {[
-        { label: 'Total gUSD Supply', value: '—', sub: 'from devnet' },
+        { label: 'Total gUSD Supply', value: supplyDisplay, sub: 'live from devnet' },
         { label: 'UBI Fees Routed', value: '33%', sub: 'of stability fees' },
         { label: 'Min. Ratio', value: '101–200%', sub: 'depends on collateral' },
       ].map(s => (

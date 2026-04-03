@@ -143,6 +143,22 @@ export function useGUSDBalance(address: `0x${string}` | undefined) {
   }
 }
 
+// ─── Read: total gUSD supply ──────────────────────────────────────────────────
+
+export function useGUSDTotalSupply() {
+  const result = useReadContract({
+    address: CONTRACTS.gUSD,
+    abi: ERC20ABI,
+    functionName: 'totalSupply',
+    query: { enabled: !!CONTRACTS.gUSD, refetchInterval: 30_000 },
+  })
+  return {
+    totalSupply: result.data ?? BigInt(0),
+    totalSupplyFloat: result.data ? Number(formatUnits(result.data, 18)) : 0,
+    isLoading: result.isLoading,
+  }
+}
+
 // ─── Read: collateral token balance ──────────────────────────────────────────
 
 export function useCollateralBalance(
