@@ -73,8 +73,6 @@ export function useStockPrices(): StockPriceState {
     query: {
       enabled: contracts.length > 0,
       refetchInterval: 30_000,
-      // Don't throw on individual call failures — some feeds may be missing
-      throwOnError: false,
     },
   })
 
