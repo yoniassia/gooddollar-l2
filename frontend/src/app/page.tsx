@@ -2,6 +2,11 @@ import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { SwapCard } from '@/components/SwapCard'
 
+const SwapPriceChart = dynamic(
+  () => import('@/components/SwapPriceChart').then(m => ({ default: m.SwapPriceChart })),
+  { ssr: false }
+)
+
 const HowItWorks = dynamic(
   () => import('@/components/HowItWorks').then(m => ({ default: m.HowItWorks }))
 )
@@ -43,6 +48,13 @@ export default function Home() {
           people worldwide
         </p>
       </div>
+
+      <SwapPriceChart
+        inputSymbol="ETH"
+        outputSymbol="G$"
+        inputPrice={3012.45}
+        outputPrice={0.0102}
+      />
 
       {/* Swap card wrapper with glow */}
       <div className="relative w-full max-w-[460px]">
