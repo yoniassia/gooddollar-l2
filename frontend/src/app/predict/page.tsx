@@ -134,7 +134,7 @@ function MarketCard({ market }: { market: ReturnType<typeof getMarkets>[0] }) {
         <span className={`text-xs font-medium ${timeLabelClass}`}>{timeLabel}</span>
       </div>
 
-      <div className="flex items-start gap-3 mb-3">
+      <div className="flex items-start gap-3 mb-3 min-h-[2.75rem]">
         <MarketIcon category={market.category} />
         <h3 className="text-sm font-semibold text-white leading-snug group-hover:text-goodgreen/90 transition-colors line-clamp-2">
           {market.question}
