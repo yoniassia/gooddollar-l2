@@ -22,6 +22,8 @@ export function Header() {
   useEffect(() => {
     if (!mobileMenuOpen) return
 
+    document.body.style.overflow = 'hidden'
+
     function handleEscape(e: KeyboardEvent) {
       if (e.key === 'Escape') setMobileMenuOpen(false)
     }
@@ -34,6 +36,7 @@ export function Header() {
     document.addEventListener('keydown', handleEscape)
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
+      document.body.style.overflow = ''
       document.removeEventListener('keydown', handleEscape)
       document.removeEventListener('mousedown', handleClickOutside)
     }
@@ -104,10 +107,16 @@ export function Header() {
       </div>
 
       {mobileMenuOpen && (
+        <>
+        <div
+          className="fixed inset-0 z-40 bg-black/50 sm:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
         <div
           ref={menuRef}
           data-testid="mobile-nav"
-          className="sm:hidden border-t border-dark-50/50 bg-dark-100/95 backdrop-blur-md animate-in slide-in-from-top-2 duration-200"
+          className="sm:hidden border-t border-dark-50/50 bg-dark-100 backdrop-blur-md animate-in slide-in-from-top-2 duration-200 relative z-50"
         >
           <nav className="flex flex-col px-4 py-3 gap-1">
             <Link
@@ -171,6 +180,7 @@ export function Header() {
             </Link>
           </nav>
         </div>
+        </>
       )}
     </header>
   )
