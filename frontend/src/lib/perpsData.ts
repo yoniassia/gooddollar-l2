@@ -178,10 +178,10 @@ export function formatPerpsPrice(price: number): string {
       return `${sign}$${abbr.toFixed(decimals)}${suffix}`
     }
   }
-  if (abs >= 1000) return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  if (abs >= 1) return `$${price.toFixed(2)}`
-  if (abs >= 0.01) return `$${price.toFixed(4)}`
-  return `$${price.toFixed(6)}`
+  if (abs >= 1000) return `${sign}$${abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  if (abs >= 1) return `${sign}$${abs.toFixed(2)}`
+  if (abs >= 0.01) return `${sign}$${abs.toFixed(4)}`
+  return `${sign}$${abs.toFixed(6)}`
 }
 
 export function formatLargeValue(n: number): string {
@@ -195,7 +195,7 @@ export function formatLargeValue(n: number): string {
     }
   }
   if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(0)}K`
-  return `$${n.toFixed(2)}`
+  return `${sign}$${abs.toFixed(2)}`
 }
 
 export function formatFundingRate(rate: number): string {
