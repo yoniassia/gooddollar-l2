@@ -18,7 +18,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 ### 2. GoodPerps — Perpetual Futures (PRIORITY: HIGH)
 **Status:** Frontend live, PerpEngine + MarginVault + FundingRate deployed
 **Next:**
-- [ ] Backend order matching service (off-chain order book → on-chain settlement)
+- [x] Backend order matching service (off-chain order book → on-chain settlement)
 - [ ] Connect to Hyperliquid API for external liquidity/price feeds
 - [ ] Connect to dYdX, GMX for additional liquidity routing
 - [ ] Implement oracle price feeds (Pyth/Chainlink)
@@ -28,8 +28,9 @@ One chain where AI agents do everything in finance — and every transaction fun
 ### 3. GoodPredict — Prediction Markets (PRIORITY: HIGH)
 **Status:** Frontend live, MarketFactory + ConditionalTokens deployed
 **Next:**
-- [ ] Backend CLOB matching engine for YES/NO order books
-- [ ] Connect to Polymarket API for external liquidity/odds
+- [x] Backend CLOB matching engine for YES/NO order books
+- [x] Connect to Polymarket API for external liquidity/odds
+- [x] Backend → on-chain contract interaction (MarketFactory settlement)
 - [ ] Oracle/resolution system (UMA, Chainlink, manual)
 - [ ] Market creation flow (frontend → contract)
 - [ ] Frontend → real contract interaction
