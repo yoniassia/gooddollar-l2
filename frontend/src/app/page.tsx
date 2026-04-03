@@ -25,7 +25,7 @@ const PlatformShowcase = dynamic(
 
 export default function Home() {
   return (
-    <div className="w-full flex flex-col items-center relative">
+    <div className="w-full flex flex-col items-center relative overflow-x-hidden">
       {/* Hero glow effect */}
       <div
         aria-hidden="true"
