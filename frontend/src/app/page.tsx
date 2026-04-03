@@ -17,9 +17,6 @@ const UBIExplainer = dynamic(
 const PlatformShowcase = dynamic(
   () => import('@/components/PlatformShowcase').then(m => ({ default: m.PlatformShowcase }))
 )
-const LandingFooter = dynamic(
-  () => import('@/components/LandingFooter').then(m => ({ default: m.LandingFooter }))
-)
 
 export default function Home() {
   return (
@@ -78,7 +75,6 @@ export default function Home() {
       <PlatformShowcase />
       <StartSwappingCTA />
       <StatsRow />
-      <LandingFooter />
     </div>
   )
 }
