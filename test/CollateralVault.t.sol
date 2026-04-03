@@ -192,11 +192,15 @@ contract CollateralVaultTest is Test {
         // reward is capped at 225 G$; bonus = max(225 - 300, 0) = 0
         emit CollateralVault.Liquidated(liquidator, user, key, 1e18, 225e18, 0);
 
+        // Record feeSplitter state before liquidation — _openPositionAs(0xDEAD) already set lastFee.
+        // We verify that the liquidation itself does NOT call splitFee (lastFee unchanged).
+        uint256 feeSplitterLastFeeBeforeLiq = feeSplitter.lastFee();
+
         vm.prank(liquidator);
         vault.liquidate(user, TICKER);
 
-        // feeSplitter gets nothing (full collateral went to liquidator)
-        assertEq(feeSplitter.lastFee(), 0, "feeSplitter should receive 0 when capped");
+        // feeSplitter gets nothing during the capped liquidation (full collateral went to liquidator).
+        assertEq(feeSplitter.lastFee(), feeSplitterLastFeeBeforeLiq, "feeSplitter should not be called during capped liquidation");
     }
 
     /**

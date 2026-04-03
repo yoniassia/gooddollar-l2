@@ -49,6 +49,9 @@ contract MockFeeSplitter {
     }
 
     function splitFee(uint256 totalFee, address) external returns (uint256, uint256, uint256) {
+        if (totalFee > 0) {
+            token.transferFrom(msg.sender, address(this), totalFee);
+        }
         totalReceived += totalFee;
         return (totalFee / 3, totalFee / 6, totalFee / 2);
     }

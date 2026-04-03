@@ -224,21 +224,23 @@ contract CollateralVault {
         if (syntheticAsset == address(0)) revert AssetNotRegistered(key);
 
         (uint256 requiredCollateralG, uint256 fee) = _mintRequirements(key, syntheticAmount);
-        uint256 totalRequired = requiredCollateralG + fee;
 
         uint256 userCollateral = collateral[msg.sender][key];
         uint256 alreadyUsed = _collateralUsed(msg.sender, key);
         uint256 availableCollateral = userCollateral > alreadyUsed ? userCollateral - alreadyUsed : 0;
 
-        if (availableCollateral < totalRequired) {
-            revert InsufficientCollateral(availableCollateral, totalRequired);
+        // Collateral check covers only the backing requirement; fee is paid separately from wallet.
+        if (availableCollateral < requiredCollateralG) {
+            revert InsufficientCollateral(availableCollateral, requiredCollateralG);
         }
 
-        collateral[msg.sender][key] -= fee;
-        totalCollateral[key] -= fee;
         debt[msg.sender][key] += syntheticAmount;
 
+        // Fee is transferred directly from the caller's wallet so it does not reduce
+        // the collateral backing the position.
         if (fee > 0) {
+            bool ok = goodDollar.transferFrom(msg.sender, address(this), fee);
+            if (!ok) revert TransferFailed();
             goodDollar.approve(feeSplitter, fee);
             IUBIFeeSplitter(feeSplitter).splitFee(fee, address(this));
         }
