@@ -18,7 +18,16 @@ function WalletReadyWrapper({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient())
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 30_000,
+        gcTime: 5 * 60_000,
+        refetchOnWindowFocus: false,
+        retry: 2,
+      },
+    },
+  }))
   const mounted = useSyncExternalStore(noop, () => true, () => false)
 
   return (
