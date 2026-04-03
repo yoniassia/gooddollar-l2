@@ -6,6 +6,8 @@ import {
   formatUSD,
   formatHealthFactor,
   healthFactorColor,
+  getReserves,
+  getReserveBySymbol,
   type LendReserve,
 } from '@/lib/lendData'
 
@@ -124,5 +126,34 @@ describe('healthFactorColor', () => {
 
   it('returns red for hf below 1.2', () => {
     expect(healthFactorColor(1.1)).toBe('text-red-400')
+  })
+})
+
+describe('getReserves', () => {
+  it('returns an array of reserves', () => {
+    const reserves = getReserves()
+    expect(reserves.length).toBeGreaterThan(0)
+  })
+
+  it('each reserve has required fields', () => {
+    const reserves = getReserves()
+    for (const r of reserves) {
+      expect(r.symbol).toBeTruthy()
+      expect(typeof r.supplyAPY).toBe('number')
+      expect(typeof r.borrowAPY).toBe('number')
+      expect(typeof r.totalSupplied).toBe('number')
+    }
+  })
+})
+
+describe('getReserveBySymbol', () => {
+  it('returns a reserve when found', () => {
+    const reserve = getReserveBySymbol('USDC')
+    expect(reserve).toBeDefined()
+    expect(reserve?.symbol).toBe('USDC')
+  })
+
+  it('returns undefined for unknown symbol', () => {
+    expect(getReserveBySymbol('FAKE')).toBeUndefined()
   })
 })
