@@ -283,6 +283,24 @@ export default function StockDetailPage() {
               <div className="mt-1 text-xs text-gray-600">Place an order to get started</div>
             </div>
           </div>
+
+          <div className="mt-4 bg-dark-100/50 rounded-2xl border border-gray-700/10 p-4">
+            <p className="text-xs text-gray-500 mb-2">Also on GoodDollar</p>
+            <div className="flex flex-col gap-1.5">
+              <Link href="/explore" className="text-xs text-gray-400 hover:text-goodgreen transition-colors inline-flex items-center gap-1">
+                Explore crypto tokens
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </Link>
+              <Link href="/perps" className="text-xs text-gray-400 hover:text-goodgreen transition-colors inline-flex items-center gap-1">
+                Trade crypto perpetual futures
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </Link>
+              <Link href="/predict" className="text-xs text-gray-400 hover:text-goodgreen transition-colors inline-flex items-center gap-1">
+                Prediction markets
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>

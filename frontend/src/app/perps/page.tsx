@@ -6,6 +6,7 @@ import { getPairs, getPairBySymbol, getAccountSummary, formatPerpsPrice, formatL
 import { sanitizeNumericInput } from '@/lib/format'
 import { getChartData, type Timeframe } from '@/lib/chartData'
 import { useWalletReady } from '@/lib/WalletReadyContext'
+import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
 function WalletGatedTradeButton({ hasSize, exceedsMargin, children }: { hasSize: boolean; exceedsMargin: boolean; children: React.ReactNode }) {
@@ -394,6 +395,18 @@ export default function PerpsPage() {
 
       <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-3 mt-3 mb-3">
         <PairInfoBar pair={pair} />
+        <div className="flex items-center gap-3 pt-1 text-xs">
+          <Link href={`/explore/${pair.baseAsset === 'BTC' ? 'WBTC' : pair.baseAsset}`}
+            className="text-gray-500 hover:text-goodgreen transition-colors inline-flex items-center gap-1">
+            Spot {pair.baseAsset} on Explore
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          </Link>
+          <Link href={`/?buy=${pair.baseAsset === 'BTC' ? 'WBTC' : pair.baseAsset}`}
+            className="text-gray-500 hover:text-goodgreen transition-colors inline-flex items-center gap-1">
+            Swap {pair.baseAsset}
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4">
