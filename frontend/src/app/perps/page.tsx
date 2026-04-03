@@ -179,6 +179,9 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
   const [leverage, setLeverage] = useState(10)
   const [marginMode, setMarginMode] = useState<'cross' | 'isolated'>('cross')
   const [submitted, setSubmitted] = useState(false)
+  const [showTpSl, setShowTpSl] = useState(false)
+  const [tp, setTp] = useState('')
+  const [sl, setSl] = useState('')
   const walletReady = useWalletReady()
 
   useEffect(() => {
@@ -203,6 +206,21 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
     ? side === 'long'
       ? effectivePrice * (1 - 0.9 / leverage)
       : effectivePrice * (1 + 0.9 / leverage)
+    : 0
+
+  const parsedTp = parseFloat(tp)
+  const parsedSl = parseFloat(sl)
+  const tpInvalid = tp !== '' && (isNaN(parsedTp) || parsedTp <= 0 ||
+    (side === 'long' && effectivePrice > 0 && parsedTp <= effectivePrice) ||
+    (side === 'short' && effectivePrice > 0 && parsedTp >= effectivePrice))
+  const slInvalid = sl !== '' && (isNaN(parsedSl) || parsedSl <= 0 ||
+    (side === 'long' && effectivePrice > 0 && parsedSl >= effectivePrice) ||
+    (side === 'short' && effectivePrice > 0 && parsedSl <= effectivePrice))
+  const tpPnl = !isNaN(parsedTp) && parsedTp > 0 && sizeNum > 0
+    ? (side === 'long' ? (parsedTp - effectivePrice) * sizeNum : (effectivePrice - parsedTp) * sizeNum)
+    : 0
+  const slPnl = !isNaN(parsedSl) && parsedSl > 0 && sizeNum > 0
+    ? (side === 'long' ? (parsedSl - effectivePrice) * sizeNum : (effectivePrice - parsedSl) * sizeNum)
     : 0
 
   const exceedsMargin = sizeNum > 0 && marginRequired > account.availableMargin
@@ -300,6 +318,46 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
         )}
       </div>
 
+      <div>
+        <button type="button" onClick={() => setShowTpSl(!showTpSl)}
+          className="text-[11px] text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1">
+          {showTpSl ? '▾' : '▸'} TP / SL
+          {(tp || sl) && !showTpSl && (
+            <span className="text-[10px] text-gray-600 ml-1">
+              {tp ? `TP ${formatPerpsPrice(parsedTp)}` : ''}{tp && sl ? ' / ' : ''}{sl ? `SL ${formatPerpsPrice(parsedSl)}` : ''}
+            </span>
+          )}
+        </button>
+        {showTpSl && (
+          <div className="space-y-2 mt-2">
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Take Profit</label>
+              <input type="text" inputMode="decimal"
+                placeholder={side === 'long' ? `Above ${formatPerpsPrice(effectivePrice)}` : `Below ${formatPerpsPrice(effectivePrice)}`}
+                value={tp} onChange={e => setTp(sanitizeNumericInput(e.target.value))}
+                className={`w-full px-3 py-2 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 ${tpInvalid ? 'border-red-500/50' : 'border-gray-700/30'}`} />
+              {tpInvalid && tp !== '' && (
+                <p className="text-red-400 text-[10px] mt-1">
+                  {side === 'long' ? 'TP must be above entry price' : 'TP must be below entry price'}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Stop Loss</label>
+              <input type="text" inputMode="decimal"
+                placeholder={side === 'long' ? `Below ${formatPerpsPrice(effectivePrice)}` : `Above ${formatPerpsPrice(effectivePrice)}`}
+                value={sl} onChange={e => setSl(sanitizeNumericInput(e.target.value))}
+                className={`w-full px-3 py-2 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 ${slInvalid ? 'border-red-500/50' : 'border-gray-700/30'}`} />
+              {slInvalid && sl !== '' && (
+                <p className="text-red-400 text-[10px] mt-1">
+                  {side === 'long' ? 'SL must be below entry price' : 'SL must be above entry price'}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       {sizeNum > 0 && hasValidPrice && effectivePrice > 0 && (
         <div className="space-y-1 text-xs">
           <div className="flex justify-between text-gray-400"><span>Notional</span><span className="text-white truncate ml-2">{formatPerpsPrice(notional)}</span></div>
@@ -307,6 +365,12 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
           <div className="flex justify-between text-gray-400"><span>Liq. Price</span><span className="text-yellow-400 truncate ml-2">{formatPerpsPrice(liqPrice)}</span></div>
           <div className="flex justify-between text-gray-400"><span>Fee ({orderType === 'market' ? '0.05%' : '0.02%'})</span><span className="text-white truncate ml-2">{formatLargeValue(fee)}</span></div>
           <div className="flex justify-between text-goodgreen/80"><span>→ UBI (33%)</span><span className="truncate ml-2">{formatLargeValue(ubiFee)}</span></div>
+          {tpPnl !== 0 && !tpInvalid && (
+            <div className="flex justify-between text-gray-400"><span>TP P&L</span><span className={`truncate ml-2 ${tpPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>{tpPnl >= 0 ? '+' : ''}{formatPerpsPrice(tpPnl)}</span></div>
+          )}
+          {slPnl !== 0 && !slInvalid && (
+            <div className="flex justify-between text-gray-400"><span>SL P&L</span><span className={`truncate ml-2 ${slPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>{slPnl >= 0 ? '+' : ''}{formatPerpsPrice(slPnl)}</span></div>
+          )}
         </div>
       )}
 
