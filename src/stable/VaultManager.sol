@@ -518,11 +518,8 @@ contract VaultManager {
         uint256 price18,
         address token
     ) internal view returns (uint256) {
-        // Attempt to read decimals; default to 18 on failure
-        uint8 dec = 18;
-        try IERC20Decimals(token).decimals() returns (uint8 d) {
-            dec = d;
-        } catch {}
+        // Fetch decimals directly — silent failure would silently mis-scale amounts (GOO-197)
+        uint8 dec = IERC20Decimals(token).decimals();
 
         uint256 normalized;
         if (dec < 18) {

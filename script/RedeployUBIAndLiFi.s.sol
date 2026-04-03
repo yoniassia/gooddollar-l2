@@ -7,11 +7,14 @@ import "../src/swap/LiFiBridgeAggregator.sol";
 
 /**
  * @title RedeployUBIAndLiFi
- * @notice Redeploys UBIFeeSplitter (with receive()) and LiFiBridgeAggregator.
+ * @notice Redeploys UBIFeeSplitter (with receive() + ubiRecipient fix) and
+ *         LiFiBridgeAggregator.
  *
  * Required because the previously deployed UBIFeeSplitter at 0xe7f1725E...
- * was deployed before receive() was added, causing initiateSwapETH to fail
- * when routing ETH fees to the splitter.
+ * was deployed before:
+ *   1. receive() was added — causing initiateSwapETH to fail when routing ETH fees
+ *   2. ubiRecipient = _treasury was set in the constructor — causing
+ *      claimableBalance() to revert and splitFeeToken() to fail (GOO-196)
  *
  * After running this script:
  *   1. Update op-stack/addresses.json: UBIFeeSplitter → new address
@@ -20,9 +23,13 @@ import "../src/swap/LiFiBridgeAggregator.sol";
  *      - SwapPoolGdWeth:  0xA4899D35897033b927acFCf422bc745916139776
  *      - SwapPoolGdUsdc:  0xf953b3A269d80e3eB0F2947630Da976B896A8C5b
  *      - SwapPoolWethUsdc: 0xAA292E8611aDF267e563f334Ee42320aC96D0463
+ *   4. Call setUBIRecipient(ubiClaimV2Address) on the new splitter
+ *      so splitFeeToken() routes non-G$ UBI shares to the right destination
+ *      instead of falling back to the deployer address.
  *
  * Usage (devnet):
  *   PRIVATE_KEY=<key> GOOD_DOLLAR_TOKEN=0x5FbDB2315678afecb367f032d93F642f64180aa3 \
+ *   UBI_CLAIM_V2=<address> \
  *     forge script script/RedeployUBIAndLiFi.s.sol \
  *     --rpc-url $DEVNET_RPC --broadcast --legacy
  */
@@ -47,17 +54,27 @@ contract RedeployUBIAndLiFi is Script {
 
         address gdollar = vm.envOr("GOOD_DOLLAR_TOKEN", GDOLLAR);
 
+        // UBIClaimV2 address — override via env; required for setUBIRecipient to be
+        // meaningful. Falls back to deployer so the deploy doesn't revert on devnet.
+        address ubiClaimV2 = vm.envOr("UBI_CLAIM_V2", deployer);
+
         vm.startBroadcast(deployerKey);
 
-        // 1. Deploy new UBIFeeSplitter (with receive() for ETH fees)
+        // 1. Deploy new UBIFeeSplitter (with receive() and ubiRecipient fix).
+        //    Constructor sets ubiRecipient = deployer as an interim fallback.
         UBIFeeSplitter splitter = new UBIFeeSplitter(gdollar, deployer, deployer);
         console.log("UBIFeeSplitter (new):", address(splitter));
 
-        // 2. Deploy LiFiBridgeAggregator with correct addresses
+        // 2. Set the real UBI recipient so splitFeeToken() routes non-G$ UBI shares
+        //    to UBIClaimV2 instead of the deployer (fixes GOO-196).
+        splitter.setUBIRecipient(ubiClaimV2);
+        console.log("ubiRecipient set to:", ubiClaimV2);
+
+        // 3. Deploy LiFiBridgeAggregator with correct addresses
         LiFiBridgeAggregator lifi = new LiFiBridgeAggregator(deployer, address(splitter));
         console.log("LiFiBridgeAggregator (new):", address(lifi));
 
-        // 3. Whitelist tokens
+        // 4. Whitelist tokens
         address[] memory tokens = new address[](4);
         tokens[0] = gdollar;
         tokens[1] = MOCK_WETH;
