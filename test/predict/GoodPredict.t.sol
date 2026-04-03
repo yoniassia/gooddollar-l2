@@ -6,6 +6,23 @@ import "../../src/predict/ConditionalTokens.sol";
 import "../../src/predict/MarketFactory.sol";
 import "../../src/GoodDollarToken.sol";
 
+// ============ Mock Fee Splitter for Predict ============
+
+contract MockPredictFeeSplitter {
+    GoodDollarToken public immutable token;
+    uint256 public totalReceived;
+
+    constructor(address _token) {
+        token = GoodDollarToken(_token);
+    }
+
+    function splitFee(uint256 totalFee, address) external returns (uint256, uint256, uint256) {
+        token.transferFrom(msg.sender, address(this), totalFee);
+        totalReceived += totalFee;
+        return (totalFee / 3, totalFee / 6, totalFee / 2);
+    }
+}
+
 contract GoodPredictTest is Test {
     MarketFactory public factory;
     ConditionalTokens public tokens;
@@ -15,7 +32,7 @@ contract GoodPredictTest is Test {
     address public alice = address(0xA1);
     address public bob = address(0xB0);
     address public resolver = address(0xBB);
-    address public feeSplitter = address(0xFE);
+    MockPredictFeeSplitter public feeSplitter;
 
     uint256 constant INITIAL_SUPPLY = 10_000_000e18;
     uint256 public endTime;
@@ -23,7 +40,8 @@ contract GoodPredictTest is Test {
 
     function setUp() public {
         gd = new GoodDollarToken(admin, admin, INITIAL_SUPPLY);
-        factory = new MarketFactory(address(gd), feeSplitter, admin);
+        feeSplitter = new MockPredictFeeSplitter(address(gd));
+        factory = new MarketFactory(address(gd), address(feeSplitter), admin);
         tokens = factory.tokens();
 
         // Set a future end time
@@ -304,12 +322,12 @@ contract GoodPredictTest is Test {
         vm.prank(resolver);
         factory.resolve(marketId, true);
 
-        uint256 splitterBefore = gd.balanceOf(feeSplitter);
+        uint256 splitterBefore = gd.balanceOf(address(feeSplitter));
 
         vm.prank(alice);
         factory.redeem(marketId, 300e18);
 
-        assertGt(gd.balanceOf(feeSplitter), splitterBefore);
+        assertGt(gd.balanceOf(address(feeSplitter)), splitterBefore);
     }
 
     function test_redeem_voided_market_returns1to1() public {
