@@ -32,6 +32,23 @@ contract MockPerpFeed {
     }
 }
 
+// ============ Mock Fee Splitter for Perps ============
+
+contract MockPerpFeeSplitter {
+    GoodDollarToken public immutable token;
+    uint256 public totalReceived;
+
+    constructor(address _token) {
+        token = GoodDollarToken(_token);
+    }
+
+    function splitFee(uint256 totalFee, address) external returns (uint256, uint256, uint256) {
+        token.transferFrom(msg.sender, address(this), totalFee);
+        totalReceived += totalFee;
+        return (totalFee / 3, totalFee / 6, totalFee / 2);
+    }
+}
+
 contract GoodPerpsTest is Test {
     GoodDollarToken public gd;
     PriceOracle public oracle;
@@ -39,11 +56,11 @@ contract GoodPerpsTest is Test {
     FundingRate public fundingRate;
     PerpEngine public engine;
     MockPerpFeed public btcFeed;
+    MockPerpFeeSplitter public feeSplitter;
 
     address public admin = address(0xAD);
     address public alice = address(0xA1);
     address public bob = address(0xB0);
-    address public feeSplitter = address(0xFE);
 
     uint256 constant INITIAL_SUPPLY = 100_000_000e18;
     // BTC @ $50,000 with 8 decimal Chainlink = 5_000_000_000_000
@@ -64,6 +81,9 @@ contract GoodPerpsTest is Test {
         oracle.registerFeed("BTC", address(btcFeed));
         btcKey = keccak256(abi.encodePacked("BTC"));
 
+        // Deploy fee splitter mock
+        feeSplitter = new MockPerpFeeSplitter(address(gd));
+
         // Deploy vault, funding, engine
         vault = new MarginVault(address(gd), admin);
         fundingRate = new FundingRate(admin);
@@ -71,7 +91,7 @@ contract GoodPerpsTest is Test {
             address(vault),
             address(fundingRate),
             address(oracle),
-            feeSplitter,
+            address(feeSplitter),
             admin
         );
 
