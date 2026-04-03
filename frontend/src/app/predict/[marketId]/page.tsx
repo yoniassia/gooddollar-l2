@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { useAccount } from 'wagmi'
 import Link from 'next/link'
 import { getMarketById, formatVolume, getMarketStatus, getDaysLeftLabel } from '@/lib/predictData'
+import { formatLargeValue } from '@/lib/perpsData'
 import { generateProbabilityHistory } from '@/lib/chartData'
 import { ChartErrorBoundary } from '@/components/ChartErrorBoundary'
 import { useWalletReady } from '@/lib/WalletReadyContext'
@@ -40,6 +41,15 @@ const ProbabilityChart = dynamic(
     ),
   }
 )
+
+function formatShares(n: number): string {
+  const abs = Math.abs(n)
+  if (abs >= 1e12) return `${(n / 1e12).toFixed(2)}T`
+  if (abs >= 1e9) return `${(n / 1e9).toFixed(2)}B`
+  if (abs >= 1e6) return `${(n / 1e6).toFixed(2)}M`
+  if (abs >= 1e3) return `${(n / 1e3).toFixed(1)}K`
+  return n.toFixed(1)
+}
 
 function TradePanel({ market, initialSide }: { market: ReturnType<typeof getMarketById> & {}, initialSide?: 'yes' | 'no' }) {
   const [side, setSide] = useState<'yes' | 'no'>(initialSide ?? 'yes')
@@ -90,19 +100,19 @@ function TradePanel({ market, initialSide }: { market: ReturnType<typeof getMark
           </div>
           <div className="flex justify-between text-gray-400">
             <span>Est. Shares</span>
-            <span className="text-white">{shares.toFixed(1)}</span>
+            <span className="text-white">{formatShares(shares)}</span>
           </div>
           <div className="flex justify-between text-gray-400">
             <span>Potential Payout</span>
-            <span className="text-white">${potentialPayout.toFixed(2)}</span>
+            <span className="text-white">{formatLargeValue(potentialPayout)}</span>
           </div>
           <div className="flex justify-between text-gray-400">
             <span>Fee (1%)</span>
-            <span className="text-white">${fee.toFixed(2)}</span>
+            <span className="text-white">{formatLargeValue(fee)}</span>
           </div>
           <div className="flex justify-between text-goodgreen/80">
             <span>→ UBI Pool (33%)</span>
-            <span>${ubiFee.toFixed(2)}</span>
+            <span>{formatLargeValue(ubiFee)}</span>
           </div>
         </div>
       )}
