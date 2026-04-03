@@ -55,16 +55,18 @@ export function Header() {
         <nav className="hidden sm:flex items-center gap-6 text-sm text-gray-400">
           <Link href="/" className={isSwap ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Swap</Link>
           <Link href="/explore" className={isExplore ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Explore</Link>
-          <Link href="/pool" className={`relative group ${isPool ? 'text-white font-medium' : 'opacity-60 hover:opacity-80 transition-opacity'}`}>
+          <Link href="/pool" className={`relative group flex items-center gap-1.5 ${isPool ? 'text-white font-medium' : 'opacity-60 hover:opacity-80 transition-opacity'}`}>
             Pool
+            <span data-testid="soon-badge" className="text-[10px] leading-none text-goodgreen/60 bg-goodgreen/10 px-1.5 py-0.5 rounded-full">Soon</span>
             {!isPool && (
               <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-2.5 py-1 rounded-lg bg-dark-50 border border-gray-700/50 text-xs text-gray-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 Coming Soon
               </span>
             )}
           </Link>
-          <Link href="/bridge" className={`relative group ${isBridge ? 'text-white font-medium' : 'opacity-60 hover:opacity-80 transition-opacity'}`}>
+          <Link href="/bridge" className={`relative group flex items-center gap-1.5 ${isBridge ? 'text-white font-medium' : 'opacity-60 hover:opacity-80 transition-opacity'}`}>
             Bridge
+            <span data-testid="soon-badge" className="text-[10px] leading-none text-goodgreen/60 bg-goodgreen/10 px-1.5 py-0.5 rounded-full">Soon</span>
             {!isBridge && (
               <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-2.5 py-1 rounded-lg bg-dark-50 border border-gray-700/50 text-xs text-gray-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 Coming Soon

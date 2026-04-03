@@ -77,6 +77,13 @@ describe('Header', () => {
     expect(screen.queryByTestId('mobile-nav')).not.toBeInTheDocument()
   })
 
+  it('shows Soon badge for Pool and Bridge in desktop nav', () => {
+    render(<Header />)
+    const desktopNav = document.querySelector('nav.hidden.sm\\:flex')!
+    const soonBadges = desktopNav.querySelectorAll('[data-testid="soon-badge"]')
+    expect(soonBadges.length).toBe(2)
+  })
+
   it('shows Coming Soon badges for Pool and Bridge in mobile menu', () => {
     render(<Header />)
     fireEvent.click(screen.getByLabelText('Open menu'))
