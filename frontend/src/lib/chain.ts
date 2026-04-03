@@ -39,9 +39,9 @@ export const CONTRACTS = {
   // Debt tokens
   debtUSDC: '0x4a679253410272dd5232b3ff7cf5dbb88f295319' as `0x${string}`,
   debtWETH: '0x09635f643e140090a9a8dcd712ed6285858cebef' as `0x${string}`,
-  // GoodSwap — Uniswap V4 infrastructure (not yet deployed to devnet)
-  PoolManager: null as `0x${string}` | null,
-  GoodSwapRouter: null as `0x${string}` | null,
+  // GoodSwap — deployed to devnet (chain 42069), 2026-04-03
+  PoolManager: '0xC9a43158891282A2B1475592D5719c001986Aaec' as `0x${string}`,
+  GoodSwapRouter: '0x1c85638e118b37167e9298c2268758e058DdfDA0' as `0x${string}`,
   // GoodPerps — deployed to devnet (chain 42069), 2026-04-03
   PerpEngine: '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853' as `0x${string}`,
   MarginVault: '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707' as `0x${string}`,
@@ -49,4 +49,12 @@ export const CONTRACTS = {
   StocksPriceOracle: '0x0165878A594ca255338adfa4d48449f69242Eb8F' as `0x${string}`,
   CollateralVault: '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e' as `0x${string}`,
   SyntheticAssetFactory: '0x610178dA211FEF7D417bC0e6FeD39F05609AD788' as `0x${string}`,
+  // GoodStable — CDP vault system (chain 42069), deployed 2026-04-03
+  gUSD: '0x0e801d84fa97b50751dbf25036d067dcf18858bf' as `0x${string}`,
+  VaultManager: '0x5eb3bc0a489c5a8288765d2336659ebca68fcd00' as `0x${string}`,
+  CollateralRegistry: '0x9d4454b023096f34b160d6b654540c56a1f81688' as `0x${string}`,
+  // GoodStable collateral tokens (separate from GoodLend mocks)
+  StableMockWETH: '0x851356ae760d987e095750cceb3bc6014560891c' as `0x${string}`,
+  StableMockUSDC: '0xf5059a5d33d5853360d16c683c16e67980206f36' as `0x${string}`,
+  StableMockGD: '0x95401dc811bb5740090279ba06cfa8fcf6113778' as `0x${string}`,
 } as const

@@ -14,6 +14,7 @@ export function Header() {
   const isExplore = pathname === '/explore'
   const isPool = pathname === '/pool'
   const isBridge = pathname === '/bridge'
+  const isStable = pathname?.startsWith('/stable')
   const isStocks = pathname?.startsWith('/stocks')
   const isPredict = pathname?.startsWith('/predict')
   const isPerps = pathname?.startsWith('/perps')
@@ -78,6 +79,7 @@ export function Header() {
           <Link href="/predict" className={isPredict ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Predict</Link>
           <Link href="/perps" className={isPerps ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Perps</Link>
           <Link href="/lend" className={isLend ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Lend</Link>
+          <Link href="/stable" className={isStable ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Stable</Link>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -180,6 +182,13 @@ export function Header() {
               className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isLend ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
             >
               Lend
+            </Link>
+            <Link
+              href="/stable"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isStable ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
+            >
+              Stable
             </Link>
             <div className="border-t border-dark-50/50 my-1" />
             <Link

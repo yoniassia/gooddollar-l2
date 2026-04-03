@@ -551,3 +551,96 @@ export const PriceOracleABI = [
     type: 'function',
   },
 ] as const
+
+// ─── GoodStable — VaultManager ────────────────────────────────────────────────
+
+export const VaultManagerABI = [
+  {
+    inputs: [{ name: 'ilk', type: 'bytes32' }, { name: 'owner', type: 'address' }],
+    name: 'vaults',
+    outputs: [
+      { name: 'collateral', type: 'uint256' },
+      { name: 'normalizedDebt', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'ilk', type: 'bytes32' }],
+    name: 'accumulators',
+    outputs: [
+      { name: 'chi', type: 'uint256' },
+      { name: 'lastDrip', type: 'uint256' },
+      { name: 'totalNormalizedDebt', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'ilk', type: 'bytes32' }, { name: 'amount', type: 'uint256' }],
+    name: 'depositCollateral',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'ilk', type: 'bytes32' }, { name: 'amount', type: 'uint256' }],
+    name: 'withdrawCollateral',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'ilk', type: 'bytes32' }, { name: 'amount', type: 'uint256' }],
+    name: 'mintGUSD',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'ilk', type: 'bytes32' }, { name: 'amount', type: 'uint256' }],
+    name: 'repayGUSD',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const
+
+// ─── GoodStable — CollateralRegistry ─────────────────────────────────────────
+
+export const CollateralRegistryABI = [
+  {
+    inputs: [{ name: 'ilk', type: 'bytes32' }],
+    name: 'getConfig',
+    outputs: [
+      {
+        components: [
+          { name: 'token', type: 'address' },
+          { name: 'liquidationRatio', type: 'uint256' },
+          { name: 'liquidationPenalty', type: 'uint256' },
+          { name: 'debtCeiling', type: 'uint256' },
+          { name: 'stabilityFeeRate', type: 'uint256' },
+          { name: 'active', type: 'bool' },
+        ],
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'ilkCount',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: '', type: 'uint256' }],
+    name: 'ilkList',
+    outputs: [{ name: '', type: 'bytes32' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const
