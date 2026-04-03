@@ -1,5 +1,5 @@
 export interface OHLCData {
-  time: string
+  time: string | number
   open: number
   high: number
   low: number
@@ -7,25 +7,45 @@ export interface OHLCData {
   volume: number
 }
 
-function generateOHLC(basePrice: number, days: number, volatility: number = 0.02): OHLCData[] {
+interface TimeframeConfig {
+  points: number
+  intervalMs: number
+  useTimestamp: boolean
+}
+
+const TIMEFRAME_CONFIG: Record<Timeframe, TimeframeConfig> = {
+  '1D': { points: 24, intervalMs: 3_600_000, useTimestamp: true },
+  '1W': { points: 28, intervalMs: 6 * 3_600_000, useTimestamp: true },
+  '1M': { points: 30, intervalMs: 86_400_000, useTimestamp: false },
+  '3M': { points: 90, intervalMs: 86_400_000, useTimestamp: false },
+  '1Y': { points: 365, intervalMs: 86_400_000, useTimestamp: false },
+}
+
+function generateOHLC(basePrice: number, config: TimeframeConfig, volatility: number = 0.02): OHLCData[] {
+  const { points, intervalMs, useTimestamp } = config
   const data: OHLCData[] = []
-  let price = basePrice * (0.85 + Math.random() * 0.15)
-  const now = new Date()
+  const nowMs = Date.now()
 
-  for (let i = days; i >= 0; i--) {
-    const date = new Date(now)
-    date.setDate(date.getDate() - i)
-    const dateStr = date.toISOString().split('T')[0]
+  const prices: number[] = [basePrice]
+  for (let i = 1; i < points; i++) {
+    const prev = prices[0]
+    const change = (Math.random() - 0.52) * volatility * prev
+    prices.unshift(prev - change)
+  }
 
-    const change = (Math.random() - 0.48) * volatility * price
-    const open = price
-    const close = price + change
+  for (let i = 0; i < points; i++) {
+    const candleMs = nowMs - (points - 1 - i) * intervalMs
+    const time: string | number = useTimestamp
+      ? Math.floor(candleMs / 1000)
+      : new Date(candleMs).toISOString().split('T')[0]
+
+    const close = prices[i]
+    const open = i > 0 ? prices[i - 1] : close * (1 + (Math.random() - 0.5) * volatility)
     const high = Math.max(open, close) * (1 + Math.random() * volatility * 0.5)
     const low = Math.min(open, close) * (1 - Math.random() * volatility * 0.5)
     const volume = Math.floor(1_000_000 + Math.random() * 50_000_000)
 
-    data.push({ time: dateStr, open, high, low, close, volume })
-    price = close
+    data.push({ time, open, high, low, close, volume })
   }
 
   return data
@@ -35,21 +55,13 @@ const CHART_CACHE = new Map<string, Map<string, OHLCData[]>>()
 
 export type Timeframe = '1D' | '1W' | '1M' | '3M' | '1Y'
 
-const TIMEFRAME_DAYS: Record<Timeframe, number> = {
-  '1D': 1,
-  '1W': 7,
-  '1M': 30,
-  '3M': 90,
-  '1Y': 365,
-}
-
 export function getChartData(symbol: string, timeframe: Timeframe, basePrice: number): OHLCData[] {
   if (!CHART_CACHE.has(symbol)) {
     CHART_CACHE.set(symbol, new Map())
   }
   const symbolCache = CHART_CACHE.get(symbol)!
   if (!symbolCache.has(timeframe)) {
-    symbolCache.set(timeframe, generateOHLC(basePrice, TIMEFRAME_DAYS[timeframe]))
+    symbolCache.set(timeframe, generateOHLC(basePrice, TIMEFRAME_CONFIG[timeframe]))
   }
   return symbolCache.get(timeframe)!
 }

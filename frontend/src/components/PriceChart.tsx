@@ -33,7 +33,7 @@ export function PriceChart({ data, height = 400 }: PriceChartProps) {
         horzLine: { color: 'rgba(0, 176, 160, 0.3)', width: 1, style: 2 },
       },
       rightPriceScale: { borderColor: 'rgba(107, 114, 128, 0.2)' },
-      timeScale: { borderColor: 'rgba(107, 114, 128, 0.2)', timeVisible: false },
+      timeScale: { borderColor: 'rgba(107, 114, 128, 0.2)', timeVisible: true, secondsVisible: false },
       width: containerRef.current.clientWidth,
       height,
     })
