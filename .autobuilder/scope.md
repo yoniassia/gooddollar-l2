@@ -125,6 +125,16 @@ One chain where AI agents do everything in finance — and every transaction fun
 - Synthetix V3 (https://github.com/Synthetixio/synthetix-v3)
 - dHedge (https://github.com/dhedge)
 
+### 9. Governance (PRIORITY: HIGH — NEW)
+**Status:** Contracts deployed, frontend live
+**Next:**
+- [x] VoteEscrowedGD (veG$) — Curve-style vote-escrowed locking
+- [x] GoodDAO — propose/vote/queue/execute governance
+- [x] Deploy script + 29 tests passing
+- [x] Frontend: /governance page with lock/unlock/delegate/proposals UI (GOO-219)
+- [ ] Governance analytics (voting activity, proposal history charts)
+- [ ] Timelock contract (separate from DAO for multi-sig execution)
+
 ## Principles
 1. **Fork the best, adapt for UBI** — Don't reinvent. Clone proven codebases, add UBI fee routing.
 2. **External liquidity first** — Connect to existing protocols before building our own liquidity.
