@@ -1,3 +1,4 @@
+import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ChartErrorBoundary } from '../ChartErrorBoundary'
@@ -6,7 +7,7 @@ function SafeChild() {
   return <div>Chart content</div>
 }
 
-function AlwaysThrows() {
+function AlwaysThrows(): React.ReactElement {
   throw new Error('chart failed')
 }
 

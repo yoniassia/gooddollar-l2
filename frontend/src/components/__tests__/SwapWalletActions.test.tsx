@@ -6,8 +6,8 @@ vi.mock('../SwapConfirmModal', () => ({
   SwapConfirmModal: () => null,
 }))
 
-const baseToken = { symbol: 'ETH', name: 'Ether', icon: '', decimals: 18, address: '0x0' }
-const outputToken = { symbol: 'G$', name: 'GoodDollar', icon: '', decimals: 18, address: '0x1' }
+const baseToken = { symbol: 'ETH', name: 'Ether', icon: '', decimals: 18, address: '0x0', category: 'Infrastructure' as const }
+const outputToken = { symbol: 'G$', name: 'GoodDollar', icon: '', decimals: 18, address: '0x1', category: 'GoodDollar' as const }
 
 describe('SwapWalletActions hint text', () => {
   it('shows hint text when hasAmount is false', () => {
