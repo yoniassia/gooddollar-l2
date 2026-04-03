@@ -1,0 +1,36 @@
+{"timestamp":"2026-04-03T17:30:50.563Z","page":"home","check":"page_loads","passed":true,"detail":"GoodDollar — DeFi That Funds UBI"}
+{"timestamp":"2026-04-03T17:30:50.587Z","page":"home","check":"no_errors","passed":false,"detail":""}
+{"timestamp":"2026-04-03T17:30:50.590Z","page":"home","check":"swap_ui_present","passed":true,"detail":"Found"}
+{"timestamp":"2026-04-03T17:30:51.205Z","page":"stocks","check":"no_mock_data","passed":true}
+{"timestamp":"2026-04-03T17:30:51.205Z","page":"stocks","check":"has_content","passed":true,"detail":"1410 chars"}
+{"timestamp":"2026-04-03T17:30:51.836Z","page":"predict","check":"has_market_data","passed":true,"detail":"Markets visible"}
+{"timestamp":"2026-04-03T17:30:52.469Z","page":"perps","check":"no_broken_prices","passed":true,"detail":"Prices look real"}
+{"timestamp":"2026-04-03T17:30:54.478Z","page":"explorer","check":"page_loads","passed":true,"detail":"GoodDollar L2 blockchain explorer - View GoodDollar L2 stats | Blockscout"}
+{"timestamp":"2026-04-03T17:30:54.479Z","page":"explorer","check":"shows_blocks","passed":true}
+{"timestamp":"2026-04-03T17:30:55.902Z","page":"explorer/address","check":"no_error_banner","passed":true,"detail":"Clean"}
+{"timestamp":"2026-04-03T17:30:55.903Z","page":"explorer/address","check":"transactions_visible","passed":false}
+{"timestamp":"2026-04-03T17:30:56.502Z","page":"mobile","check":"no_horizontal_scroll","passed":false}
+{"timestamp":"2026-04-03T17:35:43.254Z","page":"home","check":"page_loads","passed":true,"detail":"GoodDollar — DeFi That Funds UBI"}
+{"timestamp":"2026-04-03T17:35:43.278Z","page":"home","check":"no_errors","passed":false,"detail":""}
+{"timestamp":"2026-04-03T17:35:43.280Z","page":"home","check":"swap_ui_present","passed":true,"detail":"Found"}
+{"timestamp":"2026-04-03T17:35:43.903Z","page":"stocks","check":"no_mock_data","passed":true}
+{"timestamp":"2026-04-03T17:35:43.903Z","page":"stocks","check":"has_content","passed":true,"detail":"1410 chars"}
+{"timestamp":"2026-04-03T17:35:44.512Z","page":"predict","check":"has_market_data","passed":true,"detail":"Markets visible"}
+{"timestamp":"2026-04-03T17:35:45.143Z","page":"perps","check":"no_broken_prices","passed":true,"detail":"Prices look real"}
+{"timestamp":"2026-04-03T17:35:45.901Z","page":"explorer","check":"page_loads","passed":true,"detail":"GoodDollar L2 blockchain explorer - View GoodDollar L2 stats | Blockscout"}
+{"timestamp":"2026-04-03T17:35:45.920Z","page":"explorer","check":"shows_blocks","passed":true}
+{"timestamp":"2026-04-03T17:35:47.484Z","page":"explorer/address","check":"no_error_banner","passed":true,"detail":"Clean"}
+{"timestamp":"2026-04-03T17:35:47.484Z","page":"explorer/address","check":"transactions_visible","passed":false}
+{"timestamp":"2026-04-03T17:35:48.086Z","page":"mobile","check":"no_horizontal_scroll","passed":false}
+{"timestamp":"2026-04-03T17:55:02.281Z","page":"home","check":"page_loads","passed":true,"detail":"GoodDollar — DeFi That Funds UBI"}
+{"timestamp":"2026-04-03T17:55:02.294Z","page":"home","check":"no_errors","passed":true}
+{"timestamp":"2026-04-03T17:55:02.299Z","page":"home","check":"swap_ui_present","passed":true,"detail":"Found"}
+{"timestamp":"2026-04-03T17:55:07.567Z","page":"stocks","check":"no_mock_data","passed":true}
+{"timestamp":"2026-04-03T17:55:07.567Z","page":"stocks","check":"has_content","passed":true,"detail":"428 chars"}
+{"timestamp":"2026-04-03T17:55:09.442Z","page":"predict","check":"has_market_data","passed":true,"detail":"Markets visible"}
+{"timestamp":"2026-04-03T17:55:12.468Z","page":"perps","check":"no_broken_prices","passed":true,"detail":"Prices look real"}
+{"timestamp":"2026-04-03T17:55:13.236Z","page":"explorer","check":"page_loads","passed":true,"detail":"GoodDollar L2 blockchain explorer - View GoodDollar L2 stats | Blockscout"}
+{"timestamp":"2026-04-03T17:55:13.252Z","page":"explorer","check":"shows_blocks","passed":true}
+{"timestamp":"2026-04-03T17:55:18.608Z","page":"explorer/address","check":"no_error_banner","passed":false,"detail":"Error visible"}
+{"timestamp":"2026-04-03T17:55:18.609Z","page":"explorer/address","check":"transactions_visible","passed":true}
+{"timestamp":"2026-04-03T17:55:19.852Z","page":"mobile","check":"no_horizontal_scroll","passed":false}

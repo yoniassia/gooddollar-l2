@@ -21,7 +21,7 @@ contract SyntheticAsset {
     // ============ Roles ============
 
     /// @notice The only address permitted to mint and burn tokens (CollateralVault)
-    address public immutable minter;
+    address public minter;
 
     // ============ Events ============
 
@@ -34,10 +34,23 @@ contract SyntheticAsset {
     error InsufficientBalance();
     error InsufficientAllowance();
     error ZeroAddress();
+    error AlreadyInitialized();
 
     // ============ Constructor ============
 
     constructor(string memory _name, string memory _symbol, address _minter) {
+        if (_minter == address(0)) revert ZeroAddress();
+        name = _name;
+        symbol = _symbol;
+        minter = _minter;
+    }
+
+    /**
+     * @notice One-time initializer for EIP-1167 clone instances.
+     *         Reverts if called on a directly-deployed contract (minter already set).
+     */
+    function initialize(string memory _name, string memory _symbol, address _minter) external {
+        if (minter != address(0)) revert AlreadyInitialized();
         if (_minter == address(0)) revert ZeroAddress();
         name = _name;
         symbol = _symbol;

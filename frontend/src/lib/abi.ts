@@ -401,6 +401,34 @@ export const CollateralVaultABI = [
     type: 'function',
   },
   {
+    inputs: [
+      { name: 'ticker', type: 'string' },
+      { name: 'collateralAmount', type: 'uint256' },
+      { name: 'syntheticAmount', type: 'uint256' },
+    ],
+    name: 'depositAndMint',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'user', type: 'address' },
+      { name: 'ticker', type: 'string' },
+      { name: 'syntheticAmount', type: 'uint256' },
+      { name: 'additionalCollateral', type: 'uint256' },
+    ],
+    name: 'getMintRequirements',
+    outputs: [
+      { name: 'requiredCollateral', type: 'uint256' },
+      { name: 'fee', type: 'uint256' },
+      { name: 'available', type: 'uint256' },
+      { name: 'canMint', type: 'bool' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
     inputs: [{ name: 'ticker', type: 'string' }, { name: 'amount', type: 'uint256' }],
     name: 'withdrawCollateral',
     outputs: [],
@@ -425,8 +453,9 @@ export const CollateralVaultABI = [
     inputs: [{ name: 'user', type: 'address' }, { name: 'ticker', type: 'string' }],
     name: 'getPosition',
     outputs: [
-      { name: 'collateralAmount', type: 'uint256' },
-      { name: 'debtAmount', type: 'uint256' },
+      { name: 'userCollateral', type: 'uint256' },
+      { name: 'userDebt', type: 'uint256' },
+      { name: 'ratio', type: 'uint256' },
     ],
     stateMutability: 'view',
     type: 'function',
@@ -438,6 +467,28 @@ export const CollateralVaultABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    type: 'event',
+    name: 'Minted',
+    inputs: [
+      { name: 'user', type: 'address', indexed: true },
+      { name: 'ticker', type: 'bytes32', indexed: true },
+      { name: 'syntheticAmount', type: 'uint256', indexed: false },
+      { name: 'collateralUsed', type: 'uint256', indexed: false },
+      { name: 'fee', type: 'uint256', indexed: false },
+    ],
+  },
+  {
+    type: 'event',
+    name: 'Burned',
+    inputs: [
+      { name: 'user', type: 'address', indexed: true },
+      { name: 'ticker', type: 'bytes32', indexed: true },
+      { name: 'syntheticAmount', type: 'uint256', indexed: false },
+      { name: 'collateralReturned', type: 'uint256', indexed: false },
+      { name: 'fee', type: 'uint256', indexed: false },
+    ],
+  },
 ] as const
 
 // ─── SyntheticAssetFactory ABI (list/get synthetic assets) ───────────────────
@@ -445,11 +496,14 @@ export const SyntheticAssetFactoryABI = [
   {
     inputs: [{ name: 'ticker', type: 'string' }],
     name: 'getAsset',
-    outputs: [
-      { name: 'name', type: 'string' },
-      { name: 'ticker', type: 'string' },
-      { name: 'tokenAddress', type: 'address' },
-    ],
+    outputs: [{ name: 'tokenAddress', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'key', type: 'bytes32' }],
+    name: 'keyToTicker',
+    outputs: [{ name: '', type: 'string' }],
     stateMutability: 'view',
     type: 'function',
   },
@@ -494,6 +548,31 @@ export const MarginVaultABI = [
   },
 ] as const
 
+// ─── FundingRate ABI (read cumulative index + last funding time) ─────────────
+export const FundingRateABI = [
+  {
+    inputs: [{ name: 'marketId', type: 'uint256' }],
+    name: 'cumulativeFundingIndex',
+    outputs: [{ name: '', type: 'int256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'marketId', type: 'uint256' }],
+    name: 'lastFundingTime',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'FUNDING_INTERVAL',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const
+
 // ─── ERC20 minimal ABI (approve + allowance + balanceOf) ─────────────────────
 export const ERC20ABI = [
   {
@@ -527,6 +606,18 @@ export const ERC20ABI = [
   {
     inputs: [],
     name: 'totalSupply',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const
+
+// ─── GoodLend PriceOracle (Aave-style: getAssetPrice(address) → uint256, 8 dec) ─
+
+export const GoodLendPriceOracleABI = [
+  {
+    inputs: [{ name: 'asset', type: 'address' }],
+    name: 'getAssetPrice',
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',

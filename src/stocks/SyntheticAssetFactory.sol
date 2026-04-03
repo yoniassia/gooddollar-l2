@@ -8,11 +8,19 @@ import "./SyntheticAsset.sol";
  * @notice Deploys and tracks SyntheticAsset ERC-20 tokens for listed stocks.
  *         Called by the admin (governance) to list new stocks. The vault
  *         address passed at listing time becomes the sole minter.
+ * @dev Uses EIP-1167 minimal proxy clones so that listAsset() stays well
+ *      under the 500 k-gas default call limit. A single SyntheticAsset
+ *      implementation is deployed once in the constructor; every subsequent
+ *      listing clones it (~45 bytes) and calls initialize() instead of
+ *      deploying a fresh 2 KB contract (~580 k gas → ~170 k gas per listing).
  */
 contract SyntheticAssetFactory {
     // ============ State ============
 
     address public admin;
+
+    /// @notice Shared SyntheticAsset implementation (cloned for each listing)
+    address public immutable implementation;
 
     /// @notice ticker key → SyntheticAsset address
     mapping(bytes32 => address) public assets;
@@ -32,6 +40,7 @@ contract SyntheticAssetFactory {
     error ZeroAddress();
     error AlreadyListed(string ticker);
     error NotListed(string ticker);
+    error CloneFailed();
 
     // ============ Modifiers ============
 
@@ -45,6 +54,9 @@ contract SyntheticAssetFactory {
     constructor(address _admin) {
         if (_admin == address(0)) revert ZeroAddress();
         admin = _admin;
+        // Deploy the shared implementation once.  minter = address(1) locks it
+        // against re-initialization via initialize().
+        implementation = address(new SyntheticAsset("", "", address(1)));
     }
 
     // ============ Listing ============
@@ -66,7 +78,8 @@ contract SyntheticAssetFactory {
         if (assets[key] != address(0)) revert AlreadyListed(ticker);
 
         string memory syntheticSymbol = string(abi.encodePacked("s", ticker));
-        asset = address(new SyntheticAsset(assetName, syntheticSymbol, vault));
+        asset = _clone(implementation);
+        SyntheticAsset(asset).initialize(assetName, syntheticSymbol, vault);
 
         assets[key] = asset;
         listedKeys.push(key);
@@ -126,5 +139,19 @@ contract SyntheticAssetFactory {
 
     function _key(string calldata ticker) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(ticker));
+    }
+
+    /// @notice Deploy an EIP-1167 minimal proxy pointing at `impl`.
+    function _clone(address impl) internal returns (address instance) {
+        /// @solidity memory-safe-assembly
+        assembly {
+            let ptr := mload(0x40)
+            // EIP-1167 initcode: 10-byte header + 20-byte address + 15-byte footer
+            mstore(ptr,         0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000)
+            mstore(add(ptr, 20), shl(96, impl))
+            mstore(add(ptr, 40), 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000)
+            instance := create(0, ptr, 55)
+        }
+        if (instance == address(0)) revert CloneFailed();
     }
 }

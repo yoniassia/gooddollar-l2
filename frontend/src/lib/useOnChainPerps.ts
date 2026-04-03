@@ -12,12 +12,14 @@
 
 import { useMemo } from 'react'
 import { useReadContract, useReadContracts, useAccount } from 'wagmi'
-import { PerpEngineABI, MarginVaultABI } from './abi'
+import { PerpEngineABI, MarginVaultABI, FundingRateABI } from './abi'
 import { CONTRACTS } from './chain'
 import type { PerpPair, AccountSummaryData, OpenPosition } from './perpsData'
 
 const ENGINE = CONTRACTS.PerpEngine
 const VAULT = CONTRACTS.MarginVault
+const FUNDING_RATE = CONTRACTS.FundingRate
+const FUNDING_INTERVAL_MS = 8 * 3600 * 1000 // 8 hours fallback
 
 // ─── Static market metadata (pairs the PerpEngine supports) ──────────────────
 // The on-chain PerpEngine stores markets by ID with a bytes32 key.
@@ -43,7 +45,7 @@ export function useOnChainPairs(): { pairs: PerpPair[]; isLoading: boolean; isLi
   const count = Number((countResult.data as bigint | undefined) ?? BigInt(0))
   const maxRead = Math.min(count, 10)
 
-  const contracts = useMemo(() => {
+  const marketContracts = useMemo(() => {
     if (maxRead === 0) return []
     return Array.from({ length: maxRead }, (_, i) => ({
       address: ENGINE as `0x${string}`,
@@ -53,9 +55,24 @@ export function useOnChainPairs(): { pairs: PerpPair[]; isLoading: boolean; isLi
     }))
   }, [maxRead])
 
+  const fundingContracts = useMemo(() => {
+    if (maxRead === 0) return []
+    return Array.from({ length: maxRead }, (_, i) => ({
+      address: FUNDING_RATE as `0x${string}`,
+      abi: FundingRateABI,
+      functionName: 'lastFundingTime' as const,
+      args: [BigInt(i)] as [bigint],
+    }))
+  }, [maxRead])
+
   const { data, isLoading } = useReadContracts({
-    contracts,
+    contracts: marketContracts,
     query: { enabled: maxRead > 0, refetchInterval: 30_000 },
+  })
+
+  const { data: fundingData } = useReadContracts({
+    contracts: fundingContracts,
+    query: { enabled: maxRead > 0, refetchInterval: 60_000 },
   })
 
   const pairs = useMemo<PerpPair[]>(() => {
@@ -75,6 +92,13 @@ export function useOnChainPairs(): { pairs: PerpPair[]; isLoading: boolean; isLi
         maxLeverage: 10,
       }
 
+      const lastFundingTime = fundingData?.[i]?.status === 'success'
+        ? Number(fundingData[i].result as bigint) * 1000  // convert seconds to ms
+        : 0
+      const nextFundingTime = lastFundingTime > 0
+        ? lastFundingTime + FUNDING_INTERVAL_MS
+        : Date.now() + FUNDING_INTERVAL_MS
+
       result.push({
         symbol: meta.symbol,
         baseAsset: meta.baseAsset,
@@ -83,14 +107,14 @@ export function useOnChainPairs(): { pairs: PerpPair[]; isLoading: boolean; isLi
         indexPrice: 0,
         change24h: 0,
         volume24h: 0,
-        fundingRate: 0,
-        nextFundingTime: Date.now() + 8 * 3600 * 1000,
+        fundingRate: 0,    // rate requires mark/index prices from oracle
+        nextFundingTime,
         openInterest: 0,
         maxLeverage: Number(maxLeverage),
       })
     }
     return result
-  }, [data])
+  }, [data, fundingData])
 
   return { pairs, isLoading, isLive: pairs.length > 0 }
 }

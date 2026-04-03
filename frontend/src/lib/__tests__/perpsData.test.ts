@@ -59,26 +59,13 @@ describe('formatFundingRate', () => {
 })
 
 describe('getPairs', () => {
-  it('returns an array of trading pairs', () => {
-    const pairs = getPairs()
-    expect(pairs.length).toBeGreaterThan(0)
-  })
-
-  it('includes BTC-USD and ETH-USD', () => {
-    const symbols = getPairs().map(p => p.symbol)
-    expect(symbols).toContain('BTC-USD')
-    expect(symbols).toContain('ETH-USD')
+  it('returns empty array (deprecated — use useOnChainPairs() hook instead)', () => {
+    expect(getPairs()).toEqual([])
   })
 })
 
 describe('getPairBySymbol', () => {
-  it('returns the pair when found', () => {
-    const pair = getPairBySymbol('BTC-USD')
-    expect(pair).toBeDefined()
-    expect(pair?.symbol).toBe('BTC-USD')
-  })
-
-  it('returns undefined for unknown symbol', () => {
-    expect(getPairBySymbol('FAKE-USD')).toBeUndefined()
+  it('returns undefined (deprecated — use useOnChainPairs() hook instead)', () => {
+    expect(getPairBySymbol('BTC-USD')).toBeUndefined()
   })
 })

@@ -1,0 +1,170 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: G$
+        - generic [ref=e7]: GoodDollar
+      - generic [ref=e8]:
+        - link "Portfolio" [ref=e9] [cursor=pointer]:
+          - /url: /portfolio
+          - img [ref=e10]
+        - button "Recent activity" [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+        - button "Open menu" [ref=e16] [cursor=pointer]:
+          - img [ref=e17]
+        - button [ref=e19] [cursor=pointer]:
+          - img [ref=e21]
+  - main [ref=e23]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - heading "Trade. Predict. Invest. Fund UBI." [level=1] [ref=e26]
+        - paragraph [ref=e27]: Every swap, prediction, and trade on GoodDollar automatically funds universal basic income for verified humans worldwide.
+        - paragraph [ref=e28]:
+          - generic [ref=e30]: $2.4M
+          - text: already distributed to
+          - generic [ref=e31]: 640K+
+          - text: people worldwide
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - heading "Swap" [level=2] [ref=e36]
+          - generic [ref=e37]:
+            - button "0.1% funds UBI" [ref=e39] [cursor=pointer]:
+              - img [ref=e40]
+              - text: 0.1% funds UBI
+            - button "Settings" [ref=e43] [cursor=pointer]:
+              - img [ref=e44]
+        - generic [ref=e47]:
+          - generic [ref=e49]: You pay
+          - generic [ref=e50]:
+            - textbox "0" [ref=e51]
+            - button "ETH" [ref=e52] [cursor=pointer]:
+              - img [ref=e54]
+              - generic [ref=e62]: ETH
+              - img [ref=e63]
+        - button [ref=e66] [cursor=pointer]:
+          - img [ref=e67]
+        - generic [ref=e69]:
+          - generic [ref=e71]: You receive
+          - generic [ref=e72]:
+            - generic [ref=e74]: "0"
+            - button "G$" [ref=e75] [cursor=pointer]:
+              - img [ref=e77]:
+                - generic [ref=e79]: G$
+              - generic [ref=e80]: G$
+              - img [ref=e81]
+        - generic [ref=e83]:
+          - button "Enter an Amount" [disabled] [ref=e84]
+          - paragraph [ref=e85]: Try swapping ETH → G$ — 0.1% of fees fund basic income for 640K+ people
+      - generic [ref=e86]:
+        - heading "How It Works" [level=2] [ref=e87]
+        - generic [ref=e88]:
+          - generic [ref=e89]:
+            - generic [ref=e90]: "1"
+            - img [ref=e92]
+            - heading "Trade Any Asset" [level=3] [ref=e94]
+            - paragraph [ref=e95]: Swap tokens, trade stocks, predict events, or trade perpetual futures — all on one platform.
+          - generic [ref=e96]:
+            - generic [ref=e97]: "2"
+            - img [ref=e99]
+            - heading "Fees Fund UBI" [level=3] [ref=e101]
+            - paragraph [ref=e102]: 33% of every trading fee goes directly to the GoodDollar UBI pool — automatically.
+          - generic [ref=e103]:
+            - generic [ref=e104]: "3"
+            - img [ref=e106]
+            - heading "People Earn Income" [level=3] [ref=e108]
+            - paragraph [ref=e109]: Verified humans worldwide receive daily universal basic income payouts from the pool.
+      - generic [ref=e111]:
+        - heading "Your Fees, Their Income" [level=2] [ref=e112]
+        - paragraph [ref=e113]: Universal Basic Income (UBI) is a regular cash payment to every verified human, regardless of employment. GoodDollar has distributed UBI to 640,000+ people worldwide since 2020 — funded by platform trading fees.
+        - generic [ref=e114]:
+          - generic [ref=e115]:
+            - generic [ref=e116]:
+              - img [ref=e118]
+              - generic [ref=e120]: Your Trade
+            - img [ref=e121]
+          - generic [ref=e123]:
+            - generic [ref=e124]:
+              - img [ref=e126]
+              - generic [ref=e128]: 33% Fee
+            - img [ref=e129]
+          - generic [ref=e131]:
+            - generic [ref=e132]:
+              - img [ref=e134]
+              - generic [ref=e136]: UBI Pool
+            - img [ref=e137]
+          - generic [ref=e140]:
+            - img [ref=e142]
+            - generic [ref=e144]: 640K+ People
+      - generic [ref=e145]:
+        - heading "Explore the Platform" [level=2] [ref=e146]
+        - paragraph [ref=e147]: Every product on GoodDollar routes fees to universal basic income.
+        - generic [ref=e148]:
+          - link "GoodSwap Swap any token with 0.1% fees funding UBI. Start Swapping →" [ref=e149] [cursor=pointer]:
+            - /url: /swap
+            - generic [ref=e150]:
+              - img [ref=e152]
+              - generic [ref=e154]: GoodSwap
+            - paragraph [ref=e155]: Swap any token with 0.1% fees funding UBI.
+            - generic [ref=e156]: Start Swapping →
+          - link "GoodStocks Trade synthetic equities 24/7. Fractional shares. Every trade funds UBI. View Stocks →" [ref=e157] [cursor=pointer]:
+            - /url: /stocks
+            - generic [ref=e158]:
+              - img [ref=e160]
+              - generic [ref=e162]: GoodStocks
+            - paragraph [ref=e163]: Trade synthetic equities 24/7. Fractional shares. Every trade funds UBI.
+            - generic [ref=e164]: View Stocks →
+          - link "GoodPredict Bet on real-world events. Every trade funds UBI. View Markets →" [ref=e165] [cursor=pointer]:
+            - /url: /predict
+            - generic [ref=e166]:
+              - img [ref=e168]
+              - generic [ref=e170]: GoodPredict
+            - paragraph [ref=e171]: Bet on real-world events. Every trade funds UBI.
+            - generic [ref=e172]: View Markets →
+          - link "GoodPerps Trade perpetual futures with up to 50x leverage. Every fee funds UBI. Trade Perps →" [ref=e173] [cursor=pointer]:
+            - /url: /perps
+            - generic [ref=e174]:
+              - img [ref=e176]
+              - generic [ref=e178]: GoodPerps
+            - paragraph [ref=e179]: Trade perpetual futures with up to 50x leverage. Every fee funds UBI.
+            - generic [ref=e180]: Trade Perps →
+          - link "GoodLend Supply and borrow assets. Earn interest while funding UBI. Lend Now →" [ref=e181] [cursor=pointer]:
+            - /url: /lend
+            - generic [ref=e182]:
+              - img [ref=e184]
+              - generic [ref=e186]: GoodLend
+            - paragraph [ref=e187]: Supply and borrow assets. Earn interest while funding UBI.
+            - generic [ref=e188]: Lend Now →
+          - link "GoodStable Mint gUSD stablecoin by locking collateral. 33% of fees fund UBI. Open Vault →" [ref=e189] [cursor=pointer]:
+            - /url: /stable
+            - generic [ref=e190]:
+              - img [ref=e192]
+              - generic [ref=e194]: GoodStable
+            - paragraph [ref=e195]: Mint gUSD stablecoin by locking collateral. 33% of fees fund UBI.
+            - generic [ref=e196]: Open Vault →
+      - button "Start Trading →" [ref=e198] [cursor=pointer]:
+        - text: Start Trading
+        - generic [ref=e199]: →
+      - generic [ref=e201]:
+        - generic [ref=e202]:
+          - generic [ref=e203]: $2.4M
+          - generic [ref=e204]: UBI Distributed
+        - generic [ref=e205]:
+          - generic [ref=e206]: 640K+
+          - generic [ref=e207]: Daily Claimers
+        - generic [ref=e208]:
+          - generic [ref=e209]: 1.2M
+          - generic [ref=e210]: Total Swaps
+  - contentinfo [ref=e211]:
+    - generic [ref=e212]:
+      - paragraph [ref=e213]: Powered by GoodDollar L2
+      - navigation [ref=e214]:
+        - link "Docs" [ref=e215] [cursor=pointer]:
+          - /url: https://docs.gooddollar.org
+        - link "GitHub" [ref=e216] [cursor=pointer]:
+          - /url: https://github.com/GoodDollar
+        - link "Community" [ref=e217] [cursor=pointer]:
+          - /url: https://community.gooddollar.org
+```

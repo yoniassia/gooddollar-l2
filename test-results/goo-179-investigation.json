@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Normal Load",
+    "errorSnapshots": [],
+    "consoleErrors": [],
+    "jsErrors": [],
+    "totalSnapshots": 3
+  },
+  {
+    "name": "Slow 3G",
+    "errorSnapshots": [],
+    "consoleErrors": [],
+    "jsErrors": [],
+    "totalSnapshots": 3
+  },
+  {
+    "name": "Fresh User No Cache",
+    "errorSnapshots": [],
+    "consoleErrors": [],
+    "jsErrors": [],
+    "totalSnapshots": 3
+  }
+]

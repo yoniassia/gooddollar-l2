@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "forge-std/interfaces/IERC20.sol";
+
 /**
  * @title GoodLendToken (gToken)
  * @notice Interest-bearing receipt token for GoodLend deposits, inspired by Aave's aToken.
@@ -48,6 +50,8 @@ contract GoodLendToken {
         underlyingAsset = _underlying;
         name = _name;
         symbol = _symbol;
+        // Allow the pool to pull underlying out of this gToken for borrows and withdrawals.
+        IERC20(_underlying).approve(_pool, type(uint256).max);
     }
 
     // ============ Read Functions ============

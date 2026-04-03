@@ -117,15 +117,8 @@ export function useMintSynthetic() {
       await writeContractAsync({
         address: VAULT,
         abi: CollateralVaultABI,
-        functionName: 'depositCollateral',
-        args: [ticker, collateralAmount],
-      })
-
-      await writeContractAsync({
-        address: VAULT,
-        abi: CollateralVaultABI,
-        functionName: 'mint',
-        args: [ticker, mintAmount],
+        functionName: 'depositAndMint',
+        args: [ticker, collateralAmount, mintAmount],
       })
       setPhase('done')
     } catch (err: unknown) {
