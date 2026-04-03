@@ -83,7 +83,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 **Next:**
 - [x] Contract verification on Blockscout — 15/16 verified (ConditionalTokens factory-created, unverifiable)
 - [x] Subgraph / indexer for each protocol — backend/indexer/ with SQLite + REST API (GOO-210)
-- [ ] RPC load balancing
+- [x] RPC load balancing — backend/rpc-balancer with weighted-least-connections, health checks, failover, metrics
 - [x] Monitoring & alerting — backend/monitor/ with CLI checks + daemon API (GOO-211)
 - [ ] Move from Anvil to full OP Stack (op-geth + op-node + op-batcher)
 
