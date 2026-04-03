@@ -5,6 +5,7 @@ import "forge-std/Script.sol";
 import "../src/hooks/UBIFeeHook.sol";
 import "../src/GoodDollarToken.sol";
 import "../src/UBIFeeSplitter.sol";
+import "../src/swap/GoodSwapRouter.sol";
 
 /**
  * @title DeployGoodSwap
@@ -54,21 +55,7 @@ contract MockPoolManager {
     }
 }
 
-/**
- * @notice Minimal GoodSwapRouter stub.
- * @dev The production router will inherit SafeCallback from v4-periphery and
- *      implement unlockCallback() to execute swaps via the PoolManager.
- *      This stub records the PoolManager reference so the frontend can read it.
- */
-contract GoodSwapRouter {
-    address public immutable poolManager;
-    address public immutable owner;
-
-    constructor(address _poolManager, address _owner) {
-        poolManager = _poolManager;
-        owner = _owner;
-    }
-}
+// GoodSwapRouter is imported from src/swap/GoodSwapRouter.sol
 
 // ─── HookMiner ────────────────────────────────────────────────────────────────
 
@@ -188,9 +175,9 @@ contract DeployGoodSwap is Script {
             console.log("Hook seeded with 1M G$");
         }
 
-        // 5. GoodSwapRouter stub
-        //    TODO: replace with real SafeCallback router from v4-periphery
-        GoodSwapRouter router = new GoodSwapRouter(address(poolManager), deployer);
+        // 5. GoodSwapRouter — real UniV2-style router wrapping GoodPool contracts.
+        //    Pools must be registered after creation pools are deployed.
+        GoodSwapRouter router = new GoodSwapRouter(deployer);
         console.log("GoodSwapRouter:", address(router));
 
         vm.stopBroadcast();

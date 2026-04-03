@@ -848,3 +848,65 @@ export const GoodPoolABI = [
     type: 'event',
   },
 ] as const
+
+export const GoodSwapRouterABI = [
+  {
+    inputs: [{ name: 'amountIn', type: 'uint256' }, { name: 'tokenIn', type: 'address' }, { name: 'tokenOut', type: 'address' }],
+    name: 'getAmountOut',
+    outputs: [{ name: 'amountOut', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'amountOut', type: 'uint256' }, { name: 'tokenIn', type: 'address' }, { name: 'tokenOut', type: 'address' }],
+    name: 'getAmountIn',
+    outputs: [{ name: 'amountIn', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'tokenIn', type: 'address' }, { name: 'tokenOut', type: 'address' }],
+    name: 'getPool',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'amountIn', type: 'uint256' },
+      { name: 'amountOutMin', type: 'uint256' },
+      { name: 'path', type: 'address[]' },
+      { name: 'to', type: 'address' },
+      { name: 'deadline', type: 'uint256' },
+    ],
+    name: 'swapExactTokensForTokens',
+    outputs: [{ name: 'amountOut', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'amountOut', type: 'uint256' },
+      { name: 'amountInMax', type: 'uint256' },
+      { name: 'path', type: 'address[]' },
+      { name: 'to', type: 'address' },
+      { name: 'deadline', type: 'uint256' },
+    ],
+    name: 'swapTokensForExactTokens',
+    outputs: [{ name: 'amountIn', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'tokenIn', type: 'address' },
+      { indexed: true, name: 'tokenOut', type: 'address' },
+      { indexed: false, name: 'amountIn', type: 'uint256' },
+      { indexed: false, name: 'amountOut', type: 'uint256' },
+      { indexed: true, name: 'to', type: 'address' },
+    ],
+    name: 'Swap',
+    type: 'event',
+  },
+] as const

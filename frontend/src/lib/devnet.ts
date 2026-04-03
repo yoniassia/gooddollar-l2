@@ -125,4 +125,5 @@ export {
   VaultManagerABI,
   CollateralRegistryABI,
   GoodPoolABI,
+  GoodSwapRouterABI,
 } from './abi'
