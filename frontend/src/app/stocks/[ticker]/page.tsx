@@ -51,7 +51,10 @@ function OrderForm({ stock }: { stock: { ticker: string; price: number } }) {
   const [submitted, setSubmitted] = useState(false)
   const walletReady = useWalletReady()
 
-  const effectivePrice = orderType === 'limit' && limitPrice ? parseFloat(limitPrice) : stock.price
+  const parsedLimitPrice = parseFloat(limitPrice)
+  const limitPriceInvalid = orderType === 'limit' && limitPrice !== '' && (isNaN(parsedLimitPrice) || parsedLimitPrice <= 0)
+  const hasValidPrice = orderType === 'market' || parsedLimitPrice > 0
+  const effectivePrice = orderType === 'limit' && parsedLimitPrice > 0 ? parsedLimitPrice : (orderType === 'limit' ? 0 : stock.price)
   const shares = amount && effectivePrice > 0 ? parseFloat(amount) / effectivePrice : 0
   const fee = amount ? parseFloat(amount) * 0.001 : 0
   const ubiFee = fee * 0.33
@@ -59,7 +62,7 @@ function OrderForm({ stock }: { stock: { ticker: string; price: number } }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!amount || parseFloat(amount) <= 0) return
+    if (!amount || parseFloat(amount) <= 0 || limitPriceInvalid || !hasValidPrice) return
     setSubmitted(true)
     setTimeout(() => setSubmitted(false), 3000)
   }
@@ -92,7 +95,10 @@ function OrderForm({ stock }: { stock: { ticker: string; price: number } }) {
         <div className="mb-3">
           <label className="text-xs text-gray-400 mb-1 block">Limit Price</label>
           <input type="text" inputMode="decimal" placeholder="0.00" value={limitPrice} onChange={e => setLimitPrice(sanitizeNumericInput(e.target.value))}
-            className="w-full px-3 py-2.5 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
+            className={`w-full px-3 py-2.5 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 ${limitPriceInvalid ? 'border-red-500/50' : 'border-gray-700/30'}`} />
+          {limitPriceInvalid && (
+            <p className="text-red-400 text-[10px] mt-1">Price must be greater than 0</p>
+          )}
         </div>
       )}
 
@@ -102,7 +108,7 @@ function OrderForm({ stock }: { stock: { ticker: string; price: number } }) {
           className="w-full px-3 py-2.5 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
       </div>
 
-      {amount && parseFloat(amount) > 0 && (
+      {amount && parseFloat(amount) > 0 && hasValidPrice && effectivePrice > 0 && (
         <div className="mb-4 space-y-1.5 text-xs">
           <div className="flex justify-between text-gray-400">
             <span>Est. Shares</span>
@@ -124,16 +130,16 @@ function OrderForm({ stock }: { stock: { ticker: string; price: number } }) {
       )}
 
       {walletReady ? (
-        <WalletGatedTradeButton hasAmount={hasAmount}>
-          <button type="submit"
-            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
+        <WalletGatedTradeButton hasAmount={hasAmount && hasValidPrice}>
+          <button type="submit" disabled={limitPriceInvalid || !hasValidPrice}
+            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
               side === 'buy' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
             }`}>
             {submitted ? 'Order Submitted!' : `${side === 'buy' ? 'Buy' : 'Sell'} ${stock.ticker}`}
           </button>
         </WalletGatedTradeButton>
       ) : (
-        <button type="submit" disabled={!hasAmount}
+        <button type="submit" disabled={!hasAmount || limitPriceInvalid || !hasValidPrice}
           className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
             side === 'buy' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
           }`}>

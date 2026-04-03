@@ -187,21 +187,28 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
   }, [pair.maxLeverage, leverage])
 
   const sizeNum = parseFloat(size) || 0
-  const effectivePrice = orderType === 'market' ? pair.markPrice : (parseFloat(limitPrice) || pair.markPrice)
+  const parsedLimitPrice = parseFloat(limitPrice)
+  const limitPriceInvalid = orderType !== 'market' && limitPrice !== '' && (isNaN(parsedLimitPrice) || parsedLimitPrice <= 0)
+  const parsedTriggerPrice = parseFloat(triggerPrice)
+  const triggerPriceInvalid = orderType === 'stop-limit' && triggerPrice !== '' && (isNaN(parsedTriggerPrice) || parsedTriggerPrice <= 0)
+  const hasValidPrice = orderType === 'market' || (parsedLimitPrice > 0 && (orderType !== 'stop-limit' || parsedTriggerPrice > 0))
+  const effectivePrice = orderType === 'market' ? pair.markPrice : (parsedLimitPrice > 0 ? parsedLimitPrice : 0)
   const notional = sizeNum * effectivePrice
-  const marginRequired = notional / leverage
+  const marginRequired = effectivePrice > 0 ? notional / leverage : 0
   const feeRate = orderType === 'market' ? 0.0005 : 0.0002
   const fee = notional * feeRate
   const ubiFee = fee * 0.33
-  const liqPrice = side === 'long'
-    ? effectivePrice * (1 - 0.9 / leverage)
-    : effectivePrice * (1 + 0.9 / leverage)
+  const liqPrice = effectivePrice > 0
+    ? side === 'long'
+      ? effectivePrice * (1 - 0.9 / leverage)
+      : effectivePrice * (1 + 0.9 / leverage)
+    : 0
 
   const exceedsMargin = sizeNum > 0 && marginRequired > account.availableMargin
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (sizeNum <= 0 || exceedsMargin) return
+    if (sizeNum <= 0 || exceedsMargin || !hasValidPrice || limitPriceInvalid || triggerPriceInvalid) return
     setSubmitted(true)
     setTimeout(() => setSubmitted(false), 3000)
   }
@@ -246,7 +253,10 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
           <label className="text-xs text-gray-400 mb-1 block">Trigger Price</label>
           <input type="text" inputMode="decimal" placeholder={formatPerpsPrice(pair.markPrice)}
             value={triggerPrice} onChange={e => setTriggerPrice(sanitizeNumericInput(e.target.value))}
-            className="w-full px-3 py-2 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
+            className={`w-full px-3 py-2 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 ${triggerPriceInvalid ? 'border-red-500/50' : 'border-gray-700/30'}`} />
+          {triggerPriceInvalid && (
+            <p className="text-red-400 text-[10px] mt-1">Price must be greater than 0</p>
+          )}
         </div>
       )}
 
@@ -255,7 +265,10 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
           <label className="text-xs text-gray-400 mb-1 block">Limit Price</label>
           <input type="text" inputMode="decimal" placeholder={formatPerpsPrice(pair.markPrice)}
             value={limitPrice} onChange={e => setLimitPrice(sanitizeNumericInput(e.target.value))}
-            className="w-full px-3 py-2 rounded-xl bg-dark-50 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50" />
+            className={`w-full px-3 py-2 rounded-xl bg-dark-50 border text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 ${limitPriceInvalid ? 'border-red-500/50' : 'border-gray-700/30'}`} />
+          {limitPriceInvalid && (
+            <p className="text-red-400 text-[10px] mt-1">Price must be greater than 0</p>
+          )}
         </div>
       )}
 
@@ -269,7 +282,7 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
         )}
       </div>
 
-      {sizeNum > 0 && (
+      {sizeNum > 0 && hasValidPrice && effectivePrice > 0 && (
         <div className="space-y-1 text-xs">
           <div className="flex justify-between text-gray-400"><span>Notional</span><span className="text-white truncate ml-2">{formatPerpsPrice(notional)}</span></div>
           <div className="flex justify-between text-gray-400"><span>Margin</span><span className="text-white truncate ml-2">{formatPerpsPrice(marginRequired)}</span></div>
@@ -281,7 +294,7 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
 
       {walletReady ? (
         <WalletGatedTradeButton hasSize={sizeNum > 0} exceedsMargin={exceedsMargin}>
-          <button type="submit" disabled={exceedsMargin}
+          <button type="submit" disabled={exceedsMargin || limitPriceInvalid || triggerPriceInvalid || !hasValidPrice}
             className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
               side === 'long' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
             }`}>
@@ -289,7 +302,7 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
           </button>
         </WalletGatedTradeButton>
       ) : (
-        <button type="submit" disabled={sizeNum <= 0 || exceedsMargin}
+        <button type="submit" disabled={sizeNum <= 0 || exceedsMargin || limitPriceInvalid || triggerPriceInvalid || !hasValidPrice}
           className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
             side === 'long' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
           }`}>
