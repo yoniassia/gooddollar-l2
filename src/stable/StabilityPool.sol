@@ -20,12 +20,7 @@ pragma solidity ^0.8.20;
  * auditability. A future upgrade can layer the P/S model on top.
  */
 
-interface IgUSD {
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-    function transfer(address to, uint256 amount) external returns (bool);
-    function burn(uint256 amount) external;
-    function balanceOf(address account) external view returns (uint256);
-}
+import "./interfaces/IGoodStable.sol";
 
 interface IERC20Transfer {
     function transfer(address to, uint256 amount) external returns (bool);

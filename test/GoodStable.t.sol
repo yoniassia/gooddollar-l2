@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import "../src/stable/gUSD.sol";
+import "../src/stable/interfaces/IGoodStable.sol";
 import "../src/stable/CollateralRegistry.sol";
 import "../src/stable/VaultManager.sol";
 import "../src/stable/StabilityPool.sol";

@@ -21,27 +21,16 @@ pragma solidity ^0.8.20;
  *   - Admin can withdraw surplus USDC (over backing) for yield strategies.
  */
 
-interface IgUSDMinter {
-    function mint(address to, uint256 amount) external;
-    function burn(uint256 amount) external;
-    function burnFrom(address from, uint256 amount) external;
-    function transfer(address to, uint256 amount) external returns (bool);
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-    function approve(address spender, uint256 amount) external returns (bool);
-    function balanceOf(address account) external view returns (uint256);
-}
+import "./interfaces/IGoodStable.sol";
+
+/// @dev Alias for readability — IgUSD has all needed methods
+interface IgUSDMinter is IgUSD {}
 
 interface IUSDC {
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
     function transfer(address to, uint256 amount) external returns (bool);
     function balanceOf(address account) external view returns (uint256);
     function decimals() external view returns (uint8);
-}
-
-interface IUBIFeeSplitter {
-    function splitFee(uint256 totalFee, address dAppRecipient)
-        external
-        returns (uint256 ubiShare, uint256 protocolShare, uint256 dAppShare);
 }
 
 contract PegStabilityModule {

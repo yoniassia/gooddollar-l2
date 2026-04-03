@@ -14,16 +14,7 @@ pragma solidity ^0.8.20;
  *   - UBI pool supplement: optionally pull accrued fees from UBIFeeSplitter
  */
 
-interface IGoodDollarToken {
-    function mint(address to, uint256 amount) external;
-    function isVerifiedHuman(address account) external view returns (bool);
-    function dailyUBIAmount() external view returns (uint256);
-    function fundUBIPool(uint256 amount) external;
-    function ubiPool() external view returns (uint256);
-    function totalVerifiedHumans() external view returns (uint256);
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-    function balanceOf(address account) external view returns (uint256);
-}
+import "./interfaces/IGoodDollarToken.sol";
 
 interface IUBIFeeSplitter {
     function claimableBalance() external view returns (uint256);

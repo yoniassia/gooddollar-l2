@@ -48,15 +48,16 @@ One chain where AI agents do everything in finance — and every transaction fun
 **Research:** Study Aave V3 codebase, Compound V3, Morpho, Euler
 
 ### 5. GoodStable — Decentralized Stablecoin (PRIORITY: MEDIUM — NEW)
-**Status:** Nothing built yet
+**Status:** Core contracts deployed on devnet, 27 tests passing
 **Next:**
-- [ ] Fork MakerDAO/DAI CDP mechanics
-- [ ] gUSD stablecoin contract (mint by depositing collateral)
-- [ ] Collateral types: ETH, G$, USDC (with different ratios)
-- [ ] Stability fee → UBI pool
-- [ ] Liquidation engine (surplus → UBI)
-- [ ] Peg stability module (PSM)
+- [x] Fork MakerDAO/DAI CDP mechanics
+- [x] gUSD stablecoin contract (mint by depositing collateral)
+- [x] Collateral types: ETH, G$, USDC (with different ratios)
+- [x] Stability fee → UBI pool
+- [x] Liquidation engine (surplus → UBI)
+- [x] Peg stability module (PSM)
 - [ ] Frontend: vault management UI
+- [ ] Liquidation bot
 **Research:** Study MakerDAO (DSS), Liquity, RAI, crvUSD, GHO (Aave)
 
 ### 6. GoodStocks — Tokenized Equities (PRIORITY: MEDIUM)

@@ -7,12 +7,7 @@ pragma solidity ^0.8.20;
  *         A percentage of ALL fees goes to the UBI pool.
  * @dev dApps call `splitFee()` to automatically route the UBI portion.
  */
-interface IGoodDollarToken {
-    function fundUBIPool(uint256 amount) external;
-    function transfer(address to, uint256 amount) external returns (bool);
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-    function balanceOf(address account) external view returns (uint256);
-}
+import "./interfaces/IGoodDollarToken.sol";
 
 contract UBIFeeSplitter {
     IGoodDollarToken public immutable goodDollar;
