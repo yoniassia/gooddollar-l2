@@ -1,70 +1,130 @@
-# GoodDollar L2 — Scope
+# GoodDollar L2 — Autobuilder Scope
 
 ## Vision
-The UBI Chain. An OP Stack L2 where every transaction funds universal basic income for verified humans. Every major Ethereum dApp cloned, improved by AI agents, with fees routing to UBI.
+One chain where AI agents do everything in finance — and every transaction funds UBI for humans. See docs/VISION.md for the full picture.
 
-## Target Users
-1. **Claimers** — 640K+ existing GoodDollar users → billions
-2. **DeFi users** — anyone who wants their DeFi activity to fund UBI
-3. **Validators** — stake G$ to run infrastructure, earn rewards
-4. **Developers** — build dApps where fees automatically fund UBI
-5. **AI Agents** — autonomous trading/arbitrage agents that pay fees → UBI
+## Active Workstreams
 
-## Core Features (Must Have)
+### 1. GoodSwap — DEX & Cross-Chain Swaps (PRIORITY: HIGH)
+**Status:** Frontend live, Uniswap V4 hook deployed, no real swaps yet
+**Next:**
+- [ ] Deploy Uniswap V4 pool factory + router on devnet
+- [ ] Create initial liquidity pools (G$/ETH, G$/USDC, ETH/USDC)
+- [ ] Connect frontend to real on-chain swap execution
+- [ ] Li.Fi / bridge aggregator integration for cross-chain swaps
+- [ ] Price feed integration (CoinGecko API → on-chain oracles)
+**Research:** Study Uniswap V4 hooks, Li.Fi SDK, 1inch aggregator
 
-### Phase 1: Chain Infrastructure
-- [ ] OP Stack L2 deployment (testnet → mainnet)
-- [ ] G$ as native gas token
-- [ ] Daily UBI claim contract (gas-free for claimers)
-- [ ] Identity/proof-of-personhood registry
-- [ ] UBI fee splitter (all dApp fees → % to UBI pool)
-- [ ] Validator staking contract
-- [ ] Bridge: Ethereum ↔ GoodDollar L2 (G$, ETH, USDC)
-- [ ] Block explorer (Blockscout)
+### 2. GoodPerps — Perpetual Futures (PRIORITY: HIGH)
+**Status:** Frontend live, PerpEngine + MarginVault + FundingRate deployed
+**Next:**
+- [ ] Backend order matching service (off-chain order book → on-chain settlement)
+- [ ] Connect to Hyperliquid API for external liquidity/price feeds
+- [ ] Connect to dYdX, GMX for additional liquidity routing
+- [ ] Implement oracle price feeds (Pyth/Chainlink)
+- [ ] Frontend → real contract interaction
+**Research:** Study Hyperliquid architecture, dYdX v4 chain, GMX v2, Pyth Network
 
-### Phase 2: Core dApps
-- [ ] GoodSwap — Uniswap V4 fork with UBI fee hooks
-- [ ] GoodLend — Aave V3 fork with UBI fee hooks
-- [ ] GoodBridge — Cross-chain bridge (Li.Fi integration)
-- [ ] GoodPerps — Perpetual futures DEX (Hyperliquid-style order book + vAMM)
-- [ ] GoodPredict — Prediction markets (Polymarket CLOB-style)
-- [ ] GoodStocks — Tokenized stocks (synthetic assets pegged to real equities via Chainlink oracles, fractional shares, 24/7 trading)
+### 3. GoodPredict — Prediction Markets (PRIORITY: HIGH)
+**Status:** Frontend live, MarketFactory + ConditionalTokens deployed
+**Next:**
+- [ ] Backend CLOB matching engine for YES/NO order books
+- [ ] Connect to Polymarket API for external liquidity/odds
+- [ ] Oracle/resolution system (UMA, Chainlink, manual)
+- [ ] Market creation flow (frontend → contract)
+- [ ] Frontend → real contract interaction
+**Research:** Study Polymarket CLOB, Gnosis Conditional Tokens, UMA oracle
 
-### Phase 3: Ecosystem
-- [ ] GoodStake — Liquid staking for G$
-- [ ] GoodNames — ENS fork (.good domains)
-- [ ] GoodNFT — NFT marketplace with UBI royalties
-- [ ] GoodDAO — On-chain governance
-- [ ] GoodPay — Merchant payment rails
+### 4. GoodLend — Lending & Borrowing (PRIORITY: HIGH — NEW)
+**Status:** Nothing built yet
+**Next:**
+- [ ] Fork Aave V3 core contracts (Pool, PoolConfigurator, Oracle, etc.)
+- [ ] Adapt for UBI fee routing (interest spread → UBIFeeSplitter)
+- [ ] Deploy lending pool with G$, ETH, USDC markets
+- [ ] Frontend: supply/borrow UI
+- [ ] Interest rate models (variable + stable)
+- [ ] Flash loan support
+- [ ] Liquidation bot
+**Research:** Study Aave V3 codebase, Compound V3, Morpho, Euler
 
-### Phase 4: Scale
-- [ ] Celestia DA integration (cheaper data availability)
-- [ ] Decentralized sequencer (sequencer auction)
-- [ ] Batch claims (1000 claims per L1 tx)
-- [ ] 1B daily claim capacity
+### 5. GoodStable — Decentralized Stablecoin (PRIORITY: MEDIUM — NEW)
+**Status:** Nothing built yet
+**Next:**
+- [ ] Fork MakerDAO/DAI CDP mechanics
+- [ ] gUSD stablecoin contract (mint by depositing collateral)
+- [ ] Collateral types: ETH, G$, USDC (with different ratios)
+- [ ] Stability fee → UBI pool
+- [ ] Liquidation engine (surplus → UBI)
+- [ ] Peg stability module (PSM)
+- [ ] Frontend: vault management UI
+**Research:** Study MakerDAO (DSS), Liquity, RAI, crvUSD, GHO (Aave)
 
-## Architecture
-- **Stack:** OP Stack (Optimism rollup)
-- **DA:** Ethereum L1 (Phase 1), Celestia (Phase 4)
-- **Contracts:** Solidity, Foundry toolchain
-- **Block time:** 1 second
-- **Gas token:** G$
-- **Chain ID:** TBD (register on chainlist)
+### 6. GoodStocks — Tokenized Equities (PRIORITY: MEDIUM)
+**Status:** Frontend live, SyntheticAssetFactory + CollateralVault + PriceOracle deployed
+**Next:**
+- [ ] Real price oracle integration (Chainlink/Pyth for stock prices)
+- [ ] Create initial synthetic stocks (sAAPL, sTSLA, sGOOG, sNVDA)
+- [ ] Frontend → real contract interaction
+- [ ] Portfolio tracking
+**Research:** Study Synthetix V3, Mirror Protocol (Terra), dHedge
 
-## Token Economics
-- Every dApp fee: 33% → UBI pool, 17% → protocol, 50% → dApp
-- Validators: stake 1M G$ minimum, earn 5% annual rewards
-- Slashing: misbehavior → slashed G$ goes to UBI pool
-- Daily UBI: base mint + share of fee pool
-- Target inflation: 5-8% annually (decreasing)
+### 7. GoodBridge — Cross-Chain Bridge (PRIORITY: MEDIUM)
+**Status:** L1/L2 bridge contracts done, frontend stub
+**Next:**
+- [ ] Working bridge UI (deposit/withdraw G$, ETH, USDC)
+- [ ] Fast withdrawal via liquidity providers
+- [ ] Multi-chain support via Li.Fi SDK
+**Research:** Study OP Stack standard bridge, Across Protocol, Stargate
 
-## Non-Goals
-- Building a new consensus mechanism (use OP Stack as-is for Phase 1-3)
-- Mobile wallet (Good Wallet V2 handles that)
-- Marketing/growth (separate workstream)
+### 8. Chain Infrastructure (PRIORITY: ONGOING)
+**Status:** Anvil devnet live, Blockscout indexing
+**Next:**
+- [ ] Contract verification on Blockscout (all 12 contracts)
+- [ ] Subgraph / indexer for each protocol
+- [ ] RPC load balancing
+- [ ] Monitoring & alerting
+- [ ] Move from Anvil to full OP Stack (op-geth + op-node + op-batcher)
 
-## Success Metrics
-- L2 testnet live with all Phase 1 contracts
-- GoodSwap processing swaps with UBI fee routing
-- 1000 claims/minute throughput on testnet
-- Gas cost < $0.0001 per claim
+## Research Queue (Study Open Source Projects)
+
+### DEX / Swaps
+- Uniswap V4 (https://github.com/Uniswap/v4-core) — hooks architecture
+- SushiSwap (https://github.com/sushiswap/v3-core) — multi-chain
+- 1inch (aggregation protocol)
+- Li.Fi SDK (https://github.com/lifinance/sdk) — cross-chain swaps
+
+### Perpetuals
+- Hyperliquid (study API, order book, clearing system)
+- dYdX v4 (https://github.com/dydxprotocol/v4-chain) — cosmos chain for perps
+- GMX v2 (https://github.com/gmx-io/gmx-synthetics) — synthetic perps
+- Drift Protocol (Solana perps)
+
+### Prediction Markets
+- Polymarket (CLOB API, conditional tokens)
+- Gnosis Conditional Tokens (https://github.com/gnosis/conditional-tokens-contracts)
+- Augur (https://github.com/AugurProject)
+- UMA Optimistic Oracle (https://github.com/UMAprotocol/protocol)
+
+### Lending
+- Aave V3 (https://github.com/aave/aave-v3-core) — MOST IMPORTANT
+- Compound V3 (https://github.com/compound-finance/comet)
+- Morpho (https://github.com/morpho-org/morpho-blue) — peer-to-peer lending
+- Euler V2 (modular lending)
+
+### Stablecoins
+- MakerDAO DSS (https://github.com/makerdao/dss) — DAI mechanics
+- Liquity (https://github.com/liquity/dev) — no-governance stablecoin
+- crvUSD (https://github.com/curvefi/curve-stablecoin) — LLAMMA
+- GHO (Aave's stablecoin)
+- RAI (https://github.com/reflexer-labs/geb) — non-pegged stable
+
+### Tokenized Assets
+- Synthetix V3 (https://github.com/Synthetixio/synthetix-v3)
+- dHedge (https://github.com/dhedge)
+
+## Principles
+1. **Fork the best, adapt for UBI** — Don't reinvent. Clone proven codebases, add UBI fee routing.
+2. **External liquidity first** — Connect to existing protocols before building our own liquidity.
+3. **AI agents are the primary users** — Optimize for programmatic access, not just human UIs.
+4. **Every fee funds UBI** — Non-negotiable. 33% of every protocol fee → UBI pool.
+5. **Ship working demos, then harden** — Get things visible fast, then make them production-grade.
