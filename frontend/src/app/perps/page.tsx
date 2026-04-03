@@ -444,11 +444,14 @@ function AccountPanel() {
   )
 }
 
+type MobileTab = 'chart' | 'book' | 'trade'
+
 export default function PerpsPage() {
   const pairs = useMemo(() => getPairs(), [])
   const account = useMemo(() => getAccountSummary(), [])
   const [selectedSymbol, setSelectedSymbol] = useState('BTC-USD')
   const [timeframe, setTimeframe] = useState<Timeframe>('1M')
+  const [mobileTab, setMobileTab] = useState<MobileTab>('trade')
 
   const pair = getPairBySymbol(selectedSymbol) ?? pairs[0]
 
@@ -490,8 +493,23 @@ export default function PerpsPage() {
         </div>
       </div>
 
+      {/* Mobile tab strip — Chart / Book / Trade */}
+      <div className="lg:hidden flex gap-1 mb-3">
+        {(['chart', 'book', 'trade'] as MobileTab[]).map(tab => (
+          <button key={tab} onClick={() => setMobileTab(tab)}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold capitalize transition-colors ${
+              mobileTab === tab
+                ? 'bg-goodgreen/15 text-goodgreen border border-goodgreen/20'
+                : 'text-gray-400 bg-dark-50/50 border border-transparent hover:text-white'
+            }`}>
+            {tab}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col lg:flex-row gap-4">
-        <div className="flex-1 min-w-0">
+        {/* Chart panel — always visible on desktop; on mobile only when chart tab active */}
+        <div className={`flex-1 min-w-0 ${mobileTab !== 'chart' ? 'hidden lg:block' : ''}`}>
           <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-4">
             <div className="flex gap-1 mb-3">
               {TIMEFRAMES.map(tf => (
@@ -507,7 +525,8 @@ export default function PerpsPage() {
           </div>
         </div>
 
-        <div className="lg:w-80 shrink-0 space-y-4">
+        {/* Trade panel — always visible on desktop; on mobile only when trade tab active */}
+        <div className={`lg:w-80 shrink-0 space-y-4 ${mobileTab !== 'trade' ? 'hidden lg:block' : ''}`}>
           <div className="bg-dark-100 rounded-2xl border border-gray-700/20 p-5">
             <OrderForm pair={pair} account={account} />
           </div>
@@ -518,7 +537,9 @@ export default function PerpsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+      {/* Order book / trades / positions grid */}
+      {/* On mobile: visible when book tab active; on desktop: always visible */}
+      <div className={`grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4 ${mobileTab !== 'book' ? 'hidden lg:grid' : ''}`}>
         <div className="bg-dark-100 rounded-2xl border border-gray-700/20 overflow-hidden">
           <div className="px-3 py-2 border-b border-gray-700/20">
             <h3 className="text-xs font-semibold text-white">Order Book</h3>

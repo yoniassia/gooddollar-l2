@@ -40,7 +40,7 @@ const StockRow = memo(function StockRow({ stock, idx, onRowClick }: StockRowProp
           <StockIcon ticker={stock.ticker} />
           <div>
             <span className="font-semibold text-white">{stock.ticker}</span>
-            <span className="text-gray-500 ml-1.5 hidden sm:inline text-xs">{stock.name}</span>
+            <span className="text-gray-500 ml-1.5 text-xs truncate max-w-[120px] inline-block align-middle">{stock.name}</span>
           </div>
         </div>
       </td>
@@ -59,13 +59,13 @@ const StockRow = memo(function StockRow({ stock, idx, onRowClick }: StockRowProp
       <td className="py-3 px-3 text-right text-gray-300 hidden md:table-cell">
         {formatLargeNumber(stock.marketCap)}
       </td>
-      <td className="py-3 px-2 hidden lg:table-cell" aria-label={`7-day trend: ${stock.change24h >= 0 ? 'up' : 'down'} ${Math.abs(stock.change24h).toFixed(1)}%`}>
+      <td className="py-3 px-2 hidden sm:table-cell" aria-label={`7-day trend: ${stock.change24h >= 0 ? 'up' : 'down'} ${Math.abs(stock.change24h).toFixed(1)}%`}>
         <Sparkline data={stock.sparkline7d} positive={stock.change24h >= 0} />
       </td>
       <td className="py-3 px-1 text-right w-20 hidden sm:table-cell">
         <button
           onClick={(e) => { e.stopPropagation(); onRowClick(stock.ticker) }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity px-3 py-1 text-xs font-medium rounded-lg bg-goodgreen/10 text-goodgreen hover:bg-goodgreen/20"
+          className="opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity px-3 py-1 text-xs font-medium rounded-lg bg-goodgreen/10 text-goodgreen hover:bg-goodgreen/20"
         >
           Trade
         </button>
@@ -141,34 +141,71 @@ export default function StocksPage() {
         />
       </div>
 
-      <div className="bg-dark-100 rounded-2xl border border-gray-700/20 overflow-hidden">
+      {/* Mobile card list (< sm) */}
+      <div className="sm:hidden space-y-2 mb-2">
+        {filtered.length === 0 ? (
+          <div className="py-12 text-center text-gray-500 bg-dark-100 rounded-2xl border border-gray-700/20">
+            No stocks match your search.{' '}
+            <button onClick={() => setQuery('')} className="text-goodgreen underline">Clear</button>
+          </div>
+        ) : (
+          filtered.map((stock) => (
+            <div
+              key={stock.ticker}
+              onClick={() => handleRowClick(stock.ticker)}
+              className="bg-dark-100 rounded-xl border border-gray-700/20 px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-dark-50/30 transition-colors active:scale-[0.99]"
+            >
+              <StockIcon ticker={stock.ticker} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-white text-sm">{stock.ticker}</span>
+                  <span className="text-gray-500 text-xs truncate">{stock.name}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <Sparkline data={stock.sparkline7d} positive={stock.change24h >= 0} />
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-white font-medium text-sm">{formatStockPrice(stock.price)}</p>
+                <p className={`text-xs font-medium ${stock.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {stock.change24h >= 0 ? '+' : ''}{stock.change24h.toFixed(2)}%
+                </p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop table (sm+) */}
+      <div className="hidden sm:block bg-dark-100 rounded-2xl border border-gray-700/20 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700/30 text-gray-400 bg-dark-50/25">
-                <th className="text-right py-3 px-3 font-semibold w-10">#</th>
-                <th className="text-left py-3 px-3 font-semibold">Stock</th>
-                <th className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('price')}>
+                <th scope="col" className="text-right py-3 px-3 font-semibold w-10">#</th>
+                <th scope="col" className="text-left py-3 px-3 font-semibold">Stock</th>
+                <th scope="col" className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('price')}>
                   Price <SortArrow active={sortField === 'price'} dir={sortDir} />
                 </th>
-                <th className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('change24h')}>
-                  <span className="hidden sm:inline">24h </span>Change <SortArrow active={sortField === 'change24h'} dir={sortDir} />
+                <th scope="col" className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('change24h')}>
+                  24h Change <SortArrow active={sortField === 'change24h'} dir={sortDir} />
                 </th>
-                <th className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors hidden sm:table-cell" onClick={() => handleSort('volume24h')}>
+                <th scope="col" className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors hidden sm:table-cell" onClick={() => handleSort('volume24h')}>
                   Volume <SortArrow active={sortField === 'volume24h'} dir={sortDir} />
                 </th>
-                <th className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors hidden md:table-cell" onClick={() => handleSort('marketCap')}>
+                <th scope="col" className="text-right py-3 px-3 font-semibold cursor-pointer hover:text-white transition-colors hidden md:table-cell" onClick={() => handleSort('marketCap')}>
                   Market Cap <SortArrow active={sortField === 'marketCap'} dir={sortDir} />
                 </th>
-                <th className="py-3 px-2 font-semibold hidden lg:table-cell">7d Trend</th>
-                <th className="w-20 hidden sm:table-cell" />
+                <th scope="col" className="py-3 px-2 font-semibold hidden sm:table-cell">7d Trend</th>
+                <th scope="col" className="w-20 hidden sm:table-cell" />
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-gray-500">
-                    No stocks match your search
+                    No stocks match your search.{' '}
+                    <button onClick={() => setQuery('')} className="text-goodgreen underline">Clear</button>
                   </td>
                 </tr>
               ) : (
