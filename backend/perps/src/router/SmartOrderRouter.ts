@@ -2,15 +2,21 @@
  * Smart Order Router (SOR)
  *
  * Decides how to split orders between internal GoodPerps book and
- * external venues (Hyperliquid) for best execution.
+ * external venues (Hyperliquid, GMX V2, dYdX V4) for best execution.
  *
  * Strategy:
  * 1. Check internal book depth for the requested side/size
- * 2. Check external (Hyperliquid) book depth
- * 3. Compare prices and split optimally:
- *    - If internal can fill at better price → fill internally
- *    - If external is better → route externally
- *    - If split reduces average price → split across venues
+ * 2. Query ALL connected external venues for quotes
+ * 3. Rank venues by effective price (including fees)
+ * 4. Route optimally:
+ *    - If internal can fill at best price → fill internally
+ *    - If an external venue is better → route there
+ *    - If split across venues reduces avg price → split
+ *
+ * Multi-venue architecture:
+ *   - Hyperliquid: CLOB with real-time WebSocket book data
+ *   - GMX V2: Pool-based oracle pricing (no slippage within OI caps)
+ *   - dYdX V4: Cosmos CLOB with deep liquidity
  *
  * The SOR replaces the simple "route remainder" logic in MatchingEngine.
  */
@@ -20,17 +26,19 @@ import pino from 'pino';
 import { MatchingEngine } from '../orderbook/MatchingEngine';
 import { HyperliquidRouter, ExternalFill, ExternalRouteRequest } from './HyperliquidRouter';
 import { HyperliquidFeed, HyperliquidL2Level } from '../feeds/HyperliquidFeed';
+import { ExternalVenue, VenueQuote, VenueFill } from './ExternalVenue';
 import { Side, OrderType, Trade, L2Level } from '../orderbook/types';
 
 const logger = pino({ name: 'smart-order-router' });
 
 export interface SORResult {
   internalFills: Trade[];
-  externalFills: ExternalFill[];
+  externalFills: Array<ExternalFill | VenueFill>;
   totalFilledSize: string;
   avgPrice: string;
   totalFees: string;
   splitRatio: { internal: string; external: string };
+  venueBreakdown: { venue: string; size: string; avgPrice: string }[];
 }
 
 export interface SORQuote {
@@ -44,6 +52,7 @@ export interface SORQuote {
   bestRoute: 'internal' | 'external' | 'split';
   estimatedAvgPrice: string;
   estimatedFee: string;
+  venueQuotes?: VenueQuote[];
 }
 
 // Minimum improvement required to split (in bps)
@@ -65,6 +74,7 @@ export class SmartOrderRouter {
   private engine: MatchingEngine;
   private hlRouter: HyperliquidRouter;
   private hlFeed: HyperliquidFeed;
+  private externalVenues: ExternalVenue[] = [];
 
   constructor(
     engine: MatchingEngine,
@@ -74,6 +84,80 @@ export class SmartOrderRouter {
     this.engine = engine;
     this.hlRouter = hlRouter;
     this.hlFeed = hlFeed;
+  }
+
+  /**
+   * Register an additional external venue (GMX V2, dYdX V4, etc.)
+   */
+  addVenue(venue: ExternalVenue): void {
+    this.externalVenues.push(venue);
+    logger.info({ venue: venue.name, markets: venue.getSupportedMarkets() },
+      'Registered external venue');
+  }
+
+  /**
+   * Remove a venue by name
+   */
+  removeVenue(name: string): void {
+    this.externalVenues = this.externalVenues.filter(v => v.name !== name);
+    logger.info({ venue: name }, 'Removed external venue');
+  }
+
+  /**
+   * Get all registered external venues
+   */
+  getVenues(): { name: string; ready: boolean; markets: string[] }[] {
+    const venues = [
+      { name: 'hyperliquid', ready: true, markets: Object.keys(MARKET_TO_HL_COIN) },
+    ];
+    for (const v of this.externalVenues) {
+      venues.push({ name: v.name, ready: v.isReady(), markets: v.getSupportedMarkets() });
+    }
+    return venues;
+  }
+
+  /**
+   * Get quotes from all available external venues for a market.
+   */
+  async getVenueQuotes(market: string, side: Side, size: string): Promise<VenueQuote[]> {
+    const quotes: VenueQuote[] = [];
+
+    // Hyperliquid (via legacy path)
+    const hlCoin = MARKET_TO_HL_COIN[market];
+    if (hlCoin) {
+      const hlResult = this.simulateExternalFill(hlCoin, side, new BigNumber(size));
+      if (hlResult.avgPrice) {
+        const notional = new BigNumber(hlResult.avgPrice).times(hlResult.availableSize);
+        quotes.push({
+          venue: 'hyperliquid',
+          market,
+          side,
+          availableSize: hlResult.availableSize,
+          avgPrice: hlResult.avgPrice,
+          fee: notional.times(0.0005).toFixed(2), // 5bps
+          latencyMs: 200,
+        });
+      }
+    }
+
+    // Query all registered external venues in parallel
+    const venuePromises = this.externalVenues
+      .filter(v => v.isReady() && v.supportsMarket(market))
+      .map(async v => {
+        try {
+          return await v.getQuote(market, side, size);
+        } catch (err) {
+          logger.warn({ venue: v.name, err }, 'Venue quote failed');
+          return null;
+        }
+      });
+
+    const venueResults = await Promise.all(venuePromises);
+    for (const q of venueResults) {
+      if (q) quotes.push(q);
+    }
+
+    return quotes;
   }
 
   /**
@@ -201,7 +285,7 @@ export class SmartOrderRouter {
     }, 'SOR executing order');
 
     const internalFills: Trade[] = [];
-    const externalFills: ExternalFill[] = [];
+    const externalFills: Array<ExternalFill | VenueFill> = [];
     let totalFilledSize = new BigNumber(0);
     let totalNotional = new BigNumber(0);
     let totalFees = new BigNumber(0);
@@ -233,24 +317,70 @@ export class SmartOrderRouter {
       }
     }
 
-    // Step 2: Route remainder to external venue
-    const remainder = sizeBN.minus(totalFilledSize);
-    if (remainder.gt(0) && (quote.bestRoute === 'external' || quote.bestRoute === 'split')) {
-      const externalFill = await this.hlRouter.routeOrder({
-        market,
-        side,
-        size: remainder.toString(),
-        userId,
-        orderId: orderId || `sor-${Date.now()}`,
-      });
+    // Step 2: Route remainder to external venues (best price first)
+    let remainder = sizeBN.minus(totalFilledSize);
+    const venueBreakdown: { venue: string; size: string; avgPrice: string }[] = [];
 
-      if (externalFill) {
-        externalFills.push(externalFill);
-        const fillSize = new BigNumber(externalFill.size);
-        const fillPrice = new BigNumber(externalFill.price);
-        totalFilledSize = totalFilledSize.plus(fillSize);
-        totalNotional = totalNotional.plus(fillPrice.times(fillSize));
-        totalFees = totalFees.plus(new BigNumber(externalFill.fee));
+    if (remainder.gt(0) && (quote.bestRoute === 'external' || quote.bestRoute === 'split')) {
+      // Get quotes from all venues and sort by price (best first)
+      const venueQuotes = await this.getVenueQuotes(market, side, remainder.toString());
+      const sorted = venueQuotes
+        .filter(q => new BigNumber(q.availableSize).gt(0))
+        .sort((a, b) => {
+          const priceA = new BigNumber(a.avgPrice);
+          const priceB = new BigNumber(b.avgPrice);
+          // Effective price = price + fees/size
+          const effA = priceA.plus(new BigNumber(a.fee).div(a.availableSize));
+          const effB = priceB.plus(new BigNumber(b.fee).div(b.availableSize));
+          // Buy: prefer lower price. Sell: prefer higher price.
+          return side === Side.Buy ? effA.minus(effB).toNumber() : effB.minus(effA).toNumber();
+        });
+
+      // Fill across venues in price order
+      for (const vq of sorted) {
+        if (remainder.lte(0)) break;
+
+        const fillSize = BigNumber.min(remainder, new BigNumber(vq.availableSize));
+
+        if (vq.venue === 'hyperliquid') {
+          // Use legacy Hyperliquid router
+          const externalFill = await this.hlRouter.routeOrder({
+            market,
+            side,
+            size: fillSize.toString(),
+            userId,
+            orderId: orderId || `sor-${Date.now()}`,
+          });
+
+          if (externalFill) {
+            externalFills.push(externalFill);
+            const fSize = new BigNumber(externalFill.size);
+            const fPrice = new BigNumber(externalFill.price);
+            totalFilledSize = totalFilledSize.plus(fSize);
+            totalNotional = totalNotional.plus(fPrice.times(fSize));
+            totalFees = totalFees.plus(new BigNumber(externalFill.fee));
+            remainder = remainder.minus(fSize);
+            venueBreakdown.push({ venue: 'hyperliquid', size: fSize.toString(), avgPrice: fPrice.toString() });
+          }
+        } else {
+          // Use ExternalVenue interface
+          const venue = this.externalVenues.find(v => v.name === vq.venue);
+          if (venue) {
+            const venueFill = await venue.route(
+              market, side, fillSize.toString(), userId, orderId || `sor-${Date.now()}`
+            );
+            if (venueFill) {
+              externalFills.push(venueFill);
+              const fSize = new BigNumber(venueFill.size);
+              const fPrice = new BigNumber(venueFill.price);
+              totalFilledSize = totalFilledSize.plus(fSize);
+              totalNotional = totalNotional.plus(fPrice.times(fSize));
+              totalFees = totalFees.plus(new BigNumber(venueFill.fee));
+              remainder = remainder.minus(fSize);
+              venueBreakdown.push({ venue: vq.venue, size: fSize.toString(), avgPrice: fPrice.toString() });
+            }
+          }
+        }
       }
     }
 
@@ -267,6 +397,16 @@ export class SmartOrderRouter {
       new BigNumber(0),
     );
 
+    if (internalFilledSize.gt(0)) {
+      const intNotional = internalFills.reduce(
+        (sum, t) => sum.plus(new BigNumber(t.price).times(t.size)), new BigNumber(0));
+      venueBreakdown.unshift({
+        venue: 'internal',
+        size: internalFilledSize.toString(),
+        avgPrice: intNotional.div(internalFilledSize).toString(),
+      });
+    }
+
     const result: SORResult = {
       internalFills,
       externalFills,
@@ -277,6 +417,7 @@ export class SmartOrderRouter {
         internal: internalFilledSize.toString(),
         external: externalFilledSize.toString(),
       },
+      venueBreakdown,
     };
 
     logger.info({

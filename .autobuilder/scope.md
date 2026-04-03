@@ -20,7 +20,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 **Next:**
 - [x] Backend order matching service (off-chain order book → on-chain settlement)
 - [x] Connect to Hyperliquid API for external liquidity/price feeds — HyperliquidRouter + SmartOrderRouter with book walking, simulation mode
-- [ ] Connect to dYdX, GMX for additional liquidity routing
+- [x] Connect to dYdX, GMX for additional liquidity routing — GmxV2Router + DydxV4Router + multi-venue SOR
 - [x] Implement oracle price feeds (Pyth/Chainlink) — PerpPriceOracle.sol with keeper push + staleness/deviation
 - [x] Frontend → real contract interaction (openPosition + closePosition wired via usePerps hooks)
 **Research:** Study Hyperliquid architecture, dYdX v4 chain, GMX v2, Pyth Network
