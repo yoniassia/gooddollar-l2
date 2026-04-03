@@ -167,6 +167,23 @@ contract UBIFeeSplitter {
         goodDollar.transfer(recipient, amount);
     }
 
+    /**
+     * @notice Accept native ETH fee payments.
+     *         LiFiBridgeAggregator.initiateSwapETH routes a fee in ETH here.
+     *         The ETH is held until withdrawn by admin or swept to treasury.
+     */
+    receive() external payable {}
+
+    /**
+     * @notice Withdraw accumulated native ETH to the protocol treasury.
+     */
+    function withdrawETH() external onlyAdmin {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "no ETH");
+        (bool sent,) = protocolTreasury.call{value: balance}("");
+        require(sent, "ETH transfer failed");
+    }
+
     function dAppCount() external view returns (uint256) {
         return dAppList.length;
     }

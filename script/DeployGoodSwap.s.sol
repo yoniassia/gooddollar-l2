@@ -140,7 +140,7 @@ contract DeployGoodSwap is Script {
             splitterAddr = address(splitter);
             console.log("UBIFeeSplitter (fresh):", splitterAddr);
         } else {
-            splitter = UBIFeeSplitter(splitterAddr);
+            splitter = UBIFeeSplitter(payable(splitterAddr));
             console.log("UBIFeeSplitter (existing):", splitterAddr);
         }
 
