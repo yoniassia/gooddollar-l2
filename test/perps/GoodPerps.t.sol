@@ -405,6 +405,43 @@ contract GoodPerpsTest is Test {
         assertFalse(isOpen);
     }
 
+    function test_engine_liquidate_bonusNotDoubleDeducted() public {
+        // Regression test: bonus must be deducted exactly once from trader vault.
+        // Bug was: vault.transfer(bonus) + _closePosition(pnl - bonus) = 2x deduction.
+        // Fix: vault.transfer(bonus) + _closePosition(pnl) = 1x deduction.
+        vm.prank(alice);
+        vault.deposit(100_000e18);
+
+        uint256 aliceVaultBefore = vault.balances(alice);
+        uint256 bobVaultBefore = vault.balances(bob);
+
+        vm.prank(alice);
+        engine.openPosition(btcMarketId, 100_000e18, true, 10_000e18); // 10x long
+
+        // fee = 100_000e18 * 10 / 10000 = 100e18
+        uint256 fee = 100e18;
+
+        // Price drops 9% => pnl ~= -9000e18, remainingMargin ~= 1000e18
+        // bonus = 1000e18 * 500 / 10000 = 50e18
+        btcFeed.setPrice(int256(BTC_PRICE_U - (BTC_PRICE_U * 9 / 100)));
+
+        uint256 aliceAfterFee = aliceVaultBefore - fee;
+
+        vm.prank(bob);
+        engine.liquidate(alice, btcMarketId);
+
+        uint256 aliceVaultAfter = vault.balances(alice);
+        uint256 bobGained = vault.balances(bob) - bobVaultBefore;
+
+        // Alice should have lost: fee + |pnl| + bonus (no double-counting)
+        // Expected: aliceAfterFee - 9000e18 - 50e18 = 90_850e18
+        uint256 expectedAlice = aliceAfterFee - 9_000e18 - 50e18;
+        assertEq(aliceVaultAfter, expectedAlice, "alice lost more than fee+pnl+bonus");
+
+        // Bob should have received exactly the bonus
+        assertEq(bobGained, 50e18, "bob did not receive correct bonus");
+    }
+
     function test_engine_liquidate_healthyPosition_reverts() public {
         vm.prank(alice);
         vault.deposit(100_000e18);

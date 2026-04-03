@@ -292,7 +292,9 @@ contract PerpEngine {
             vault.transfer(trader, msg.sender, bonus);
         }
 
-        _closePosition(trader, marketId, pnl - int256(bonus), fundingPayment, exitPrice);
+        // Pass original pnl — the bonus was already deducted via vault.transfer above.
+        // Passing pnl - bonus would double-count the deduction.
+        _closePosition(trader, marketId, pnl, fundingPayment, exitPrice);
 
         emit PositionLiquidated(msg.sender, trader, marketId, exitPrice);
     }
