@@ -13,6 +13,7 @@ import { formatAmount, compactAmount, sanitizeNumericInput, formatUsdValue } fro
 import { useSwapSettings } from '@/lib/useSwapSettings'
 import { SwapWalletActions } from './SwapWalletActions'
 import { usePriceFeeds, getPrice } from '@/lib/usePriceFeeds'
+import { useSwapQuote } from '@/lib/useOnChainSwap'
 
 function getLiveRate(prices: Record<string, number>, from: string, to: string): number {
   if (from === to) return 1
@@ -60,14 +61,19 @@ export function SwapCard() {
     })
   }, [searchParams])
 
+  // On-chain quote from GoodSwapRouter (supported pairs: G$, WETH/ETH, USDC)
+  const { amountOutFormatted: onChainAmountOut, amountOut: onChainAmountOutWei, isSupported: pairOnChain } =
+    useSwapQuote(inputAmount, inputToken.symbol, outputToken.symbol)
+
   const rawOutputAmount = useMemo(() => {
+    if (pairOnChain && onChainAmountOut) return parseFloat(onChainAmountOut)
     const amt = parseFloat(inputAmount)
     if (!amt || isNaN(amt)) return 0
     const rate = getLiveRate(prices, inputToken.symbol, outputToken.symbol)
     const gross = amt * rate
     const fee = gross * (SWAP_FEE_BPS / 10000)
     return gross - fee
-  }, [inputAmount, inputToken.symbol, outputToken.symbol, prices])
+  }, [inputAmount, inputToken.symbol, outputToken.symbol, prices, pairOnChain, onChainAmountOut])
 
   const outputAmount = useMemo(() => {
     if (!rawOutputAmount) return ''
@@ -283,6 +289,10 @@ export function SwapCard() {
             minimumReceived={`${minimumReceived} ${outputToken.symbol}`}
             networkFee="< $0.01"
             ubiFee={ubiFee > 0 ? `${formatAmount(ubiFee)} ${outputToken.symbol}` : ''}
+            onChainAmountOutMin={onChainAmountOutWei !== undefined && slippage > 0
+              ? onChainAmountOutWei * BigInt(Math.floor((1 - slippage / 100) * 10000)) / BigInt(10000)
+              : onChainAmountOutWei}
+            pairOnChain={pairOnChain}
           />
         </div>
       </div>

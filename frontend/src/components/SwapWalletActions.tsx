@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { type Token } from '@/lib/tokens'
 import { SwapConfirmModal } from './SwapConfirmModal'
+import { useSwapExecute } from '@/lib/useOnChainSwap'
 
 type BalanceProps = {
   variant: 'balance'
@@ -24,13 +25,17 @@ type SwapButtonProps = {
   minimumReceived?: string
   networkFee?: string
   ubiFee?: string
+  /** On-chain amountOut * (1 - slippage) — used as amountOutMin for the real swap */
+  onChainAmountOutMin?: bigint
+  /** True when the selected pair is supported by GoodSwapRouter on devnet */
+  pairOnChain?: boolean
 }
 
 type SwapWalletActionsProps = BalanceProps | SwapButtonProps
 
 export function SwapWalletActions(props: SwapWalletActionsProps) {
   if (props.variant === 'balance') {
-    return null // No balance display in demo mode
+    return null
   }
   return (
     <SwapButton
@@ -46,6 +51,8 @@ export function SwapWalletActions(props: SwapWalletActionsProps) {
       minimumReceived={props.minimumReceived}
       networkFee={props.networkFee}
       ubiFee={props.ubiFee}
+      onChainAmountOutMin={props.onChainAmountOutMin}
+      pairOnChain={props.pairOnChain}
     />
   )
 }
@@ -63,6 +70,8 @@ function SwapButton({
   minimumReceived = '',
   networkFee = '< $0.01',
   ubiFee = '',
+  onChainAmountOutMin,
+  pairOnChain = false,
 }: {
   inputToken: Token
   outputToken: Token
@@ -76,19 +85,42 @@ function SwapButton({
   minimumReceived?: string
   networkFee?: string
   ubiFee?: string
+  onChainAmountOutMin?: bigint
+  pairOnChain?: boolean
 }) {
   const [showReview, setShowReview] = useState(false)
-  const [showDemoToast, setShowDemoToast] = useState(false)
+  const { swap, phase, error, reset, isConnected } = useSwapExecute()
 
   const handleSwapClick = useCallback(() => {
     setShowReview(true)
   }, [])
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
     setShowReview(false)
-    setShowDemoToast(true)
-    setTimeout(() => setShowDemoToast(false), 3000)
-  }, [])
+    if (pairOnChain && isConnected) {
+      await swap(
+        inputToken.symbol,
+        outputToken.symbol,
+        inputAmount,
+        onChainAmountOutMin ?? BigInt(0),
+      )
+    }
+  }, [pairOnChain, isConnected, swap, inputToken.symbol, outputToken.symbol, inputAmount, onChainAmountOutMin])
+
+  const handleClose = useCallback(() => {
+    setShowReview(false)
+    reset()
+  }, [reset])
+
+  const isExecuting = phase === 'approving' || phase === 'swapping'
+
+  const buttonLabel = () => {
+    if (phase === 'approving') return 'Approving…'
+    if (phase === 'swapping') return 'Swapping…'
+    if (phase === 'done') return `Swapped!`
+    if (priceImpact >= 10) return `Swap Anyway — High Price Impact`
+    return `Swap ${inputToken.symbol} for ${outputToken.symbol}`
+  }
 
   return (
     <>
@@ -105,23 +137,27 @@ function SwapButton({
           </p>
         </>
       ) : (
-        <button
-          onClick={handleSwapClick}
-          className={`w-full py-4 rounded-xl font-semibold text-base transition-all active:scale-[0.98] focus-visible:ring-2 focus-visible:outline-none ${
-            priceImpact >= 10
-              ? 'bg-red-500 text-white hover:bg-red-600 focus-visible:ring-red-500/50'
-              : 'bg-goodgreen text-white hover:bg-goodgreen-600 focus-visible:ring-goodgreen/50'
-          }`}
-        >
-          {priceImpact >= 10
-            ? `Swap Anyway — High Price Impact`
-            : `Swap ${inputToken.symbol} for ${outputToken.symbol}`}
-        </button>
+        <>
+          <button
+            onClick={handleSwapClick}
+            disabled={isExecuting}
+            className={`w-full py-4 rounded-xl font-semibold text-base transition-all active:scale-[0.98] focus-visible:ring-2 focus-visible:outline-none disabled:opacity-70 disabled:cursor-not-allowed ${
+              priceImpact >= 10
+                ? 'bg-red-500 text-white hover:bg-red-600 focus-visible:ring-red-500/50'
+                : 'bg-goodgreen text-white hover:bg-goodgreen-600 focus-visible:ring-goodgreen/50'
+            }`}
+          >
+            {buttonLabel()}
+          </button>
+          {error && (
+            <p className="text-xs text-red-400 text-center mt-2">{error}</p>
+          )}
+        </>
       )}
 
       <SwapConfirmModal
         open={showReview}
-        onClose={() => setShowReview(false)}
+        onClose={handleClose}
         onConfirm={handleConfirm}
         inputAmount={inputAmount}
         outputAmount={outputAmount}
@@ -135,12 +171,6 @@ function SwapButton({
         networkFee={networkFee}
         ubiFee={ubiFee}
       />
-
-      {showDemoToast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[9999] px-4 py-2.5 rounded-xl bg-dark-50 border border-goodgreen/30 text-sm text-gray-200 shadow-lg">
-          🚀 Demo mode — L2 testnet launching soon!
-        </div>
-      )}
     </>
   )
 }
