@@ -99,6 +99,7 @@ contract LiFiBridgeAggregator {
     error DeadlinePassed();
     error ZeroAmount();
     error TransferFailed();
+    error SlippageExceeded(uint256 got, uint256 min);
 
     // ============ Modifiers ============
 
@@ -196,7 +197,7 @@ contract LiFiBridgeAggregator {
 
         // Send UBI fee
         if (fee > 0 && ubiFeeSplitter != address(0)) {
-            IERC20(srcToken).transfer(ubiFeeSplitter, fee);
+            if (!IERC20(srcToken).transfer(ubiFeeSplitter, fee)) revert TransferFailed();
         }
 
         swapId = swapCount++;
@@ -281,6 +282,7 @@ contract LiFiBridgeAggregator {
         SwapRequest storage s = swaps[swapId];
         if (s.user == address(0)) revert InvalidSwapId();
         if (s.status != SwapStatus.Pending) revert SwapNotPending();
+        if (destAmount < s.minDestAmount) revert SlippageExceeded(destAmount, s.minDestAmount);
 
         s.status = SwapStatus.Completed;
         s.lifiTxHash = lifiTxHash;
@@ -303,7 +305,7 @@ contract LiFiBridgeAggregator {
             (bool sent,) = s.user.call{value: s.srcAmount}("");
             require(sent, "ETH refund failed");
         } else {
-            IERC20(s.srcToken).transfer(s.user, s.srcAmount);
+            if (!IERC20(s.srcToken).transfer(s.user, s.srcAmount)) revert TransferFailed();
         }
 
         emit SwapRefunded(swapId, reason);
@@ -325,7 +327,7 @@ contract LiFiBridgeAggregator {
             (bool sent,) = s.user.call{value: s.srcAmount}("");
             require(sent, "ETH refund failed");
         } else {
-            IERC20(s.srcToken).transfer(s.user, s.srcAmount);
+            if (!IERC20(s.srcToken).transfer(s.user, s.srcAmount)) revert TransferFailed();
         }
 
         emit SwapExpired(swapId);

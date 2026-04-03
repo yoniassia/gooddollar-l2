@@ -23,8 +23,8 @@ contract SwapPriceOracle {
     struct PriceData {
         uint256 price;          // USD price, 8 decimals
         uint256 timestamp;      // last update time
-        uint256 twapCumulative; // cumulative price * time for TWAP
-        uint256 twapTimestamp;  // last TWAP snapshot time
+        uint256 twapCumulative; // cumulative price * time for TWAP (from twapWindowStart)
+        uint256 twapWindowStart; // timestamp when TWAP accumulation began (set on first price)
     }
 
     struct TokenConfig {
@@ -221,15 +221,15 @@ contract SwapPriceOracle {
     }
 
     /**
-     * @notice Get TWAP (time-weighted average price) over a period.
-     * @dev Approximate: uses cumulative / elapsed since last snapshot.
+     * @notice Get TWAP (time-weighted average price) since the first price update.
+     * @dev cumulative price*time divided by total elapsed since twapWindowStart.
      */
     function getTWAP(address token) external view returns (uint256) {
         PriceData storage pd = prices[token];
-        if (pd.twapTimestamp == 0 || pd.twapTimestamp == block.timestamp) {
+        if (pd.twapWindowStart == 0 || pd.twapWindowStart == block.timestamp) {
             return pd.price; // fallback to spot
         }
-        uint256 elapsed = block.timestamp - pd.twapTimestamp;
+        uint256 elapsed = block.timestamp - pd.twapWindowStart;
         uint256 cumWithCurrent = pd.twapCumulative + pd.price * (block.timestamp - pd.timestamp);
         return cumWithCurrent / elapsed;
     }
@@ -283,6 +283,10 @@ contract SwapPriceOracle {
             uint256 elapsed = block.timestamp - pd.timestamp;
             pd.twapCumulative += pd.price * elapsed;
         }
-        pd.twapTimestamp = block.timestamp;
+        // Set window start only once — marks the beginning of the TWAP period.
+        // Never reset so getTWAP always divides by total accumulated time.
+        if (pd.twapWindowStart == 0) {
+            pd.twapWindowStart = block.timestamp;
+        }
     }
 }
