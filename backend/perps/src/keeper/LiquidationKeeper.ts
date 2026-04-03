@@ -205,7 +205,7 @@ export class LiquidationKeeper {
       const sortedPositions = [...userPositions].sort((a, b) => {
         const aNotional = new BigNumber(a.size).times(a.markPrice || a.entryPrice);
         const bNotional = new BigNumber(b.size).times(b.markPrice || b.entryPrice);
-        return bNotional.comparedTo(aNotional);
+        return bNotional.comparedTo(aNotional) ?? 0;
       });
 
       for (const pos of sortedPositions) {

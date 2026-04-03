@@ -218,7 +218,7 @@ export class OracleAggregator extends EventEmitter {
     if (values.length === 0) throw new Error('No values for median');
     if (values.length === 1) return values[0];
 
-    const sorted = [...values].sort((a, b) => a.comparedTo(b));
+    const sorted = [...values].sort((a, b) => a.comparedTo(b) ?? 0);
     const mid = Math.floor(sorted.length / 2);
 
     if (sorted.length % 2 === 0) {
