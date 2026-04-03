@@ -17,6 +17,7 @@ export function Header() {
   const isStocks = pathname?.startsWith('/stocks')
   const isPredict = pathname?.startsWith('/predict')
   const isPerps = pathname?.startsWith('/perps')
+  const isPortfolio = pathname === '/portfolio'
 
   useEffect(() => {
     if (!mobileMenuOpen) return
@@ -73,6 +74,15 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <Link
+            href="/portfolio"
+            aria-label="Portfolio"
+            className={`p-2 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:outline-none ${isPortfolio ? 'text-white bg-dark-50' : 'text-gray-400 hover:text-white hover:bg-dark-50'}`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </Link>
           <ActivityButton />
           <button
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
@@ -150,6 +160,14 @@ export function Header() {
               className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isPerps ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
             >
               Perps
+            </Link>
+            <div className="border-t border-dark-50/50 my-1" />
+            <Link
+              href="/portfolio"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isPortfolio ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
+            >
+              Portfolio
             </Link>
           </nav>
         </div>
