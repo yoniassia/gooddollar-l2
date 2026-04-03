@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { getPortfolioHoldings, getTradeHistory, getPortfolioSummary, getStockByTicker, formatStockPrice, formatLargeNumber, type PortfolioHolding, type TradeRecord } from '@/lib/stockData'
 
 type Tab = 'holdings' | 'history'
@@ -80,6 +81,7 @@ function TradeRow({ trade }: { trade: TradeRecord }) {
 }
 
 export default function StocksPortfolioPage() {
+  const router = useRouter()
   const [tab, setTab] = useState<Tab>('holdings')
   const holdings = useMemo(() => getPortfolioHoldings(), [])
   const trades = useMemo(() => getTradeHistory(), [])
@@ -146,7 +148,7 @@ export default function StocksPortfolioPage() {
                 </thead>
                 <tbody>
                   {holdings.map(h => (
-                    <HoldingRow key={h.ticker} holding={h} onClick={() => {}} />
+                    <HoldingRow key={h.ticker} holding={h} onClick={() => router.push(`/stocks/${h.ticker}`)} />
                   ))}
                 </tbody>
               </table>
