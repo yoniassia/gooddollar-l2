@@ -10,3 +10,5 @@ playwright-report/
 .autobuilder/daemon.pid
 .autobuilder/PRODUCTION_READY.md
 node_modules/
+*.py
+__pycache__/
