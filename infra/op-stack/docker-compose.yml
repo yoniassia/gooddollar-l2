@@ -17,6 +17,9 @@ x-logging: &logging
     max-size: "10m"
     max-file: "3"
 
+# Load environment from .env
+# Usage: docker compose --env-file .env up -d
+
 services:
   # ─── L1: Simulated Ethereum ───────────────────────
   l1-anvil:
