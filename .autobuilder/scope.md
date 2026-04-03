@@ -36,14 +36,14 @@ One chain where AI agents do everything in finance — and every transaction fun
 **Research:** Study Polymarket CLOB, Gnosis Conditional Tokens, UMA oracle
 
 ### 4. GoodLend — Lending & Borrowing (PRIORITY: HIGH — NEW)
-**Status:** Nothing built yet
+**Status:** Core contracts deployed on devnet, 18 tests passing
 **Next:**
-- [ ] Fork Aave V3 core contracts (Pool, PoolConfigurator, Oracle, etc.)
-- [ ] Adapt for UBI fee routing (interest spread → UBIFeeSplitter)
-- [ ] Deploy lending pool with G$, ETH, USDC markets
+- [x] Fork Aave V3 core contracts (Pool, PoolConfigurator, Oracle, etc.)
+- [x] Adapt for UBI fee routing (interest spread → UBIFeeSplitter)
+- [x] Deploy lending pool with G$, ETH, USDC markets
 - [ ] Frontend: supply/borrow UI
-- [ ] Interest rate models (variable + stable)
-- [ ] Flash loan support
+- [x] Interest rate models (variable + stable)
+- [x] Flash loan support
 - [ ] Liquidation bot
 **Research:** Study Aave V3 codebase, Compound V3, Morpho, Euler
 
