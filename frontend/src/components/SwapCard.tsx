@@ -12,18 +12,12 @@ import { FeeBreakdownBadge } from './FeeBreakdownBadge'
 import { formatAmount, compactAmount, sanitizeNumericInput, formatUsdValue } from '@/lib/format'
 import { useSwapSettings } from '@/lib/useSwapSettings'
 import { SwapWalletActions } from './SwapWalletActions'
+import { usePriceFeeds, getPrice } from '@/lib/usePriceFeeds'
 
-const MOCK_USD_PRICES: Record<string, number> = {
-  'ETH': 3000, 'WETH': 3000, 'G$': 0.01, 'USDC': 1, 'USDT': 1,
-  'WBTC': 60000, 'DAI': 1, 'LINK': 15, 'UNI': 8, 'AAVE': 90,
-  'ARB': 1.2, 'OP': 2.5, 'MKR': 2800, 'COMP': 50, 'SNX': 3,
-  'CRV': 0.6, 'LDO': 2.2, 'MATIC': 0.7,
-}
-
-function getMockRate(from: string, to: string): number {
+function getLiveRate(prices: Record<string, number>, from: string, to: string): number {
   if (from === to) return 1
-  const fromPrice = MOCK_USD_PRICES[from] ?? 0
-  const toPrice = MOCK_USD_PRICES[to] ?? 0
+  const fromPrice = getPrice(prices, from)
+  const toPrice = getPrice(prices, to)
   if (!fromPrice || !toPrice) return 0
   return fromPrice / toPrice
 }
@@ -37,6 +31,9 @@ export function SwapCard() {
   const [inputToken, setInputToken] = useState<Token>(TOKENS[1])
   const [outputToken, setOutputToken] = useState<Token>(TOKENS[0])
   const [inputAmount, setInputAmount] = useState('')
+
+  // Live price feeds — falls back to static prices when CoinGecko is unreachable
+  const { prices, isLive } = usePriceFeeds(TOKENS.map(t => t.symbol))
 
   useEffect(() => {
     const buyParam = searchParams.get('buy')
@@ -66,11 +63,11 @@ export function SwapCard() {
   const rawOutputAmount = useMemo(() => {
     const amt = parseFloat(inputAmount)
     if (!amt || isNaN(amt)) return 0
-    const rate = getMockRate(inputToken.symbol, outputToken.symbol)
+    const rate = getLiveRate(prices, inputToken.symbol, outputToken.symbol)
     const gross = amt * rate
     const fee = gross * (SWAP_FEE_BPS / 10000)
     return gross - fee
-  }, [inputAmount, inputToken.symbol, outputToken.symbol])
+  }, [inputAmount, inputToken.symbol, outputToken.symbol, prices])
 
   const outputAmount = useMemo(() => {
     if (!rawOutputAmount) return ''
@@ -85,11 +82,11 @@ export function SwapCard() {
   const ubiFee = useMemo(() => {
     const amt = parseFloat(inputAmount)
     if (!amt || isNaN(amt)) return 0
-    const rate = getMockRate(inputToken.symbol, outputToken.symbol)
+    const rate = getLiveRate(prices, inputToken.symbol, outputToken.symbol)
     const gross = amt * rate
     const swapFee = gross * (SWAP_FEE_BPS / 10000)
     return swapFee * (UBI_FEE_BPS / 10000)
-  }, [inputAmount, inputToken.symbol, outputToken.symbol])
+  }, [inputAmount, inputToken.symbol, outputToken.symbol, prices])
 
   const priceImpact = useMemo(() => {
     const amt = parseFloat(inputAmount)
@@ -107,22 +104,22 @@ export function SwapCard() {
   }, [rawOutputAmount, slippage, outputToken.symbol])
 
   const exchangeRate = useMemo(() => {
-    const rate = getMockRate(inputToken.symbol, outputToken.symbol)
+    const rate = getLiveRate(prices, inputToken.symbol, outputToken.symbol)
     if (rate >= 1000) return `1 ${inputToken.symbol} = ${rate.toLocaleString()} ${outputToken.symbol}`
     if (rate >= 1) return `1 ${inputToken.symbol} = ${rate.toFixed(2)} ${outputToken.symbol}`
     return `1 ${inputToken.symbol} = ${rate.toFixed(6)} ${outputToken.symbol}`
-  }, [inputToken.symbol, outputToken.symbol])
+  }, [inputToken.symbol, outputToken.symbol, prices])
 
   const inputUsd = useMemo(() => {
     const amt = parseFloat(inputAmount)
     if (!amt || isNaN(amt)) return ''
-    return formatUsdValue(amt * (MOCK_USD_PRICES[inputToken.symbol] ?? 0))
-  }, [inputAmount, inputToken.symbol])
+    return formatUsdValue(amt * getPrice(prices, inputToken.symbol))
+  }, [inputAmount, inputToken.symbol, prices])
 
   const outputUsd = useMemo(() => {
     if (!rawOutputAmount) return ''
-    return formatUsdValue(rawOutputAmount * (MOCK_USD_PRICES[outputToken.symbol] ?? 0))
-  }, [rawOutputAmount, outputToken.symbol])
+    return formatUsdValue(rawOutputAmount * getPrice(prices, outputToken.symbol))
+  }, [rawOutputAmount, outputToken.symbol, prices])
 
   const inputFontSize = useMemo(() => {
     const len = inputAmount.length
@@ -238,8 +235,16 @@ export function SwapCard() {
 
         {/* Rate */}
         {hasAmount && (
-          <div className="mx-4 mt-3 px-4 py-2 text-xs text-gray-400 flex justify-between">
-            <span>Rate</span>
+          <div className="mx-4 mt-3 px-4 py-2 text-xs text-gray-400 flex justify-between items-center">
+            <span className="flex items-center gap-1.5">
+              Rate
+              {isLive && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-goodgreen/70">
+                  <span className="w-1.5 h-1.5 rounded-full bg-goodgreen animate-pulse inline-block" />
+                  live
+                </span>
+              )}
+            </span>
             <span>{exchangeRate}</span>
           </div>
         )}
