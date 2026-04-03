@@ -74,7 +74,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 **Status:** L1/L2 bridge contracts done, frontend stub
 **Next:**
 - [ ] Working bridge UI (deposit/withdraw G$, ETH, USDC)
-- [ ] Fast withdrawal via liquidity providers
+- [x] Fast withdrawal via liquidity providers — FastWithdrawalLP.sol deployed, 21 tests, useFastWithdrawal hook
 - [ ] Multi-chain support via Li.Fi SDK
 **Research:** Study OP Stack standard bridge, Across Protocol, Stargate
 
