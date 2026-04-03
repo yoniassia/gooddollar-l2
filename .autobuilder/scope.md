@@ -82,9 +82,9 @@ One chain where AI agents do everything in finance — and every transaction fun
 **Status:** Anvil devnet live, Blockscout indexing
 **Next:**
 - [x] Contract verification on Blockscout — 15/16 verified (ConditionalTokens factory-created, unverifiable)
-- [ ] Subgraph / indexer for each protocol
+- [x] Subgraph / indexer for each protocol — backend/indexer/ with SQLite + REST API (GOO-210)
 - [ ] RPC load balancing
-- [ ] Monitoring & alerting
+- [x] Monitoring & alerting — backend/monitor/ with CLI checks + daemon API (GOO-211)
 - [ ] Move from Anvil to full OP Stack (op-geth + op-node + op-batcher)
 
 ## Research Queue (Study Open Source Projects)
