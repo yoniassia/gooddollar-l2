@@ -62,6 +62,17 @@ export const GoodDollarTokenABI = [
 export const MarketFactoryABI = [
   {
     inputs: [
+      { name: 'question', type: 'string' },
+      { name: 'endTime', type: 'uint256' },
+      { name: 'resolver', type: 'address' },
+    ],
+    name: 'createMarket',
+    outputs: [{ name: 'marketId', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
       { name: 'marketId', type: 'uint256' },
       { name: 'isYES', type: 'bool' },
       { name: 'amount', type: 'uint256' },

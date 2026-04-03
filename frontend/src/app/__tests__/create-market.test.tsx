@@ -8,6 +8,18 @@ vi.mock('next/link', () => ({
   ),
 }))
 
+vi.mock('wagmi', () => ({
+  useAccount: () => ({ isConnected: true }),
+  useWriteContract: () => ({ writeContractAsync: vi.fn() }),
+}))
+
+vi.mock('@rainbow-me/rainbowkit', () => ({
+  ConnectButton: {
+    Custom: ({ children }: { children: (props: { openConnectModal: () => void }) => React.ReactNode }) =>
+      children({ openConnectModal: vi.fn() }),
+  },
+}))
+
 import CreateMarketPage from '../predict/create/page'
 
 function setEndDate(container: HTMLElement, value: string) {

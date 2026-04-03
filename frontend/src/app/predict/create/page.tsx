@@ -1,8 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
+import { useAccount, useWriteContract } from 'wagmi'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { ALL_CATEGORIES, type MarketCategory } from '@/lib/predictData'
+import { CONTRACTS } from '@/lib/chain'
+import { MarketFactoryABI } from '@/lib/abi'
 
 const QUESTION_MAX = 200
 const CRITERIA_MAX = 500
@@ -42,6 +46,10 @@ export default function CreateMarketPage() {
   const [liquidity, setLiquidity] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [txPhase, setTxPhase] = useState<'idle' | 'pending' | 'done' | 'error'>('idle')
+  const [txError, setTxError] = useState<string | null>(null)
+  const { isConnected } = useAccount()
+  const { writeContractAsync } = useWriteContract()
 
   const validate = () => {
     const errs: Record<string, string> = {}
@@ -88,14 +96,35 @@ export default function CreateMarketPage() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     const errs = validate()
     setErrors(errs)
-    if (Object.keys(errs).length === 0) {
+    if (Object.keys(errs).length > 0) return
+
+    if (isConnected && CONTRACTS.MarketFactory) {
+      try {
+        setTxPhase('pending')
+        setTxError(null)
+        const endTimestamp = BigInt(Math.floor(new Date(endDate).getTime() / 1000))
+        await writeContractAsync({
+          address: CONTRACTS.MarketFactory,
+          abi: MarketFactoryABI,
+          functionName: 'createMarket',
+          args: [question.trim(), endTimestamp, '0x0000000000000000000000000000000000000000'],
+        })
+        setTxPhase('done')
+        setSubmitted(true)
+      } catch (err: unknown) {
+        const e = err as { shortMessage?: string; message?: string }
+        setTxError(e?.shortMessage ?? e?.message ?? 'Transaction failed')
+        setTxPhase('error')
+      }
+    } else {
       setSubmitted(true)
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, question, endDate, writeContractAsync])
 
   const liquidityDisplayError = errors.liquidity ?? liquidityInline
 
@@ -184,10 +213,27 @@ export default function CreateMarketPage() {
           <p className="text-gray-600 text-xs mt-1">Min $100 · Max $100,000</p>
         </div>
 
-        <button type="submit"
-          className="w-full py-3 rounded-xl bg-goodgreen text-white font-semibold text-sm hover:bg-goodgreen-600 transition-colors active:scale-[0.98]">
-          Create Market
-        </button>
+        {txError && (
+          <p className="text-red-400 text-xs text-center">{txError}</p>
+        )}
+        {!isConnected ? (
+          <ConnectButton.Custom>
+            {({ openConnectModal }) => (
+              <button type="button" onClick={openConnectModal}
+                className="w-full py-3 rounded-xl bg-goodgreen text-white font-semibold text-sm hover:bg-goodgreen/90 transition-colors">
+                Connect Wallet to Create Market
+              </button>
+            )}
+          </ConnectButton.Custom>
+        ) : (
+          <button type="submit" disabled={txPhase === 'pending'}
+            className="w-full py-3 rounded-xl bg-goodgreen text-white font-semibold text-sm hover:bg-goodgreen/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]">
+            {txPhase === 'pending' ? 'Creating Market…' : 'Create Market'}
+          </button>
+        )}
+        {isConnected && (
+          <p className="text-[10px] text-gray-600 text-center">Requires admin wallet. Non-admin tx will revert.</p>
+        )}
       </form>
     </div>
   )
