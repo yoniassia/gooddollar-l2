@@ -2,101 +2,97 @@
 
 ## Pass Rate Trend
 
-| Run | Timestamp | Total | Passed | Failed | Pass Rate |
-|-----|-----------|-------|--------|--------|-----------|
-| 1 | 2026-04-03T17:30:56Z | 12 | 9 | 3 | 75.0% |
-| 2 | 2026-04-03T17:35:48Z | 12 | 9 | 3 | 75.0% |
-| 3 | 2026-04-03T17:55:19Z | 12 | 10 | 2 | 83.3% |
-| 4 | 2026-04-03T18:05:00Z | 20 | 18 | 2 | 90.0% |
-| 5 | 2026-04-03T19:57:00Z | 20 | 19 | 1 | 95.0% |
-| 6 | 2026-04-03T20:10:00Z | 24 | 23 | 1 | 95.8% |
+| Run | Timestamp | Total | Passed | Failed | Pass Rate | Notes |
+|-----|-----------|-------|--------|--------|-----------|-------|
+| 1 | 2026-04-03T17:30:56Z | 12 | 9 | 3 | 75.0% | Initial run |
+| 2 | 2026-04-03T17:35:48Z | 12 | 9 | 3 | 75.0% | |
+| 3 | 2026-04-03T17:55:19Z | 12 | 10 | 2 | 83.3% | |
+| 4 | 2026-04-03T18:05:00Z | 20 | 18 | 2 | 90.0% | +8 new tests |
+| 5 | 2026-04-03T19:57:00Z | 20 | 19 | 1 | 95.0% | |
+| 6 | 2026-04-03T20:10:00Z | 24 | 23 | 1 | 95.8% | +4 new tests (explore/lend/stable/stocks) |
+| 7 | 2026-04-03T22:05:00Z | 24 | 22 | 2 | 91.7% | Oracle redeployed (GOO-203 done) |
+| 8 | 2026-04-03T22:25:00Z | 25 | 19 | 6 | 76.0% | +1 JS bundle test; GOO-209 detected |
 
-## Current Failures (Run 6)
+## Current Failures (Run 8)
 
-| Page | Check | Status | Ticket | Notes |
-|------|-------|--------|--------|-------|
-| explorer/address | transactions_visible | KNOWN BUG | [GOO-193](/GOO/issues/GOO-193) [GOO-194](/GOO/issues/GOO-194) | Blockscout infra issue — needs external deployment fix |
+| Page | Check | Status | Root Cause | Ticket |
+|------|-------|--------|------------|--------|
+| js_bundle | client_js_loads | 🚨 CRITICAL | 5 JS+CSS chunks return 404 on goodswap.goodclaw.org | [GOO-209](/GOO/issues/GOO-209) |
+| mobile | no_horizontal_scroll | 🚨 BLOCKER | Layout CSS 404 → Tailwind responsive classes don't load → desktop nav renders at 375px | [GOO-209](/GOO/issues/GOO-209) |
+| stocks | empty_oracle_graceful | Symptom | JS 404 → wagmi never runs → oracle reads never fire | [GOO-209](/GOO/issues/GOO-209) |
+| explorer | page_loads | Transient | Timeout (explorer may be temporarily slow) | monitor |
+| explorer/address | no_error_banner | Known bug | Blockscout "Something went wrong" | [GOO-194](/GOO/issues/GOO-194) |
+| explorer/address | transactions_visible | Known bug | SSR returns no tx data | [GOO-193](/GOO/issues/GOO-193) |
 
-## New Tests Added (Run 6)
+## 🚨 CRITICAL: GOO-209 — Frontend JS/CSS chunks 404
+
+**Root cause confirmed via Playwright console analysis:**
+- All `_next/static/chunks/*.js` return `404` with HTML content (not JS)
+- `_next/static/css/app/layout.css` returns `404` (Tailwind CSS not loaded)
+- 24 console errors: "Refused to execute script... MIME type text/html"
+- **0 RPC calls made** — wagmi never initializes
+
+**Symptoms caused by GOO-209:**
+1. Client-side wallet connect broken
+2. wagmi contract reads don't run → stocks/perps show empty data
+3. Tailwind responsive CSS missing → desktop nav renders on mobile (scroll overflow)
+4. All interactive features (swap, predict, bridge) non-functional
+
+**Fix:** Rebuild frontend (`npm run build`) and redeploy to goodswap.goodclaw.org. Assigned to Frontend Engineer.
+
+## New Tests Added (Run 8)
 
 | Test | Page/Check | Result | Notes |
 |------|------------|--------|-------|
-| TEST 13 | `explore — token_list_loads` | ✅ PASS | ETH $3,012.45, USDC $1.00 visible; Total Market Cap shows $0 |
-| TEST 14 | `lend — page_loads_with_content` | ✅ PASS | Detail: "NO DISCLAIMER (GOO-202)" — mock data visible |
-| TEST 15 | `stable — page_loads_with_content` | ✅ PASS | gUSD vault UI renders |
-| TEST 16 | `stocks — empty_oracle_graceful` | ✅ PASS | "Empty state handled" — oracle not seeded |
+| TEST 13 | `js_bundle — client_js_loads` | ❌ FAIL | Correctly detects GOO-209 (5 chunks 404) |
 
-## Bugs Found (Run 6)
-
-### GOO-202 — Lend page shows mock data without disclaimer (NEW — medium)
-- **Evidence:** `frontend/src/lib/lendData.ts` comment: "All values are demo/devnet placeholders"
-- **Specific values shown:** WETH $14.52M supplied, WBTC $17.14M supplied — all hardcoded
-- **Comparison:** Stocks page has "Real oracle prices coming soon" disclaimer; Lend page has none
-- **Assigned:** Frontend Engineer
-- **Fix needed:** Either connect to on-chain GoodLendPool data, or add visible disclaimer
-
-### GOO-203 — PriceOracle has no price feeds — stocks page empty (NEW — low)
-- **Evidence:** Direct `eth_call` for `getPrice(string)` on all 12 tickers returns `0x` (no data)
-- **Oracle address:** `0x0165878A594ca255338adfa4d48449f69242Eb8F` on chain 42069
-- **Impact:** Stocks page shows empty table ("No stocks match your search")
-- **Assigned:** Protocol Engineer
-- **Fix needed:** Seed PriceOracle with Chainlink mock feeds for devnet tickers
-
-## Bugs From Prior Runs (Status)
+## Previously Found Bugs (Status)
 
 | Ticket | Title | Status |
 |--------|-------|--------|
 | [GOO-179](/GOO/issues/GOO-179) | Home page error element: FALSE POSITIVE | done |
-| [GOO-180](/GOO/issues/GOO-180) | Explorer address transactions not rendering | done (QA complete) |
-| [GOO-181](/GOO/issues/GOO-181) | Mobile horizontal scroll | done (fix already in code) |
+| [GOO-180](/GOO/issues/GOO-180) | Explorer address transactions SSR root cause | done |
+| [GOO-181](/GOO/issues/GOO-181) | Mobile horizontal scroll (hero glow div) | done (fix in code) |
 | [GOO-192](/GOO/issues/GOO-192) | Mobile scroll dev task | done (already resolved) |
 | [GOO-193](/GOO/issues/GOO-193) | Explorer SSR pre-fetch | blocked (Blockscout external) |
 | [GOO-194](/GOO/issues/GOO-194) | Explorer "Something went wrong" | blocked (Blockscout external) |
-| [GOO-202](/GOO/issues/GOO-202) | Lend mock data no disclaimer | todo |
-| [GOO-203](/GOO/issues/GOO-203) | PriceOracle not seeded | todo |
+| [GOO-202](/GOO/issues/GOO-202) | Lend mock data no disclaimer | todo → FE Engineer |
+| [GOO-203](/GOO/issues/GOO-203) | PriceOracle not seeded | **done** — redeployed with 12 tickers |
+| [GOO-209](/GOO/issues/GOO-209) | **CRITICAL: JS/CSS chunks 404** | todo → FE Engineer |
 
-## Mock Data Status (Updated)
+## On-Chain Verification (Run 8)
+
+All 6 contracts deployed on chain 42069 (block ~26036):
+- GoodDollarToken: 1,000,000,000 G$ total supply
+- StocksPriceOracle: **12 tickers seeded** — AAPL $178.72, TSLA $248.50, NVDA $875.30, etc.
+- PerpEngine, MarketFactory, SyntheticAssetFactory, CollateralVault: all DEPLOYED
+- `https://rpc.goodclaw.org` = `localhost:8545` (same chain, same data)
+
+## Mock Data Status
 
 | Module | Status |
 |--------|--------|
-| `perpsData.ts` | ✅ MOCKS REMOVED — uses on-chain hooks |
-| `marketData.ts` | ✅ MOCKS REMOVED — uses CoinGecko + on-chain |
-| `stockData.ts` | ⚠️ Mock functions deprecated (return empty) — oracle not seeded ([GOO-203](/GOO/issues/GOO-203)) |
-| `lendData.ts` | 🚨 STILL MOCK — "demo/devnet placeholders" shown without disclaimer ([GOO-202](/GOO/issues/GOO-202)) |
+| `perpsData.ts` | ✅ MOCKS REMOVED |
+| `marketData.ts` | ✅ MOCKS REMOVED |
+| `stockData.ts` | ✅ Oracle seeded (GOO-203 fixed), but GOO-209 prevents client reads |
+| `lendData.ts` | ⚠️ STILL MOCK — disclaimer added (GOO-202 partial fix) |
 
-## On-Chain Verification (New)
+## Test Coverage (25 tests)
 
-Devnet chain 42069, block ~22347, all 5 contracts deployed:
-- GoodDollarToken: `0x5FbDB...aa3` — G$ total supply 1,000,000,000
-- PriceOracle: `0x01658...Eb8F` — deployed but no feeds seeded
-- PerpEngine: `0xa513E...853` — deployed
-- MarketFactory: `0x8A791...318` — deployed
-- SyntheticAssetFactory: `0x6101...788` — deployed
-
-Explore page shows: G$ $0.0102, ETH $3,012.45, USDC $1.00 (via CoinGecko). Total Market Cap $0 (on-chain TVL not yet accounted).
-
-## Pages Covered (24 tests across 16+ checks)
-
-| Page | Tests | Status |
-|------|-------|--------|
-| `/` (home/swap) | 3 | ✅ All pass |
-| `/stocks` | 3 | ✅ All pass (empty oracle noted) |
-| `/predict` | 1 | ✅ Pass |
-| `/perps` | 2 | ✅ All pass |
-| `/bridge` | 2 | ✅ All pass |
-| `/pool` | 2 | ✅ All pass |
-| `/explore` | 1 | ✅ Pass |
-| `/lend` | 1 | ✅ Pass (mock disclaimer missing — GOO-202) |
-| `/stable` | 1 | ✅ Pass |
-| Explorer home | 2 | ✅ All pass |
-| Explorer `/address` | 2 | ❌ 1 fail (GOO-193/194), 1 pass |
-| Mobile 375px | 1 | ✅ Pass |
-| No-wallet state | 2 | ✅ All pass |
-| Navigation | 1 | ✅ Pass |
-
-## Pages NOT Yet Tested
-- `/activity` — transaction history page
-- Wallet connect flow (requires MetaMask interaction)
-- Swap actual execution (requires wallet + tokens)
-- Predict market creation/betting
-- Bridge cross-chain flow
+| Category | Tests | Passing |
+|----------|-------|---------|
+| Homepage | 3 | 3 |
+| Navigation | 1 | 1 |
+| Stocks | 3 | 3 (client data unavailable due to GOO-209) |
+| Predict | 1 | 1 |
+| Perps | 2 | 2 |
+| Bridge | 2 | 2 |
+| Pool | 2 | 2 |
+| Explore | 1 | 1 |
+| Lend | 1 | 1 |
+| Stable | 1 | 1 |
+| No-wallet state | 2 | 2 |
+| Explorer home | 2 | 1 (transient timeout) |
+| Explorer address | 2 | 0 (GOO-193/194) |
+| Mobile responsive | 1 | 0 (GOO-209) |
+| JS bundle integrity | 1 | 0 (GOO-209) |

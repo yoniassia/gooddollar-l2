@@ -332,7 +332,41 @@ async function run() {
     logResult({ page: 'nav', check: 'nav_links', passed: false, detail: e.message });
   }
 
-  // ═══ TEST 13: Explore Page ═══
+  // ═══ TEST 13: JS Bundle Loads (critical infrastructure check) ═══
+  // GOO-209: goodswap.goodclaw.org JS chunks return 404 — detects stale deployment
+  try {
+    const page = await context.newPage();
+    const failedChunks = [];
+    page.on('response', res => {
+      const url = res.url();
+      if (url.includes('/_next/static/chunks/') && res.status() !== 200) {
+        failedChunks.push(`${res.status()} ${url.split('/').pop().split('?')[0]}`);
+      }
+    });
+
+    await page.goto(FRONTEND_URL, { waitUntil: 'load', timeout: 30000 });
+    await page.waitForTimeout(1000);
+
+    totalTests++;
+    const jsWorking = await page.evaluate(() => {
+      // If JS ran, React should have set data-reactroot or similar
+      const body = document.body;
+      // wagmi/rainbowkit injects style tags when it initializes
+      const hasReact = body.querySelectorAll('[data-rk]').length > 0 ||
+                       body.querySelectorAll('[class*="rk-"]').length > 0 ||
+                       document.querySelectorAll('script[type="application/json"]').length > 0;
+      return hasReact;
+    });
+    logResult({ page: 'js_bundle', check: 'client_js_loads', passed: jsWorking && failedChunks.length === 0, detail: failedChunks.length > 0 ? `${failedChunks.length} chunks 404 (GOO-209)` : 'JS OK' });
+    if (jsWorking && failedChunks.length === 0) passed++; else failed++;
+
+    await page.close();
+  } catch (e) {
+    totalTests++; failed++;
+    logResult({ page: 'js_bundle', check: 'client_js_loads', passed: false, detail: e.message });
+  }
+
+  // ═══ TEST 14: Explore Page ═══
   try {
     const page = await context.newPage();
     await page.goto(`${FRONTEND_URL}/explore`, { waitUntil: 'networkidle', timeout: 30000 });
