@@ -489,3 +489,29 @@ export const ERC20ABI = [
     type: 'function',
   },
 ] as const
+
+// ─── GoodStocks PriceOracle ───────────────────────────────────────────────────
+
+export const PriceOracleABI = [
+  {
+    inputs: [{ name: 'ticker', type: 'string' }],
+    name: 'getPrice',
+    outputs: [{ name: 'price', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'ticker', type: 'string' }],
+    name: 'hasFeed',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'maxAge',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const

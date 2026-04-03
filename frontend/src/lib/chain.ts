@@ -42,7 +42,9 @@ export const CONTRACTS = {
   // GoodPerps — PerpEngine (TODO: deploy to devnet, update address)
   PerpEngine: null as `0x${string}` | null,
   MarginVault: null as `0x${string}` | null,
-  // GoodStocks — CollateralVault + SyntheticAssetFactory (TODO: deploy to devnet)
+  // GoodStocks — PriceOracle, CollateralVault + SyntheticAssetFactory
+  // Run `forge script script/DeployGoodStocks.s.sol` and paste addresses below.
+  StocksPriceOracle: null as `0x${string}` | null,
   CollateralVault: null as `0x${string}` | null,
   SyntheticAssetFactory: null as `0x${string}` | null,
 } as const
