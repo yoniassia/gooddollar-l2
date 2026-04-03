@@ -29,7 +29,7 @@ import "../src/swap/LiFiBridgeAggregator.sol";
 contract RedeployUBIAndLiFi is Script {
     // ── Token addresses (devnet) ──────────────────────────────────────────────
     address constant GDOLLAR  = 0x5FbDB2315678afecb367f032d93F642f64180aa3;
-    address constant MOCK_WETH = 0x959922be3caee4b8cd9a407cc3ac1c251c2007b1;
+    address constant MOCK_WETH = 0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1;
     address constant MOCK_USDC = 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0;
     address constant MOCK_WBTC = 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9;
 

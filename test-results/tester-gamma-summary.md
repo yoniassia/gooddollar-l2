@@ -1,0 +1,86 @@
+# Tester Gamma - Iteration 1 Test Results
+
+Date: 2026-04-03T18:30:00+00:00
+Wallet: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
+Chain: GoodDollar L2 Devnet (Chain ID 42069, RPC http://localhost:8545)
+
+**Total Tests: 15 | Passed: 13 | Failed: 2**
+
+## Test Results
+
+| # | Contract | Function | Status | Notes/Error |
+|---|----------|----------|--------|-------------|
+| 1 | ETH | `getBalance()` | PASS | 10199.996519 ETH in wallet |
+| 2 | GoodDollarToken | `balanceOf(address)` | PASS | 9,993,977.30 GDT in wallet |
+| 3 | SyntheticAssetFactory | `listedCount()` | PASS | 1 asset listed |
+| 4 | SyntheticAssetFactory | `admin()` | PASS | admin=0xf39fd6e51...92266 (deployer) |
+| 5 | CollateralVault | `admin()` | PASS | admin=0xf39fd6e51...92266 (deployer) |
+| 6 | CollateralVault | `paused()` | PASS | paused=False (vault is live) |
+| 7 | CollateralVault | `feeSplitter()` | PASS | feeSplitter=UBIFeeSplitter (correct) |
+| 8 | UBIFeeSplitter | `claimableBalance()_BEFORE` | **FAIL** | execution reverted — ubiRecipient=address(0) |
+| 9 | UBIFeeSplitter | `totalFeesCollected()` | PASS | 5,050.8 GDT collected so far |
+| 10 | MockUSDC | `mint(address,uint256)` | PASS | Minted 1,000 USDC; balance now 10,000 USDC |
+| 11 | MockUSDC | `balanceOf(address)_post_mint` | PASS | 10,000.00 USDC confirmed |
+| 12 | MockUSDC | `approve(CollateralVault)` | PASS | 500 USDC approved (note: vault uses GDT) |
+| 13 | CollateralVault | `depositCollateral(AAPL)` | PASS | tx succeeded; pre-existing max GDT approval used |
+| 14 | UBIFeeSplitter | `claimableBalance()_AFTER` | **FAIL** | same revert — ubiRecipient=address(0) |
+| 15 | GoodDollarToken | `balanceOf(UBIFeeSplitter)` | PASS | 0 GDT in splitter (fees flow through elsewhere) |
+
+## Key Findings
+
+### Contract State Observed
+
+- **ETH**: Wallet has 10,199 ETH (test account well funded)
+- **GoodDollarToken**: Name="GoodDollar", wallet holds ~9.99M GDT
+- **SyntheticAssetFactory**: 1 synthetic asset registered (AAPL); admin = deployer
+- **CollateralVault**: Not paused; correctly points to UBIFeeSplitter; uses GDT as collateral token
+- **UBIFeeSplitter**: ubiBPS=3333 (33.33%), protocolBPS=1667 (16.67%); totalFeesCollected=5,050 GDT; totalUBIFunded=1,683 GDT
+- **MockUSDC**: 6 decimals, mint function open (no access control); wallet had 9,000 USDC pre-test
+- **CollateralVault AAPL position**: After deposit — collateral=500,000,000 raw GDT units (=0.0000000005 GDT, negligible); vault holds 2,503.35 GDT total
+
+### Bugs / Issues Found
+
+#### BUG-1 (HIGH): UBIFeeSplitter.ubiRecipient not set — claimableBalance() reverts [GOO-198]
+
+- **Contract**: UBIFeeSplitter (0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512)
+- **Functions affected**: `ubiRecipient()`, `claimableBalance()`
+- **Root cause**: `ubiRecipient` stored at slot 4 is `address(0)`. The `claimableBalance()` function calls `goodDollar.balanceOf(address(this))` which itself reverts (likely because GDT's balanceOf has its own guard), OR `ubiRecipient()` getter reverts because the contract computes it dynamically and the zero address causes reversion. Reading slot 4 directly confirms it's zero.
+- **Impact**: Any downstream code calling `claimableBalance()` (e.g. UBIClaimV2) will revert. The 5,050 GDT in fees collected cannot be queried or claimed.
+- **Fix**: Call `setUBIRecipient(recipient_address)` from admin (0xf39fd6...92266) to configure a valid UBI recipient.
+
+#### BUG-2 (MEDIUM): depositCollateral accepts wrong decimal amounts silently [GOO-199]
+
+- **Contract**: CollateralVault (0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e)
+- **Observation**: CollateralVault uses GDT (18 decimals) as collateral. We called `depositCollateral("AAPL", 500_000_000)` which is 500 USDC in 6-decimal notation, but was interpreted as 0.0000000005 GDT (500e6 / 1e18). The transaction succeeded because we had a pre-existing max GDT approval. The user's position now shows 500,000,000 raw GDT units = microscopic real value.
+- **Impact**: If a UI presents USDC amounts and passes them to depositCollateral without converting to GDT 18-decimal units, users will deposit far less than intended with no warning.
+- **Related**: MockUSDC approval to CollateralVault succeeded but was unused (vault uses GDT, not USDC).
+
+#### OBSERVATION: No oracle price data [GOO-200]
+
+- **Contract**: PriceOracle (0x0165878A594ca255338adfa4d48449f69242Eb8F)
+- **Evidence**: Prior e2e test `perps_onchain` prices_nonzero FAILED — oracle prices are zero/unset
+- **Impact**: Liquidations and collateral ratio checks may behave incorrectly; minting synthetic assets requires valid price data
+
+### UBI Fee Audit
+
+| Metric | Before Tests | After Tests |
+|--------|-------------|------------|
+| `claimableBalance()` | REVERT (ubiRecipient=0) | REVERT (unchanged) |
+| `totalFeesCollected()` | 5,050.80 GDT | (not re-queried post-deposit) |
+| `totalUBIFunded()` | 1,683.43 GDT | (unchanged) |
+| GDT in UBIFeeSplitter | 0 GDT | 0 GDT |
+
+No fees were generated by our tests (depositCollateral with 0 debt generates no fee).
+
+### Context: Prior e2e Test Failures
+
+- `explorer/address` transactions_visible: FAIL (block explorer integration issue)
+- `perps_onchain` prices_nonzero: FAIL (no oracle price data configured)
+- Bridge, Pool, Nav pages: all PASS
+
+## Recommendations
+
+1. **Immediate**: Set `ubiRecipient` via `UBIFeeSplitter.setUBIRecipient(addr)` — blocks UBI claims
+2. **Near-term**: Verify UI sends GDT amounts in 18-decimal units (not USDC 6-decimal units) to CollateralVault
+3. **Near-term**: Configure PriceOracle with AAPL price data for perps/stocks functionality
+4. **Nice-to-have**: Add block explorer transaction indexing for devnet
