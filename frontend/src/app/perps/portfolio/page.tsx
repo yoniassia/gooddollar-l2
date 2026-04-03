@@ -2,12 +2,17 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { getOpenPositions, getPendingOrders, getTradeHistory, getFundingPayments, getAccountSummary, formatPerpsPrice, formatLargeValue, type OpenPosition, type PendingOrder, type TradeHistoryRecord, type FundingPayment } from '@/lib/perpsData'
+import { getOpenPositions, getPendingOrders, getTradeHistory, getFundingPayments, getAccountSummary, getPairs, formatPerpsPrice, formatLargeValue, type OpenPosition, type PendingOrder, type TradeHistoryRecord, type FundingPayment } from '@/lib/perpsData'
+import { useClosePosition } from '@/lib/usePerps'
 import { ConnectWalletEmptyState } from '@/components/ConnectWalletEmptyState'
 
 type Tab = 'positions' | 'orders' | 'history' | 'funding'
 
-function PositionRow({ pos }: { pos: OpenPosition }) {
+function PositionRow({ pos, marketId }: { pos: OpenPosition; marketId: bigint }) {
+  const { closePosition, phase, error } = useClosePosition()
+  const isClosing = phase === 'pending'
+  const isDone = phase === 'done'
+
   return (
     <tr className="border-b border-gray-700/10">
       <td className="py-2.5 px-3 text-sm text-white">{pos.pair}</td>
@@ -23,6 +28,16 @@ function PositionRow({ pos }: { pos: OpenPosition }) {
         {pos.unrealizedPnl >= 0 ? '+' : ''}{formatPerpsPrice(pos.unrealizedPnl)}
       </td>
       <td className="py-2.5 px-3 text-right text-sm text-yellow-400 hidden sm:table-cell">{formatPerpsPrice(pos.liquidationPrice)}</td>
+      <td className="py-2.5 px-3 text-right">
+        {error && <span className="text-[10px] text-red-400 mr-1">{error}</span>}
+        <button
+          onClick={() => closePosition(marketId)}
+          disabled={isClosing || isDone}
+          className="px-2.5 py-1 text-xs rounded-lg text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+        >
+          {isDone ? 'Closed' : isClosing ? 'Closing...' : 'Close'}
+        </button>
+      </td>
     </tr>
   )
 }
@@ -95,6 +110,7 @@ function FundingRow({ payment }: { payment: FundingPayment }) {
 export default function PerpsPortfolioPage() {
   const [tab, setTab] = useState<Tab>('positions')
   const positions = useMemo(() => getOpenPositions(), [])
+  const pairs = useMemo(() => getPairs(), [])
   const orders = useMemo(() => getPendingOrders(), [])
   const trades = useMemo(() => getTradeHistory(), [])
   const funding = useMemo(() => getFundingPayments(), [])
@@ -167,10 +183,17 @@ export default function PerpsPortfolioPage() {
                     <th className="text-right py-2 px-3 font-semibold">Mark</th>
                     <th className="text-right py-2 px-3 font-semibold">P&L</th>
                     <th className="text-right py-2 px-3 font-semibold hidden sm:table-cell">Liq.</th>
+                    <th className="text-right py-2 px-3 font-semibold"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {positions.map((p, i) => <PositionRow key={i} pos={p} />)}
+                  {positions.map((p, i) => (
+                    <PositionRow
+                      key={i}
+                      pos={p}
+                      marketId={BigInt(pairs.findIndex(pair => pair.symbol === p.pair))}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
