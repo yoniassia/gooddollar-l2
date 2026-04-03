@@ -13,16 +13,21 @@ function makeReserve(totalSupplied: number, totalBorrowed: number): LendReserve 
   return {
     symbol: 'TEST',
     name: 'Test',
+    address: '0x0000000000000000000000000000000000000001',
+    decimals: 18,
+    price: 1,
     totalSupplied,
     totalBorrowed,
     supplyAPY: 0.05,
     borrowAPY: 0.08,
-    utilizationRate: totalSupplied > 0 ? totalBorrowed / totalSupplied : 0,
-    ltv: 0.75,
-    liquidationThreshold: 0.80,
-    price: 1,
-    icon: '',
-  } as LendReserve
+    ltvBPS: 7500,
+    liquidationThresholdBPS: 8000,
+    liquidationBonusBPS: 10500,
+    reserveFactorBPS: 1000,
+    isActive: true,
+    borrowingEnabled: true,
+    gTokenSymbol: 'gTEST',
+  }
 }
 
 describe('getAvailableLiquidity', () => {
