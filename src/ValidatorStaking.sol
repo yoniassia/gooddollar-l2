@@ -222,12 +222,20 @@ contract ValidatorStaking {
 
     /**
      * @notice Claim accumulated staking rewards.
+     * @dev Rewards are paid from the contract's G$ balance. The balance must exceed
+     *      totalStaked to ensure reward payments never draw from validators' principal.
+     *      Rewards become claimable only when additional G$ (from protocol fees or
+     *      inflation) has been deposited above the staked amount.
      */
     function claimRewards() external {
         Validator storage v = validators[msg.sender];
         require(v.isActive, "Not a validator");
         uint256 rewards = pendingRewards(msg.sender);
         require(rewards > 0, "No rewards");
+        require(
+            goodDollar.balanceOf(address(this)) >= totalStaked + rewards,
+            "Insufficient reward reserve"
+        );
         v.lastStakeTime = block.timestamp;
         v.rewardDebt = 0;
         goodDollar.transfer(msg.sender, rewards);

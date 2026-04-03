@@ -138,6 +138,8 @@ contract GoodLendPool {
 
     // ============ Modifiers ============
 
+    error TransferFailed();
+
     modifier onlyAdmin() {
         require(msg.sender == admin, "GoodLendPool: not admin");
         _;
@@ -222,7 +224,7 @@ contract GoodLendPool {
         }
 
         // Transfer underlying from user
-        IERC20(asset).transferFrom(msg.sender, reserve.gToken, amount);
+        if (!IERC20(asset).transferFrom(msg.sender, reserve.gToken, amount)) revert TransferFailed();
 
         // Mint gTokens to user
         IGoodLendToken(reserve.gToken).mint(msg.sender, amount, reserve.liquidityIndex);
@@ -257,7 +259,7 @@ contract GoodLendPool {
         IGoodLendToken(reserve.gToken).burn(msg.sender, amount, reserve.liquidityIndex);
 
         // Transfer underlying from gToken contract to user
-        IERC20(asset).transferFrom(reserve.gToken, msg.sender, amount);
+        if (!IERC20(asset).transferFrom(reserve.gToken, msg.sender, amount)) revert TransferFailed();
 
         // Check health factor after withdrawal
         (uint256 hf, , ) = _calculateHealthFactor(msg.sender);
@@ -294,7 +296,7 @@ contract GoodLendPool {
         IDebtToken(reserve.debtToken).mint(msg.sender, amount, reserve.variableBorrowIndex);
 
         // Transfer underlying from gToken contract to borrower
-        IERC20(asset).transferFrom(reserve.gToken, msg.sender, amount);
+        if (!IERC20(asset).transferFrom(reserve.gToken, msg.sender, amount)) revert TransferFailed();
 
         // Check health factor
         (uint256 hf, , ) = _calculateHealthFactor(msg.sender);
@@ -328,7 +330,7 @@ contract GoodLendPool {
         if (amount > userDebt) amount = userDebt;
 
         // Transfer underlying from user to gToken contract
-        IERC20(asset).transferFrom(msg.sender, reserve.gToken, amount);
+        if (!IERC20(asset).transferFrom(msg.sender, reserve.gToken, amount)) revert TransferFailed();
 
         // Burn debt tokens
         IDebtToken(reserve.debtToken).burn(msg.sender, amount, reserve.variableBorrowIndex);
@@ -392,7 +394,7 @@ contract GoodLendPool {
         if (collateralToSeize > userCollateral) collateralToSeize = userCollateral;
 
         // Liquidator pays debt
-        IERC20(debtAsset).transferFrom(msg.sender, debtReserve.gToken, debtToCover);
+        if (!IERC20(debtAsset).transferFrom(msg.sender, debtReserve.gToken, debtToCover)) revert TransferFailed();
         IDebtToken(debtReserve.debtToken).burn(user, debtToCover, debtReserve.variableBorrowIndex);
 
         // Transfer collateral gTokens from user to liquidator
@@ -400,7 +402,7 @@ contract GoodLendPool {
         IGoodLendToken(collateralReserve.gToken).burn(user, collateralToSeize, collateralReserve.liquidityIndex);
 
         // Send underlying to liquidator
-        IERC20(collateralAsset).transferFrom(collateralReserve.gToken, msg.sender, collateralToSeize);
+        if (!IERC20(collateralAsset).transferFrom(collateralReserve.gToken, msg.sender, collateralToSeize)) revert TransferFailed();
 
         _updateRates(collateralAsset);
         _updateRates(debtAsset);
@@ -430,7 +432,7 @@ contract GoodLendPool {
         uint256 premium = (amount * FLASH_LOAN_PREMIUM_BPS) / BPS;
 
         // Transfer to receiver
-        IERC20(asset).transferFrom(reserve.gToken, receiver, amount);
+        if (!IERC20(asset).transferFrom(reserve.gToken, receiver, amount)) revert TransferFailed();
 
         // Callback
         require(
@@ -439,7 +441,7 @@ contract GoodLendPool {
         );
 
         // Pull back amount + premium
-        IERC20(asset).transferFrom(receiver, reserve.gToken, amount + premium);
+        if (!IERC20(asset).transferFrom(receiver, reserve.gToken, amount + premium)) revert TransferFailed();
 
         // Accrue premium: split between suppliers and treasury
         // 1/3 of premium to protocol, 2/3 to suppliers
@@ -496,7 +498,7 @@ contract GoodLendPool {
     /**
      * @notice Get current liquidity index for an asset (used by gToken).
      */
-    function getLiquidityIndex(address asset) external view returns (uint256) {
+    function getLiquidityIndex(address asset) public view returns (uint256) {
         ReserveData storage reserve = reserves[asset];
         if (!reserve.isActive) return RAY;
         // Calculate pending interest since last update
@@ -510,7 +512,7 @@ contract GoodLendPool {
     /**
      * @notice Get current borrow index for an asset (used by debtToken).
      */
-    function getBorrowIndex(address asset) external view returns (uint256) {
+    function getBorrowIndex(address asset) public view returns (uint256) {
         ReserveData storage reserve = reserves[asset];
         if (!reserve.isActive) return RAY;
         uint256 timeDelta = block.timestamp - reserve.lastUpdateTimestamp;
@@ -670,8 +672,14 @@ contract GoodLendPool {
             uint256 price = oracle.getAssetPrice(asset);
             if (price == 0) continue;
 
+            // Use view-index helpers to include pending (unwritten) interest in the HF check.
+            // Reading raw storage indexes here would understate debt (borrow compounds faster
+            // than supply), causing the HF to appear higher than the true value.
+            uint256 liqIdx = getLiquidityIndex(asset);
+            uint256 borIdx = getBorrowIndex(asset);
+
             // Collateral (gToken balance)
-            uint256 collateral = _gTokenBalance(asset, user, reserve.liquidityIndex);
+            uint256 collateral = _gTokenBalance(asset, user, liqIdx);
             if (collateral > 0) {
                 uint256 collateralValueUSD = (collateral * price) / (10 ** reserve.decimals);
                 totalCollateralUSD += collateralValueUSD;
@@ -679,7 +687,7 @@ contract GoodLendPool {
             }
 
             // Debt
-            uint256 debt = _debtBalance(asset, user, reserve.variableBorrowIndex);
+            uint256 debt = _debtBalance(asset, user, borIdx);
             if (debt > 0) {
                 totalDebtUSD += (debt * price) / (10 ** reserve.decimals);
             }
