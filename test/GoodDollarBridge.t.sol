@@ -604,9 +604,11 @@ contract GoodDollarBridgeTest is Test {
     }
 
     function test_finalizeETHDeposit_revertsIfExceedsFreeETH() public {
-        vm.deal(address(l2Bridge), 10 ether);
+        // Bridge starts with 2 ETH from previous L1->L2 deposits.
+        // withdrawETH{value:8} adds 8 more ETH from the withdrawer, giving
+        // bridge 10 ETH total with 8 pending — only 2 ETH free.
+        vm.deal(address(l2Bridge), 2 ether);
 
-        // Reserve 8 ETH for withdrawal -- only 2 ETH free
         address withdrawer = address(0xABC);
         vm.deal(withdrawer, 8 ether);
         vm.prank(withdrawer);

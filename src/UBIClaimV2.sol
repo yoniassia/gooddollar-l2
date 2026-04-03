@@ -105,7 +105,7 @@ contract UBIClaimV2 {
     function canClaim(address account) public view returns (bool) {
         return
             goodDollar.isVerifiedHuman(account) &&
-            lastClaimEpoch[account] < currentEpoch();
+            lastClaimEpoch[account] != currentEpoch() + 1;
     }
 
     // ============ Claiming ============
@@ -151,11 +151,11 @@ contract UBIClaimV2 {
             if (
                 user == address(0) ||
                 !goodDollar.isVerifiedHuman(user) ||
-                lastClaimEpoch[user] >= epoch
+                lastClaimEpoch[user] == epoch + 1
             ) {
                 continue;
             }
-            lastClaimEpoch[user] = epoch;
+            lastClaimEpoch[user] = epoch + 1;
             goodDollar.mint(user, amount);
             batchTotal += amount;
             unchecked { claimed++; }
@@ -177,11 +177,13 @@ contract UBIClaimV2 {
         if (!goodDollar.isVerifiedHuman(user)) revert NotVerifiedHuman(user);
 
         uint256 epoch = currentEpoch();
-        if (lastClaimEpoch[user] >= epoch) {
+        // Use epoch+1 as the sentinel so that the default mapping value (0)
+        // does not falsely indicate a claim in epoch 0.
+        if (lastClaimEpoch[user] == epoch + 1) {
             revert AlreadyClaimedThisEpoch(user, epoch);
         }
 
-        lastClaimEpoch[user] = epoch;
+        lastClaimEpoch[user] = epoch + 1;
 
         uint256 amount = goodDollar.dailyUBIAmount();
         goodDollar.mint(user, amount);

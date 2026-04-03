@@ -98,7 +98,8 @@ contract OptimisticResolverTest is Test {
     function test_proposeAndFinalize_noDispute() public {
         uint256 marketId = 42;
 
-        // Request resolution
+        // Request resolution (admin-only)
+        vm.prank(admin);
         resolver.requestResolution(marketId);
         assertTrue(resolver.resolutionRequested(marketId));
 
@@ -135,6 +136,7 @@ contract OptimisticResolverTest is Test {
 
     function test_proposeAndFinalize_noOutcome() public {
         uint256 marketId = 7;
+        vm.prank(admin);
         resolver.requestResolution(marketId);
 
         // Propose NO
@@ -152,6 +154,7 @@ contract OptimisticResolverTest is Test {
 
     function test_disputeAndAdminResolve_proposerCorrect() public {
         uint256 marketId = 1;
+        vm.prank(admin);
         resolver.requestResolution(marketId);
 
         // Propose YES
@@ -181,6 +184,7 @@ contract OptimisticResolverTest is Test {
 
     function test_disputeAndAdminResolve_disputerCorrect() public {
         uint256 marketId = 2;
+        vm.prank(admin);
         resolver.requestResolution(marketId);
 
         // Propose YES (incorrect)
@@ -213,6 +217,7 @@ contract OptimisticResolverTest is Test {
     }
 
     function test_revert_doubleProposeRevert() public {
+        vm.prank(admin);
         resolver.requestResolution(1);
         vm.prank(proposer);
         resolver.proposeResolution(1, true);
@@ -225,6 +230,7 @@ contract OptimisticResolverTest is Test {
     }
 
     function test_revert_disputeOwnProposal() public {
+        vm.prank(admin);
         resolver.requestResolution(1);
         vm.prank(proposer);
         resolver.proposeResolution(1, true);
@@ -235,6 +241,7 @@ contract OptimisticResolverTest is Test {
     }
 
     function test_revert_disputeAfterWindow() public {
+        vm.prank(admin);
         resolver.requestResolution(1);
         vm.prank(proposer);
         resolver.proposeResolution(1, true);
@@ -249,6 +256,7 @@ contract OptimisticResolverTest is Test {
     }
 
     function test_disputeTimeRemaining() public {
+        vm.prank(admin);
         resolver.requestResolution(1);
         vm.prank(proposer);
         resolver.proposeResolution(1, true);
@@ -265,6 +273,7 @@ contract OptimisticResolverTest is Test {
     // ============ Emergency Resolve ============
 
     function test_emergencyResolve() public {
+        vm.prank(admin);
         resolver.requestResolution(1);
         vm.prank(proposer);
         resolver.proposeResolution(1, true);
@@ -282,6 +291,7 @@ contract OptimisticResolverTest is Test {
     }
 
     function test_emergencyResolve_noProposal() public {
+        vm.prank(admin);
         resolver.requestResolution(1);
 
         // Emergency resolve without any proposal

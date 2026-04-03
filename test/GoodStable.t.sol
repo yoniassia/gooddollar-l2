@@ -92,6 +92,19 @@ contract MockFeeSplitter {
         ubiReceived   += ubiShare;
         totalReceived += totalFee;
     }
+
+    /// @dev Token-agnostic variant used by VaultManager.drip() for gUSD stability fees.
+    function splitFeeToken(uint256 totalFee, address /*dAppRecipient*/, address _token)
+        external
+        returns (uint256 ubiShare, uint256 protocolShare, uint256 dAppShare)
+    {
+        IERC20Like(_token).transferFrom(msg.sender, address(this), totalFee);
+        ubiShare      = (totalFee * 3333) / 10000;
+        protocolShare = (totalFee * 1667) / 10000;
+        dAppShare     = totalFee - ubiShare - protocolShare;
+        ubiReceived   += ubiShare;
+        totalReceived += totalFee;
+    }
 }
 
 /// @dev Price oracle mock — per-ilk price set by test
