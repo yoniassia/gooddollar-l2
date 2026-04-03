@@ -10,8 +10,18 @@ type SortField = 'price' | 'change24h' | 'volume24h' | 'marketCap'
 type SortDir = 'asc' | 'desc'
 
 function SortArrow({ active, dir }: { active: boolean; dir: SortDir }) {
-  if (!active) return <span className="text-gray-600 ml-1">&#8597;</span>
-  return <span className="text-goodgreen ml-1">{dir === 'asc' ? '\u2191' : '\u2193'}</span>
+  if (!active) return (
+    <svg className="inline-block w-3 h-3 text-gray-600 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4M16 15l-4 4-4-4" />
+    </svg>
+  )
+  return (
+    <svg className="inline-block w-3 h-3 text-goodgreen ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      {dir === 'asc'
+        ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+        : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />}
+    </svg>
+  )
 }
 
 function StockIcon({ ticker }: { ticker: string }) {
@@ -49,7 +59,11 @@ const StockRow = memo(function StockRow({ stock, idx, onRowClick }: StockRowProp
       </td>
       <td className={`py-3 px-3 text-right font-medium ${stock.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
         <span className="inline-flex items-center gap-0.5">
-          {stock.change24h >= 0 ? '\u25B2' : '\u25BC'}
+          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            {stock.change24h >= 0
+              ? <path d="M12 5l8 14H4L12 5z" />
+              : <path d="M12 19L4 5h16L12 19z" />}
+          </svg>
           {Math.abs(stock.change24h).toFixed(2)}%
         </span>
       </td>

@@ -277,7 +277,7 @@ function FeaturedMarket({ markets }: { markets: ReturnType<typeof getMarkets> })
           </div>
         </div>
 
-        <div className="sm:w-52 flex items-center justify-center">
+        <div className="hidden sm:flex sm:w-52 items-center justify-center">
           <ProbSparkline data={sparkData} width={200} height={64} />
         </div>
       </div>
@@ -343,18 +343,21 @@ export default function PredictPage() {
           onChange={e => setQuery(e.target.value)}
           className="w-full sm:w-72 px-4 py-2.5 rounded-xl bg-dark-100 border border-gray-700/30 text-white placeholder:text-gray-500 text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:border-goodgreen/30"
         />
-        <select
-          value={sort}
-          onChange={e => setSort(e.target.value as SortOption)}
-          className="px-3 py-2.5 rounded-xl bg-dark-100 border border-gray-700/30 text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50"
-        >
+        <div className="flex gap-1 overflow-x-auto scrollbar-none">
           {SORT_OPTIONS.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <button
+              key={o.value}
+              onClick={() => setSort(o.value)}
+              className={`shrink-0 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${sort === o.value ? 'bg-goodgreen/15 text-goodgreen border border-goodgreen/20' : 'text-gray-400 bg-dark-100 border border-gray-700/30 hover:text-white'}`}
+            >
+              {o.label}
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-none">
+      <div className="relative mb-6">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
         <button
           onClick={() => setCategory('All')}
           className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${category === 'All' ? 'bg-goodgreen/15 text-goodgreen border border-goodgreen/20' : 'text-gray-400 hover:text-white bg-dark-100 border border-gray-700/20'}`}
@@ -370,6 +373,8 @@ export default function PredictPage() {
             {cat}
           </button>
         ))}
+      </div>
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0f1117] to-transparent" aria-hidden="true" />
       </div>
 
       {filtered.length === 0 ? (

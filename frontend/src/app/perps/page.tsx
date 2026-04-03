@@ -99,20 +99,23 @@ const TIMEFRAMES: Timeframe[] = ['1D', '1W', '1M', '3M', '1Y']
 
 function PairSelector({ pairs, selected, onSelect }: { pairs: PerpPair[]; selected: string; onSelect: (s: string) => void }) {
   return (
-    <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
-      {pairs.map(p => (
-        <button key={p.symbol} onClick={() => onSelect(p.symbol)}
-          className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selected === p.symbol ? 'bg-goodgreen/15 text-goodgreen border border-goodgreen/20' : 'text-gray-400 hover:text-white bg-dark-50/50 border border-transparent'}`}>
-          {p.symbol}
-        </button>
-      ))}
+    <div className="relative">
+      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+        {pairs.map(p => (
+          <button key={p.symbol} onClick={() => onSelect(p.symbol)}
+            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selected === p.symbol ? 'bg-goodgreen/15 text-goodgreen border border-goodgreen/20' : 'text-gray-400 hover:text-white bg-dark-50/50 border border-transparent'}`}>
+            {p.symbol}
+          </button>
+        ))}
+      </div>
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0f1117] to-transparent" aria-hidden="true" />
     </div>
   )
 }
 
 function PairInfoBar({ pair }: { pair: PerpPair }) {
   return (
-    <div className="flex flex-wrap gap-4 sm:gap-6 text-xs py-2">
+    <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-3 sm:gap-6 text-xs py-2">
       <div>
         <span className="text-gray-500">Mark</span>
         <span className="text-white font-medium ml-1.5">{formatPerpsPrice(pair.markPrice)}</span>
@@ -134,7 +137,7 @@ function PairInfoBar({ pair }: { pair: PerpPair }) {
         </span>
       </div>
       <div>
-        <span className="text-gray-500">Next</span>
+        <span className="text-gray-500">Funding in</span>
         <span className="text-gray-300 ml-1.5">{getFundingCountdown(pair.nextFundingTime)}</span>
       </div>
       <div>
@@ -158,7 +161,7 @@ function LeverageSlider({ value, onChange, max }: { value: number; onChange: (v:
       <div className="flex justify-between mt-1">
         {presets.map(p => (
           <button key={p} onClick={() => onChange(p)}
-            className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${value === p ? 'text-goodgreen font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
+            className={`text-xs min-h-[44px] flex-1 rounded transition-colors ${value === p ? 'text-goodgreen font-medium' : 'text-gray-500 hover:text-gray-300'}`}>
             {p}x
           </button>
         ))}
@@ -248,7 +251,7 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
       <div className="flex gap-1">
         {(['market', 'limit', 'stop-limit'] as OrderType[]).map(ot => (
           <button key={ot} type="button" onClick={() => setOrderType(ot)}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium capitalize transition-colors ${orderType === ot ? 'bg-goodgreen/15 text-goodgreen' : 'text-gray-400 hover:text-white'}`}>
+            className={`flex-1 px-2 min-h-[44px] rounded-lg text-xs font-medium capitalize transition-colors ${orderType === ot ? 'bg-goodgreen/15 text-goodgreen' : 'text-gray-400 hover:text-white'}`}>
             {ot}
           </button>
         ))}
@@ -256,11 +259,11 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
 
       <div className="flex gap-1">
         <button type="button" onClick={() => setMarginMode('cross')}
-          className={`flex-1 py-1 rounded text-[10px] font-medium transition-colors ${marginMode === 'cross' ? 'bg-dark-50 text-white' : 'text-gray-500'}`}>
+          className={`flex-1 min-h-[44px] rounded text-xs font-medium transition-colors ${marginMode === 'cross' ? 'bg-dark-50 text-white' : 'text-gray-500'}`}>
           Cross
         </button>
         <button type="button" onClick={() => setMarginMode('isolated')}
-          className={`flex-1 py-1 rounded text-[10px] font-medium transition-colors ${marginMode === 'isolated' ? 'bg-dark-50 text-white' : 'text-gray-500'}`}>
+          className={`flex-1 min-h-[44px] rounded text-xs font-medium transition-colors ${marginMode === 'isolated' ? 'bg-dark-50 text-white' : 'text-gray-500'}`}>
           Isolated
         </button>
       </div>
@@ -306,7 +309,7 @@ function OrderForm({ pair, account }: { pair: PerpPair; account: AccountSummaryD
               const isActive = sizeNum > 0 && Math.abs(sizeNum - rounded) < 10 ** (-decimals) * 0.6
               return (
                 <button key={pct} type="button" onClick={() => setSize(rounded.toString())}
-                  className={`flex-1 py-1 rounded text-[10px] font-medium transition-colors ${isActive ? 'bg-goodgreen/15 text-goodgreen' : 'text-gray-500 hover:text-gray-300 bg-dark-50/30'}`}>
+                  className={`flex-1 min-h-[44px] rounded text-xs font-medium transition-colors ${isActive ? 'bg-goodgreen/15 text-goodgreen' : 'text-gray-500 hover:text-gray-300 bg-dark-50/30'}`}>
                   {pct * 100}%
                 </button>
               )
