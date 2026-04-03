@@ -2,104 +2,260 @@
 
 > An OP Stack L2 where every transaction funds universal basic income for verified humans.
 
-🌐 **Live:** [goodswap.goodclaw.org](https://goodswap.goodclaw.org)
+🌐 **Live Demo:** [goodclaw.org](https://goodclaw.org) · **GoodSwap:** [goodswap.goodclaw.org](https://goodswap.goodclaw.org) · **Dashboard:** [paperclip.goodclaw.org](https://paperclip.goodclaw.org)
+
+---
 
 ## What Is This?
 
 GoodDollar L2 is a dedicated blockchain where **every swap, every trade, every transaction automatically funds UBI**. Built on OP Stack (Optimism rollup), with G$ as the native gas token.
 
-The first dApp — **GoodSwap** — is a DEX where 33% of every swap fee goes directly to the GoodDollar UBI pool. No opt-in. No charity toggle. It's baked into the protocol.
+No opt-in. No charity toggle. UBI is baked into every protocol-level interaction.
 
-## 🤖 Built Entirely by AI
+---
 
-This entire project was built by an autonomous AI build loop ([autobuilder](https://github.com/yoniassia/gooddollar-l2/tree/main/.autobuilder)) — **59 commits, 45 initiatives, 15 iterations, ~7 hours, zero human code.**
+## 🤖 Built Entirely by AI Agents
 
-The autobuilder runs a continuous cycle: **Review → Plan → Execute → Repeat**, using Cursor with Claude Opus to build, test, and ship features autonomously.
+This entire project — **152 commits, 109 initiatives, 3,200 lines of Solidity, 108 frontend files** — was built by an autonomous AI agent team managed through [Paperclip](https://paperclip.goodclaw.org).
 
-## What's Built
+**The Agent Team (25 agents):**
 
-### Smart Contracts (Solidity / Foundry)
-- **G$ Token** — ERC-20 with UBI minting capabilities
-- **UBI Claims** — Daily claim contract (gas-free for claimers)
-- **UBI Fee Splitter** — Routes 33% of all dApp fees to the UBI pool
-- **Validator Staking** — Stake G$ to run infrastructure, earn rewards
-- **Uniswap V4 UBI Fee Hook** — Every swap auto-funds UBI at the protocol level
-- **Bridge Contracts** — L1↔L2 bridge for G$, ETH, USDC
-- **Token Economics Simulation** — Modeling sustainable UBI distribution
-- **OP Stack Genesis Config** — Chain configuration and rollup setup
+| Role | Agent | What They Build |
+|------|-------|-----------------|
+| 🧠 Coordinator | GoodClaw | Product decisions, agent orchestration |
+| 🔧 Protocol Engineer | Claude Code | Smart contracts, security audits, gas optimization |
+| 🎨 Frontend Engineer | Claude Code | UI/UX, dApp interfaces, responsive design |
+| 💰 Wallet Engineer | Claude Code | Wallet integration, MPC, transaction flows |
+| 🛡️ Security Engineer | Claude Code | Audits, vulnerability detection, hardening |
+| 🧪 QA Engineer | Claude Code | Test suites, fuzz testing, regression |
+| ⚙️ DevOps Engineer | Claude Code | CI/CD, deployment, infrastructure |
+| 📦 Product Manager | Claude Code | PRDs, specs, acceptance criteria |
+| 📈 CMO + Marketing Team | Claude Code | Growth, content, social, partnerships |
+| 🔬 Researcher | Claude Code | Tokenomics, protocol analysis, MEV |
 
-### GoodSwap DEX Frontend (Next.js 14 + wagmi + RainbowKit)
+**The Autobuilder Loop:**
+```
+Scout → Research → Build → Validate → Deploy → Measure → Repeat (24/7)
+```
+
+Hourly heartbeats. Agents pick up issues, write code + tests, commit, and report. Zero human code.
+
+---
+
+## 📦 What's Built
+
+### Core Smart Contracts (16 contracts, 3,200 lines of Solidity)
+
+| Contract | Description | Tests |
+|----------|-------------|-------|
+| `GoodDollarToken.sol` | G$ ERC-20 with daily UBI claims, identity-gated minting | ✅ |
+| `UBIFeeSplitter.sol` | Universal fee router: 33% UBI / 17% protocol / 50% dApp | ✅ |
+| `ValidatorStaking.sol` | Stake 1M G$ to validate, 5% APR, slashing → UBI pool | ✅ |
+| `UBIFeeHook.sol` | Uniswap V4 `afterSwap` hook — 33% of every swap fee → UBI | ✅ |
+| `GoodDollarBridgeL1.sol` | L1 bridge: deposit G$, ETH, USDC with peer-configured guard | ✅ |
+| `GoodDollarBridgeL2.sol` | L2 bridge: withdraw G$, ETH, USDC with peer-configured guard | ✅ |
+
+#### GoodStocks — Tokenized Stocks
+| Contract | Description |
+|----------|-------------|
+| `SyntheticAssetFactory.sol` | Create synthetic stock tokens (sAAPL, sTSLA, etc.) |
+| `SyntheticAsset.sol` | ERC-20 synthetic asset backed by collateral |
+| `CollateralVault.sol` | Deposit collateral, mint synthetics, liquidation engine |
+| `PriceOracle.sol` | Chainlink-style price feeds for stock prices |
+
+#### GoodPredict — Prediction Markets
+| Contract | Description |
+|----------|-------------|
+| `MarketFactory.sol` | Create/resolve binary prediction markets |
+| `ConditionalTokens.sol` | ERC-1155 outcome tokens (YES/NO positions) |
+
+#### GoodPerps — Perpetual Futures
+| Contract | Description |
+|----------|-------------|
+| `PerpEngine.sol` | Order matching, margin, PnL, fee routing to UBI |
+| `MarginVault.sol` | Isolated margin accounts with flush-to-splitter |
+| `FundingRate.sol` | Time-weighted funding rate calculation |
+
+**All contracts include UBI fee routing** — every trade, every liquidation, every fee flows through `UBIFeeSplitter.splitFee()` which distributes 33% to the UBI pool.
+
+### Test Suite: 205+ Foundry Tests
+
+```
+test/
+├── GoodDollarToken.t.sol     # Token minting, claims, identity
+├── UBIFeeHook.t.sol          # Uniswap V4 hook integration
+├── ValidatorStaking.t.sol     # Staking, rewards, slashing
+├── GoodDollarBridge.t.sol     # L1↔L2 bridge, peer guards
+├── perps/GoodPerps.t.sol      # Perp trading, margin, liquidation
+├── predict/GoodPredict.t.sol  # Market creation, resolution, redemption
+└── stocks/GoodStocks.t.sol    # Synthetic minting, collateral, liquidation
+```
+
+---
+
+### Frontend dApps (108 files, Next.js 14 + wagmi + RainbowKit)
+
+#### 🔄 GoodSwap DEX
 - Swap interface with 18 tokens (ETH, G$, USDC, WBTC, DAI, etc.)
 - Token explorer with prices, 24h change, volume, market cap
-- Full-screen token selector with search & quick-select
-- Swap review & confirmation modal
-- High price impact warnings
-- Slippage settings with real-time clamping
+- Token detail pages with full-screen charts
+- Swap review modal with fee breakdown
+- Price impact warnings + slippage settings
 - USD fiat equivalents on all amounts
-- Recent activity panel with localStorage persistence
-- Landing page — "Swap. Fund UBI." hero + How It Works
-- Impact stats ($2.4M UBI distributed, 640K+ claimers)
+- Recent activity panel (localStorage)
+
+#### 📈 GoodStocks — Tokenized Stock Trading
+- Stock listing page with real-time prices
+- Individual stock detail pages with company descriptions
+- Trading panel (long/short with collateral)
+- Portfolio view with open positions
+
+#### 🔮 GoodPredict — Prediction Markets
+- Market listing with category filters + thumbnail icons
+- Probability trend sparklines on market cards
+- Individual market pages with YES/NO trading
+- Market creation wizard
+- Portfolio tracking
+
+#### 📊 GoodPerps — Perpetual Futures
+- Trading interface with order book + recent trades
+- Candlestick charts (TradingView lightweight-charts)
+- Leaderboard page
+- Position management + portfolio
+
+#### 🌍 Cross-Platform Features
+- Cross-product navigation (Explore ↔ Stocks ↔ Perps ↔ Predict)
+- UBI impact banner across all pages
+- Persistent UBI impact stats (hero section)
+- Wallet connection with RainbowKit
+- Connect-wallet empty states
 - Mobile responsive with hamburger nav
 - Keyboard accessible
-- Performance optimized (lazy loading, memoization)
-- Custom 404 + error boundary
+- Custom 404 + error boundaries
+- Loading skeletons on all pages
 
-## Architecture
+---
+
+### Infrastructure
+
+| Component | Status |
+|-----------|--------|
+| OP Stack genesis + rollup config | ✅ Ready |
+| Devnet docker-compose (sequencer + batcher + proposer) | ✅ Ready |
+| L1↔L2 Bridge (G$, ETH, USDC) | ✅ Contracts done |
+| Foundry deploy scripts | ✅ Ready |
+| Token economics simulation + visualizations | ✅ Complete |
+| GoodSwap frontend at goodswap.goodclaw.org | ✅ Live |
+| Paperclip agent dashboard at paperclip.goodclaw.org | ✅ Live |
+| Autobuilder landing page at goodclaw.org | ✅ Live |
+
+---
+
+## 📐 Architecture
 
 ```
 GoodDollar L2 (OP Stack)
-├── src/                    # Solidity contracts (Foundry)
-│   ├── GToken.sol          # G$ token
-│   ├── UBIClaims.sol       # Daily UBI claims
-│   ├── UBIFeeSplitter.sol  # Fee routing to UBI pool
-│   ├── ValidatorStaking.sol
-│   ├── UBIFeeHook.sol      # Uniswap V4 hook
-│   └── ...
-├── frontend/               # GoodSwap DEX (Next.js)
+│
+├── src/                          # Solidity contracts (Foundry)
+│   ├── GoodDollarToken.sol       # G$ token with UBI claims
+│   ├── UBIFeeSplitter.sol        # 33/17/50 fee routing
+│   ├── ValidatorStaking.sol      # Proof-of-stake with UBI slashing
+│   ├── hooks/
+│   │   └── UBIFeeHook.sol        # Uniswap V4 afterSwap hook
+│   ├── bridge/
+│   │   ├── GoodDollarBridgeL1.sol
+│   │   └── GoodDollarBridgeL2.sol
+│   ├── stocks/                   # GoodStocks (tokenized equities)
+│   │   ├── SyntheticAssetFactory.sol
+│   │   ├── SyntheticAsset.sol
+│   │   ├── CollateralVault.sol
+│   │   └── PriceOracle.sol
+│   ├── predict/                  # GoodPredict (prediction markets)
+│   │   ├── MarketFactory.sol
+│   │   └── ConditionalTokens.sol
+│   └── perps/                    # GoodPerps (perpetual futures)
+│       ├── PerpEngine.sol
+│       ├── MarginVault.sol
+│       └── FundingRate.sol
+│
+├── test/                         # 205+ Foundry tests
+│
+├── frontend/                     # Next.js 14 + wagmi + RainbowKit
 │   └── src/
-│       ├── app/            # Pages (swap, explore, bridge, pool)
-│       ├── components/     # UI components
-│       ├── hooks/          # Custom React hooks
-│       └── lib/            # Utilities, constants, types
-├── script/                 # Deploy scripts
-├── test/                   # Contract tests
-├── op-stack/               # OP Stack configuration
-└── .autobuilder/           # AI build loop state
-    ├── scope.md            # Project vision
-    ├── initiatives/        # 45 feature PRDs
-    └── status.md           # Current build status
+│       ├── app/
+│       │   ├── page.tsx          # Landing + swap
+│       │   ├── explore/          # Token explorer + detail pages
+│       │   ├── stocks/           # GoodStocks trading UI
+│       │   ├── predict/          # GoodPredict markets
+│       │   ├── perps/            # GoodPerps trading
+│       │   ├── portfolio/        # Portfolio overview
+│       │   ├── bridge/           # Bridge UI
+│       │   └── pool/             # Liquidity pools
+│       ├── components/           # 35+ reusable components
+│       └── lib/                  # Data layers, utils, wagmi config
+│
+├── script/                       # Foundry deploy scripts
+├── op-stack/                     # OP Stack chain config
+│
+└── .autobuilder/                 # AI build loop
+    ├── scope.md                  # Project vision & phases
+    └── initiatives/              # 109 feature specs (PRDs)
 ```
 
-## Token Economics
+---
+
+## 💰 Token Economics
 
 | Flow | Split |
 |------|-------|
-| dApp fees → UBI pool | 33% |
-| dApp fees → Protocol | 17% |
-| dApp fees → dApp developer | 50% |
+| Every dApp fee → UBI pool | **33%** |
+| Every dApp fee → Protocol treasury | 17% |
+| Every dApp fee → dApp developer | 50% |
 | Validator staking minimum | 1M G$ |
-| Validator rewards | 5% annual |
-| Target inflation | 5-8% (decreasing) |
+| Validator annual rewards | 5% APR |
+| Slashed validator funds → | UBI pool |
 
-## The Vision
+**At scale:**
+| Users | Daily Fee Pool | UBI Multiplier |
+|-------|---------------|----------------|
+| 1M | $33,000/day | 1.11x (self-sustaining ✓) |
+| 100M | $3.3M/day | Significant supplemental income |
+| 1B | $33.7M/day | $0.033/day base + pool share |
 
-**Phase 1** ✅ — Core contracts + GoodSwap DEX
-**Phase 2** 🔜 — GoodLend (Aave fork), GoodBridge (Li.Fi), GoodPerps, GoodPredict
-**Phase 3** — GoodStake, GoodNames (.good domains), GoodNFT, GoodDAO, GoodPay
-**Phase 4** — Celestia DA, decentralized sequencer, 1B daily claim capacity
+---
 
-Every major DeFi primitive, cloned and improved, with fees routing to UBI. The goal: **make every on-chain action fund universal basic income.**
+## 🗺️ Roadmap
+
+| Phase | Status | What |
+|-------|--------|------|
+| **Phase 1** | ✅ Done | Core contracts + GoodSwap DEX |
+| **Phase 2** | ✅ Done | GoodStocks + GoodPredict + GoodPerps contracts & UIs |
+| **Phase 3** | 🔜 Next | Testnet deployment, bridge go-live, E2E testing |
+| **Phase 4** | 📋 Planned | GoodLend (Aave fork), GoodStake, GoodNames (.good domains) |
+| **Phase 5** | 📋 Planned | Celestia DA, decentralized sequencer, 1B claim capacity |
+
+---
+
+## 🔗 Links
+
+| Resource | URL |
+|----------|-----|
+| 🌐 AutoBuilder Dashboard | [goodclaw.org](https://goodclaw.org) |
+| 🔄 GoodSwap Live | [goodswap.goodclaw.org](https://goodswap.goodclaw.org) |
+| 📊 Agent Dashboard (Paperclip) | [paperclip.goodclaw.org](https://paperclip.goodclaw.org) |
+| 📖 GoodDollar Protocol | [gooddollar.org](https://gooddollar.org) |
+| 📈 GoodDollar Stats | [dashboard.gooddollar.org](https://dashboard.gooddollar.org) |
+| 🏗️ Autobuilder Initiatives | [GitHub](https://github.com/yoniassia/gooddollar-l2/tree/main/.autobuilder) |
+
+---
 
 ## About GoodDollar
 
-[GoodDollar](https://gooddollar.org) is a UBI protocol founded by Yoni Assia in 2018. 640K+ registered users receive daily G$ distributions. GoodDollar L2 is the next evolution — a dedicated chain where the entire DeFi economy funds UBI by default.
+[GoodDollar](https://gooddollar.org) is a UBI protocol founded by **Yoni Assia** in 2018. 640K+ registered users receive daily G$ distributions. GoodDollar L2 is the next evolution — a dedicated chain where the entire DeFi economy funds UBI by default.
 
-## Links
+The vision: **every on-chain action funds universal basic income.** Every swap. Every trade. Every liquidation. Every fee. All flowing to verified humans worldwide.
 
-- 🌐 [GoodSwap Live Demo](https://goodswap.goodclaw.org)
-- 📖 [GoodDollar Protocol](https://gooddollar.org)
-- 📊 [GoodDollar Dashboard](https://dashboard.gooddollar.org)
-- 🏗️ [Autobuilder](https://github.com/yoniassia/gooddollar-l2/tree/main/.autobuilder)
+---
 
 ## License
 
