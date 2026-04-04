@@ -569,6 +569,78 @@ contract GoodStableTest is Test {
         assertEq(sp.totalDeposits(), 0, "Eve withdrew cleanly");
     }
 
+    function test_SP_EpochReDepositCannotClaimPreDrainGains() public {
+        // GOO-367: re-depositing in a new epoch must not allow the user to claim
+        // pre-drain collateral gains proportional to their new (larger) deposit.
+        address attacker = address(0xA7);
+        address victim   = address(0xA8);
+
+        vm.startPrank(admin);
+        gusd.setMinter(admin, true);
+        gusd.mint(attacker, 1000e18);
+        gusd.mint(victim,   1000e18);
+        vm.stopPrank();
+
+        // Attacker deposits a small amount (10 gUSD) in epoch 0.
+        vm.startPrank(attacker);
+        gusd.approve(address(sp), 1000e18);
+        sp.deposit(10e18);
+        vm.stopPrank();
+
+        // Victim deposits 90 gUSD so the total pool = 100 gUSD.
+        vm.startPrank(victim);
+        gusd.approve(address(sp), 1000e18);
+        sp.deposit(90e18);
+        vm.stopPrank();
+
+        // Create an undercollateralised vault for alice to trigger a full drain.
+        vm.startPrank(alice);
+        weth.approve(address(vault), 0.1 ether);
+        vault.depositCollateral(ETH_ILK, 0.1 ether);
+        vault.mintGUSD(ETH_ILK, 100e18);
+        vm.stopPrank();
+
+        vm.prank(admin);
+        oracle.setPrice(ETH_ILK, 100e18); // price crash
+
+        vm.prank(bob);
+        vault.liquidate(ETH_ILK, alice);
+
+        // Full drain: epoch 1. The pool distributed ~0.1 ETH to all depositors.
+        assertEq(sp.drainEpoch(), 1, "epoch incremented");
+        assertEq(sp.totalDeposits(), 0, "pool drained");
+
+        // Attacker is entitled to 10/100 = 10% of the distributed collateral.
+        uint256 attackerFairShare = weth.balanceOf(address(sp)) * 10 / 100;
+
+        // Attacker re-deposits a LARGE amount (990 gUSD) WITHOUT claiming first.
+        vm.startPrank(attacker);
+        sp.deposit(990e18);
+        vm.stopPrank();
+
+        // Attacker's gainSnapshot must now be at the current cumulative so they
+        // cannot claim pre-drain gains with their large new deposit.
+        uint256 snapshotAfterReDeposit = sp.gainSnapshots(attacker, ETH_ILK);
+        assertEq(
+            snapshotAfterReDeposit,
+            sp.cumulativeGainPerGUSD(ETH_ILK),
+            "gainSnapshot reset to current cumulative on epoch re-deposit"
+        );
+
+        // Attacker claims collateral — should get 0 (snapshot == cumulative).
+        uint256 wethBefore = weth.balanceOf(attacker);
+        vm.prank(attacker);
+        sp.claimCollateral(ETH_ILK);
+        uint256 wethGained = weth.balanceOf(attacker) - wethBefore;
+
+        assertEq(wethGained, 0, "attacker gets 0 post-drain gains after re-deposit without prior claim");
+
+        // Sanity: attacker's pre-drain fair share (10%) is forfeited because they did
+        // not call claimCollateral() before re-depositing. This is documented behaviour.
+        // The key invariant is they do NOT receive MORE than their fair share.
+        assertLe(wethGained, attackerFairShare, "attacker cannot receive more than fair share");
+    }
+
     // ============================================================
     // Section 4: PSM — swap both directions
     // ============================================================

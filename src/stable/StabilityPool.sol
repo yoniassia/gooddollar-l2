@@ -73,6 +73,10 @@ contract StabilityPool {
     /// @notice ilk -> collateral token address
     mapping(bytes32 => address) public collateralTokens;
 
+    /// @notice All registered ilk keys in order of registration.
+    ///         Used to iterate and reset gainSnapshots on epoch boundary re-deposits (GOO-367).
+    bytes32[] public registeredIlks;
+
     /// @notice ilk -> pending undistributed collateral (dust from rounding)
     mapping(bytes32 => uint256) public collateralDust;
 
@@ -126,6 +130,9 @@ contract StabilityPool {
 
     function registerCollateralToken(bytes32 ilk, address token) external onlyAdmin {
         require(token != address(0), "SP: zero token");
+        if (collateralTokens[ilk] == address(0)) {
+            registeredIlks.push(ilk);
+        }
         collateralTokens[ilk] = token;
         emit CollateralTokenRegistered(ilk, token);
     }
@@ -150,10 +157,19 @@ contract StabilityPool {
 
         // GOO-361: if the user's prior deposit was from an earlier drain epoch, their
         // gUSD was already burned. Reset it to 0 before adding new funds so they don't
-        // double-count. Any unclaimed collateral gains from that epoch must be claimed
-        // via claimCollateral() BEFORE re-depositing, or they are forfeited.
+        // double-count.
+        // GOO-367: also reset gainSnapshots to current cumulative for all registered ilks.
+        // Without this, the new (potentially larger) deposit would be used to claim
+        // pre-drain collateral gains, enabling collateral overpayment proportional to
+        // the deposit size increase. Pre-drain gains must be claimed via claimCollateral()
+        // BEFORE re-depositing; after re-deposit they are forfeited.
         if (depositEpoch[msg.sender] < drainEpoch) {
             deposits[msg.sender] = 0;
+            uint256 numIlks = registeredIlks.length;
+            for (uint256 i = 0; i < numIlks; ) {
+                gainSnapshots[msg.sender][registeredIlks[i]] = cumulativeGainPerGUSD[registeredIlks[i]];
+                unchecked { ++i; }
+            }
         }
 
         require(
