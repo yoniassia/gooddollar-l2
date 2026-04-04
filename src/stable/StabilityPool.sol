@@ -141,7 +141,7 @@ contract StabilityPool {
      * @notice Deposit gUSD into the stability pool.
      *         Pending collateral gains for all registered ilks are settled first.
      */
-    function deposit(uint256 amount) external nonReentrant {
+    function deposit(uint256 amount) public nonReentrant {
         require(amount > 0, "SP: zero amount");
 
         // Materialise current effective balance before changing deposit size.
@@ -172,7 +172,7 @@ contract StabilityPool {
     /**
      * @notice Withdraw up to `amount` gUSD and claim all pending collateral gains.
      */
-    function withdraw(uint256 amount) external nonReentrant {
+    function withdraw(uint256 amount) public nonReentrant {
         require(amount > 0, "SP: zero amount");
 
         // Materialise the effective (scaled) deposit balance first.
@@ -320,6 +320,31 @@ contract StabilityPool {
             );
             emit CollateralClaimed(user, ilk, pendingCollateral);
         }
+    }
+
+    // ============ Liquity-compatible aliases ============
+
+    /**
+     * @notice Liquity V1/V2 compatibility alias for deposit().
+     *         Ignores the optional frontEndTag parameter (not used in GoodStable).
+     */
+    function provideToSP(uint256 amount) external {
+        deposit(amount);
+    }
+
+    /// @notice Liquity V1 two-arg variant (frontEndTag ignored).
+    function provideToSP(uint256 amount, address /*frontEndTag*/) external {
+        deposit(amount);
+    }
+
+    /// @notice Liquity variant with address[] hints (hints ignored).
+    function provideToSP(uint256 amount, address[] calldata /*hints*/) external {
+        deposit(amount);
+    }
+
+    /// @notice Liquity-compatible alias for withdraw().
+    function withdrawFromSP(uint256 amount) external {
+        withdraw(amount);
     }
 
     // ============ Views ============
