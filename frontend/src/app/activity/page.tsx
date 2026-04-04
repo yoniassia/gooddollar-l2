@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { DEVNET_RPC_URL, CONTRACTS as DEVNET_CONTRACTS } from '@/lib/devnet'
 
-const RPC_URL = typeof window !== 'undefined' 
-  ? (window.location.hostname === 'localhost' ? 'http://localhost:8545' : 'https://rpc.goodclaw.org')
-  : 'http://localhost:8545'
+const RPC_URL = DEVNET_RPC_URL
 
 const TESTERS = [
   { name: 'Tester Alpha', role: 'Swaps & Lending', address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', color: '#10b981', emoji: '🟢' },
@@ -12,25 +11,10 @@ const TESTERS = [
   { name: 'Tester Gamma', role: 'Stocks & Stress', address: '0x90F79bf6EB2c4f870365E785982E1f101E93b906', color: '#ef4444', emoji: '🔴' },
 ]
 
-const CONTRACTS: Record<string, string> = {
-  '0x5fbdb2315678afecb367f032d93f642f64180aa3': 'GoodDollarToken',
-  '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512': 'UBIFeeSplitter',
-  '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0': 'ValidatorStaking',
-  '0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9': 'UBIFeeHook (broken)',
-  '0x325c8df4cfb5b068675aff8f62aa668d1dec3c4b': 'UBIFeeHook (outdated)',
-  '0x85495222fd7069b987ca38c2142732ebbfb7175d': 'UBIFeeHook',
-  '0xdc64a140aa3e981100a9beca4e685f962f0cf6c9': 'FundingRate',
-  '0x5fc8d32690cc91d4c39d9d3abcbd16989f875707': 'MarginVault',
-  '0x0165878a594ca255338adfa4d48449f69242eb8f': 'PriceOracle',
-  '0xa513e6e4b8f2a923d98304ec87f64353c4d5c853': 'PerpEngine',
-  '0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6': 'ConditionalTokens',
-  '0x8a791620dd6260079bf849dc5567adc3f2fdc318': 'MarketFactory',
-  '0xb7f8bc63bbcad18155201308c8f3540b07f84f5e': 'CollateralVault',
-  '0x610178da211fef7d417bc0e6fed39f05609ad788': 'SyntheticAssetFactory',
-  '0x322813fd9a801c5507c9de605d63cea4f2ce6c44': 'GoodLendPool',
-  '0x0b306bf915c4d645ff596e518faf3f9669b97016': 'MockUSDC',
-  '0x959922be3caee4b8cd9a407cc3ac1c251c2007b1': 'MockWETH',
-}
+// Reverse map: lowercase address → contract name, derived from canonical devnet config
+const CONTRACTS: Record<string, string> = Object.fromEntries(
+  Object.entries(DEVNET_CONTRACTS).map(([name, addr]) => [(addr as string).toLowerCase(), name])
+)
 
 const TESTER_ADDRS = new Set(TESTERS.map(t => t.address.toLowerCase()))
 

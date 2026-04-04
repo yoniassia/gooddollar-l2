@@ -62,7 +62,7 @@ function TokenBalances({ address }: { address: `0x${string}` }) {
   const { balanceFloat: gusdBalance } = useGUSDBalance(address)
 
   return (
-    <div className="grid grid-cols-2 gap-2 mb-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
       <div className="bg-dark-50/30 rounded-xl px-4 py-3 flex items-center justify-between">
         <div>
           <div className="text-xs text-gray-400">G$ Balance</div>
