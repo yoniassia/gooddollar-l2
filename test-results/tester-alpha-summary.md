@@ -16,7 +16,8 @@
 - **Iteration 12:** 105 pass / 7 fail (93.8%) — 12 new contracts smoke-tested; GOO-298/299 still open; 2 new bugs found (GOO-308, GOO-309); VaultFactory TVL/DAO/Timelock/OptimisticResolver/MarketFactory/AgentRegistry all inspected
 - **Iteration 13:** 76 pass / 5 fail (93.8%) — CDP cycle, VaultFactory createVault, MarketFactory full cycle (100%), AgentRegistry writes, SwapPriceOracle adminSetPrice, VoteEscrowedGD lock; 2 new bugs filed (GOO-313, GOO-314)
 - **Iteration 14:** 51 pass / 9 fail (85%) — PSM round-trip swap ✓, StabilityPool deposit/withdraw ✓, GD+USDC ilk collateral ✓, CollateralRegistry all ilks ✓; GOO-308 FIXED; 2 new bugs filed (GOO-324, GOO-325); GOO-298/309/313/314 still open
-- **Last run:** 2026-04-04T15:01:08+00:00
+- **Iteration 15:** 86/123 total (iter15a 33/68 + iter15b supplement 53/55). GOO-308 fix verified (G$=$0.015, WETH=$3500, USDC=$1.00 all valid via getPrice()); GOO-326 NEW (removeToken doesn't zero stale prices — 5 old tokens still queryable); GoodDAO/Timelock/veGD/LiFi/AgentRegistry/UBIClaimV2 all audited with correct ABIs; GoodTimelock.ubiTreasury=old splitter (new issue); GOO-309/313/314/324/325 all still open; 1 new bug filed (GOO-326)
+- **Last run:** 2026-04-04T15:34:17Z
 
 ## Contracts Covered (full coverage)
 - GoodLendPool: supply, borrow, repay, withdraw, flashLoan, liquidate, mintToTreasury, getUserAccountData, getReservesCount, getBorrowIndex, setBorrowingEnabled, setOracle, setTreasury, setAdmin, setReserveActive, setReserveFactor, getLiquidityIndex, getReserveData, interestRateModel (verified interest accrual per block)
@@ -257,9 +258,10 @@
 - GOO-309: VaultManager.feeSplitter = old UBIFeeSplitter (0xe7f1725E) — should be new splitter 0xc0bf43; revenue from CDP vaults will go to stale contract (OPEN — filed iter12)
 - GOO-313: VoteEscrowedGD.gd() returns OLD_GDT (0x5FbDB231) — not updated to new GDT (0x6533158b) after GOO-238 migration (OPEN — filed iter13)
 - GOO-314: VaultManager.oracle() = 0xD0141E (stocks PriceOracle, wrong interface) — CRITICAL: mintGUSD/repayGUSD/liquidate all revert; only no-debt collateral ops work; must redeploy VaultManager with oracle = MockPriceOracle 0x998abeb3 (OPEN — filed iter13)
-- GOO-308: SwapPriceOracle all prices stale/zero — FIXED in iter14: registeredTokenCount=5, price[0]=10000000 (non-zero). Keeper is updating prices. (FIXED — confirmed iter14)
-- GOO-324: CRIT: LendingStrategy (0xd977422c) deployed with vault=address(0) — all 4 GoodVaults fail deposit() with NotVault() error; all 4 vaults share same broken strategy; VaultFactory.totalTVL=0 (OPEN — filed iter14)
-- GOO-325: VaultManager withdrawCollateral USDC ilk fails with ReentrancySentryOOG on cold storage — eth_estimateGas underestimates; works with --gas-limit 300000; ~21k gas delta between warm/cold SLOAD (OPEN — filed iter14)
+- GOO-308: SwapPriceOracle all prices stale/zero — PARTIALLY FIXED in iter14/15: FixSwapPriceOracle script registered 4 new tokens with correct prices (G$=$0.015, WETH=$3500, USDC=$1.00, SwapGD=$0.015), defaultMaxAge=365d, getPrice() no longer reverts. However GOO-326 filed for incomplete fix.
+- GOO-324: CRIT: LendingStrategy (0xd977422c) deployed with vault=address(0) — all 4 GoodVaults fail deposit() with NotVault() error; all 4 vaults share same broken strategy; VaultFactory.totalTVL=0 (OPEN — filed iter14, re-confirmed iter15)
+- GOO-325: VaultManager withdrawCollateral USDC ilk fails with ReentrancySentryOOG on cold storage — eth_estimateGas underestimates; works with --gas-limit 300000; ~21k gas delta between warm/cold SLOAD (OPEN — filed iter14, workaround confirmed iter15)
+- GOO-326: SwapPriceOracle.removeToken() does not zero prices — 5 "removed" tokens (OLD_GDT, old UBIFeeSplitter, old UBIFeeHook etc.) still return non-zero prices via getPriceUnsafe(); registeredTokenCount=9 (not 4); stale prices could corrupt any system iterating all registered tokens (OPEN — filed iter15)
 
 ## Notes
 - MockUSDC: 6 decimals; MockWETH: 18 decimals
@@ -282,6 +284,14 @@
 - GoodDAO.proposalCount=1 (one on-chain proposal exists from deployer)
 - GoodTimelock: deployer is proposer but NOT executor (executors not set up)
 - MarketFactory: 10 prediction markets already created on devnet
-- AgentRegistry: 5 AI agents registered on-chain
-- SwapPriceOracle: active keeper tx stream (0x457972de = updatePrice selector) but all prices 0 on devnet — likely keeper needs RPC config
+- AgentRegistry: 6 AI agents registered on-chain (getAgentCount=6 in iter15)
+- SwapPriceOracle: adminSetPrice used as keeper substitute; defaultMaxAge=365d; GOO-308 partially fixed; GOO-326 open (removeToken stale prices)
 - VaultManager.feeSplitter = 0xe7f1725E (old UBIFeeSplitter from before GOO-243 fix) — GOO-309
+- GoodTimelock.ubiTreasury = 0xe7f1725E (old UBIFeeSplitter) — same stale reference as GOO-309; needs update to 0xc0bf43
+- GoodDAO: custom (not OZ Governor) — constants: VOTING_DELAY=86400 blocks, VOTING_PERIOD=259200 blocks, QUORUM_BPS=1000 (10%), PROPOSAL_THRESHOLD_BPS=100; proposalCount=1 (state=Pending); deployer is guardian
+- GoodTimelock: custom — delay=86400s (24h), MIN_DELAY=86400, MAX_DELAY=2592000; deployer is proposer, NOT executor
+- VoteEscrowedGD: MIN_LOCK=7d, MAX_LOCK=1460d (4yr), EARLY_UNLOCK_PENALTY_BPS=3000 (30%), UBI_PENALTY_SHARE_BPS=3333; totalLocked=1650 G$; deployer getVotes=2.88 veGD
+- UBIClaimV2: goodDollar()=NEW_GDT ✓; selfClaimEnabled=true; EPOCH_DURATION=1d; trustedRelayers(DEPLOYER)=true
+- GoodLend: only 2 reserves: USDC (0x0B306BF) + WETH (0x959922); GDT not a reserve; flashPremiumBps=9; correctflashLoan arg order = (receiver, amount, asset, data)
+- LiFiBridgeAggregator: ubiFeeRateBps=10 (0.1%), ubiFeeSplitter=new splitter ✓; swapCount=3; USDC+WETH whitelisted ✓
+- VoteEscrowedGD: increaseLock(50 OLD_GDT) totalLocked now 1650 G$ (iter15 workaround for GOO-313)
