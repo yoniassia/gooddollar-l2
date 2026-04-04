@@ -21,6 +21,9 @@ jobs:
       - name: Run forge tests
         run: forge test -vvv
 
+      - name: Run forge coverage
+        run: forge coverage --ir-minimum --report summary
+
   frontend:
     name: Frontend Type Check
     runs-on: ubuntu-latest
