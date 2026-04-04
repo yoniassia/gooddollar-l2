@@ -33,7 +33,7 @@ export default function PredictPortfolioPage() {
       title="Connect to View Predictions"
       description="Connect your wallet to view your prediction market positions and resolved bets."
     >
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Predictions Portfolio</h1>
 
       <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">

@@ -17,16 +17,10 @@ import { GoodDollarTokenABI, ERC20ABI } from '@/lib/abi'
 import { CONTRACTS } from '@/lib/chain'
 import { useGUSDBalance, useVault, ILKS, ILK_ETH, ILK_GD, ILK_USDC } from '@/lib/useGoodStable'
 import { useUserAccountData } from '@/lib/useGoodLend'
+import { usePriceFeeds, getPrice } from '@/lib/usePriceFeeds'
 import Link from 'next/link'
 
 const CHAIN_ID = 42069
-
-// Approximate devnet collateral prices
-const COLLATERAL_PRICES: Record<string, number> = {
-  WETH: 3200,
-  'G$': 0.00035,
-  USDC: 1.0,
-}
 const ILKS_META = [
   { key: ILK_ETH,  label: 'WETH', decimals: 18, minRatio: 150, tokenAddress: CONTRACTS.StableMockWETH },
   { key: ILK_GD,   label: 'G$',   decimals: 18, minRatio: 200, tokenAddress: CONTRACTS.StableMockGD },
@@ -122,8 +116,8 @@ function LendPosition({ address }: { address: `0x${string}` }) {
 
 // ─── GoodStable vault positions ───────────────────────────────────────────────
 
-function StableVaultRow({ ilkMeta, address }: { ilkMeta: typeof ILKS_META[number]; address: `0x${string}` }) {
-  const price = COLLATERAL_PRICES[ilkMeta.label] ?? 1
+function StableVaultRow({ ilkMeta, address, prices }: { ilkMeta: typeof ILKS_META[number]; address: `0x${string}`; prices: Record<string, number> }) {
+  const price = getPrice(prices, ilkMeta.label)
   const { data, isLoading } = useVault(
     ilkMeta.key, address, ilkMeta.decimals, price, ilkMeta.minRatio / 100,
   )
@@ -159,7 +153,7 @@ function StableVaultRow({ ilkMeta, address }: { ilkMeta: typeof ILKS_META[number
   )
 }
 
-function StablePositions({ address }: { address: `0x${string}` }) {
+function StablePositions({ address, prices }: { address: `0x${string}`; prices: Record<string, number> }) {
   return (
     <div className="mb-3">
       <div className="flex items-center justify-between mb-2">
@@ -168,7 +162,7 @@ function StablePositions({ address }: { address: `0x${string}` }) {
       </div>
       <div className="space-y-0.5">
         {ILKS_META.map(ilk => (
-          <StableVaultRow key={ilk.key} ilkMeta={ilk} address={address} />
+          <StableVaultRow key={ilk.key} ilkMeta={ilk} address={address} prices={prices} />
         ))}
       </div>
     </div>
@@ -179,6 +173,7 @@ function StablePositions({ address }: { address: `0x${string}` }) {
 
 export function PortfolioOnChain() {
   const { address, chainId } = useAccount()
+  const { prices } = usePriceFeeds(['WETH', 'G$', 'USDC'])
 
   if (!address || chainId !== CHAIN_ID) return null
 
@@ -192,7 +187,7 @@ export function PortfolioOnChain() {
 
       <TokenBalances address={address} />
       <LendPosition address={address} />
-      <StablePositions address={address} />
+      <StablePositions address={address} prices={prices} />
     </div>
   )
 }

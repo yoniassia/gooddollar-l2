@@ -70,7 +70,7 @@ export default function PortfolioPage() {
 
   return (
     <ConnectWalletEmptyState>
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Portfolio Overview</h1>
 
       {/* Live on-chain positions — only visible when connected to devnet (chain 42069) */}

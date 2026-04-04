@@ -1,15 +1,18 @@
 'use client'
 
-export function StartSwappingCTA() {
+import { useRef } from 'react'
+
+interface StartSwappingCTAProps {
+  swapCardRef?: React.RefObject<HTMLElement | null>
+}
+
+export function StartSwappingCTA({ swapCardRef }: StartSwappingCTAProps = {}) {
   const handleClick = () => {
-    const card = document.getElementById('swap-card')
-    if (card) {
-      card.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      setTimeout(() => {
-        const input = card.querySelector<HTMLInputElement>('input[inputmode="decimal"]')
-        input?.focus()
-      }, 500)
-    }
+    const card = swapCardRef?.current ?? document.getElementById('swap-card')
+    if (!card) return
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const input = card.querySelector<HTMLInputElement>('input[inputmode="decimal"]')
+    input?.focus({ preventScroll: true })
   }
 
   return (

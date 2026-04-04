@@ -19,15 +19,7 @@ import {
   type StableActionKind,
   type VaultState,
 } from '@/lib/useGoodStable'
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-// Approximate USD prices for collateral (devnet — no live oracle on frontend)
-const COLLATERAL_PRICES: Record<string, number> = {
-  WETH: 3200,
-  'G$': 0.00035,
-  USDC: 1.0,
-}
+import { usePriceFeeds, getPrice } from '@/lib/usePriceFeeds'
 
 const ILK_CONFIG = {
   [ILK_ETH]:  { label: 'WETH', symbol: 'WETH',  ratio: '150%', fee: '~2% APY',    color: 'text-blue-400',     icon: 'ETH', minRatio: 1.5 },
@@ -105,12 +97,12 @@ function HealthBar({ hf, minRatio }: { hf: number; minRatio: number }) {
 
 const ACTION_TABS: StableActionKind[] = ['deposit', 'withdraw', 'mint', 'repay', 'close']
 
-function VaultPanel({ ilkKey }: { ilkKey: IlkKey }) {
+function VaultPanel({ ilkKey, prices }: { ilkKey: IlkKey; prices: Record<string, number> }) {
   const cfg = ILK_CONFIG[ilkKey]
   const ilkMeta = ILKS.find(i => i.key === ilkKey)!
 
   const address = useConnectedAccount()
-  const price = COLLATERAL_PRICES[cfg.symbol] ?? 1
+  const price = getPrice(prices, cfg.symbol)
   const liquidationRatio = ilkMeta.minRatio / 100
 
   const { data: vault, isLoading: vaultLoading } = useVault(
@@ -312,16 +304,19 @@ function VaultPanel({ ilkKey }: { ilkKey: IlkKey }) {
 
 // ─── Position summary (all vaults) ───────────────────────────────────────────
 
-function PositionSummary({ address }: { address: `0x${string}` | undefined }) {
-  const ethVault = useVault(ILK_ETH,  address, 18, COLLATERAL_PRICES.WETH,  1.5)
-  const gdVault  = useVault(ILK_GD,   address, 18, COLLATERAL_PRICES['G$'], 2.0)
-  const udcVault = useVault(ILK_USDC, address, 6,  COLLATERAL_PRICES.USDC,  1.01)
+function PositionSummary({ address, prices }: { address: `0x${string}` | undefined; prices: Record<string, number> }) {
+  const ethVault = useVault(ILK_ETH,  address, 18, getPrice(prices, 'WETH'), 1.5)
+  const gdVault  = useVault(ILK_GD,   address, 18, getPrice(prices, 'G$'),   2.0)
+  const udcVault = useVault(ILK_USDC, address, 6,  getPrice(prices, 'USDC'), 1.01)
 
   const summary = useMemo(() => {
+    const wethPrice = getPrice(prices, 'WETH')
+    const gdPrice   = getPrice(prices, 'G$')
+    const usdcPrice = getPrice(prices, 'USDC')
     const vaults = [
-      { v: ethVault.data,  price: COLLATERAL_PRICES.WETH },
-      { v: gdVault.data,   price: COLLATERAL_PRICES['G$'] },
-      { v: udcVault.data,  price: COLLATERAL_PRICES.USDC },
+      { v: ethVault.data,  price: wethPrice },
+      { v: gdVault.data,   price: gdPrice },
+      { v: udcVault.data,  price: usdcPrice },
     ]
     let totalCollateralUSD = 0
     let totalDebt = 0
@@ -337,7 +332,7 @@ function PositionSummary({ address }: { address: `0x${string}` | undefined }) {
     const cr = totalDebt > 0 ? (totalCollateralUSD / totalDebt) * 100 : null
 
     return { totalCollateralUSD, totalDebt, cr, hasAny }
-  }, [ethVault.data, gdVault.data, udcVault.data])
+  }, [ethVault.data, gdVault.data, udcVault.data, prices])
 
   if (!address || !summary.hasAny) return null
 
@@ -395,6 +390,7 @@ function ProtocolStats() {
 
 export default function StablePage() {
   const address = useConnectedAccount()
+  const { prices } = usePriceFeeds(['WETH', 'G$', 'USDC'])
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -416,13 +412,13 @@ export default function StablePage() {
       </div>
 
       <ProtocolStats />
-      <PositionSummary address={address} />
+      <PositionSummary address={address} prices={prices} />
 
       {/* Vault panels */}
       <div className="grid gap-4 md:grid-cols-3">
-        <VaultPanel ilkKey={ILK_ETH} />
-        <VaultPanel ilkKey={ILK_GD} />
-        <VaultPanel ilkKey={ILK_USDC} />
+        <VaultPanel ilkKey={ILK_ETH} prices={prices} />
+        <VaultPanel ilkKey={ILK_GD} prices={prices} />
+        <VaultPanel ilkKey={ILK_USDC} prices={prices} />
       </div>
 
       {/* How it works */}

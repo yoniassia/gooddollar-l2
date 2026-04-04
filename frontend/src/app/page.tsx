@@ -52,8 +52,6 @@ export default function Home() {
       <SwapPriceChart
         inputSymbol="ETH"
         outputSymbol="G$"
-        inputPrice={3012.45}
-        outputPrice={0.0102}
       />
 
       {/* Swap card wrapper with glow */}

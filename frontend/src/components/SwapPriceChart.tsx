@@ -2,14 +2,13 @@
 
 import { useState, useMemo, memo } from 'react'
 import { getChartData, type Timeframe } from '@/lib/chartData'
+import { usePriceFeeds, getPrice } from '@/lib/usePriceFeeds'
 
 const TIMEFRAMES: Timeframe[] = ['1D', '1W', '1M']
 
 interface SwapPriceChartProps {
   inputSymbol: string
   outputSymbol: string
-  inputPrice: number
-  outputPrice: number
 }
 
 function formatRate(rate: number): string {
@@ -23,9 +22,10 @@ function formatRate(rate: number): string {
 export const SwapPriceChart = memo(function SwapPriceChart({
   inputSymbol,
   outputSymbol,
-  inputPrice,
-  outputPrice,
 }: SwapPriceChartProps) {
+  const { prices } = usePriceFeeds([inputSymbol, outputSymbol])
+  const inputPrice = getPrice(prices, inputSymbol)
+  const outputPrice = getPrice(prices, outputSymbol)
   const [timeframe, setTimeframe] = useState<Timeframe>('1W')
 
   const exchangeRate = outputPrice > 0 ? inputPrice / outputPrice : 0

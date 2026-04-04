@@ -109,7 +109,7 @@ export default function StocksPortfolioPage() {
       title="Connect to View Stocks"
       description="Connect your wallet to view your tokenized stock holdings and trade history."
     >
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Stock Portfolio</h1>
 
       <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
