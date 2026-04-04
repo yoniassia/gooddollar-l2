@@ -7,4 +7,12 @@ via_ir = true
 optimizer = true
 optimizer_runs = 200
 
+# Coverage profile: forge coverage instruments bytecode which increases stack depth.
+# ir-minimum enables viaIR with minimal optimization to resolve stack-too-deep in
+# script/ files (notably CreateInitialPools.s.sol) without full IR optimization cost.
+[profile.coverage]
+via_ir = true
+ir_minimum = true
+optimizer = false
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
