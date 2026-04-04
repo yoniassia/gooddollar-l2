@@ -6,6 +6,7 @@ import { WagmiProvider } from 'wagmi'
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
 import { WalletReadyContext } from '@/lib/WalletReadyContext'
 import { TransactionProvider } from '@/lib/TransactionContext'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import { config } from '@/lib/wagmi'
 
 import '@rainbow-me/rainbowkit/styles.css'
@@ -23,22 +24,24 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }))
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <WagmiProvider config={config}>
-        <RainbowKitProvider
-          theme={darkTheme({
-            accentColor: '#00B0A0',
-            accentColorForeground: 'white',
-            borderRadius: 'medium',
-          })}
-        >
-          <TransactionProvider>
-            <WalletReadyContext.Provider value={true}>
-              {children}
-            </WalletReadyContext.Provider>
-          </TransactionProvider>
-        </RainbowKitProvider>
-      </WagmiProvider>
-    </QueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <WagmiProvider config={config}>
+          <RainbowKitProvider
+            theme={darkTheme({
+              accentColor: '#00B0A0',
+              accentColorForeground: 'white',
+              borderRadius: 'medium',
+            })}
+          >
+            <TransactionProvider>
+              <WalletReadyContext.Provider value={true}>
+                {children}
+              </WalletReadyContext.Provider>
+            </TransactionProvider>
+          </RainbowKitProvider>
+        </WagmiProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   )
 }

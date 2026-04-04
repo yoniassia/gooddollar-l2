@@ -1,12 +1,11 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { GeistSans } from 'geist/font/sans'
+import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 import { Providers } from '@/components/Providers'
 import { Header } from '@/components/Header'
 import { UBIBanner } from '@/components/UBIBanner'
 import { LandingFooter } from '@/components/LandingFooter'
-
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'GoodDollar — DeFi That Funds UBI',
@@ -15,8 +14,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} min-h-screen flex flex-col`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+    >
+      <body className="font-sans min-h-screen flex flex-col">
         <Providers>
           <Header />
           <UBIBanner />

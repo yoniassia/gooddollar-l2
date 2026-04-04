@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { WalletButton } from './WalletButton'
 import { ActivityButton } from './ActivityButton'
+import { ThemeToggle } from './ThemeToggle'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -93,6 +94,7 @@ export function Header() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
           </Link>
+          <ThemeToggle />
           <ActivityButton />
           <button
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
