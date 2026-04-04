@@ -77,6 +77,7 @@ contract GoodSwap {
     error InsufficientLiquidityMinted();
     error InsufficientLiquidityBurned();
     error Overflow();
+    error TransferFailed();
 
     // ─── Modifiers ─────────────────────────────────────────────────────────────
 
@@ -156,8 +157,8 @@ contract GoodSwap {
         balanceOf[address(this)] -= liquidity;
         totalSupply              -= liquidity;
 
-        IERC20Minimal(token0).transfer(to, amount0);
-        IERC20Minimal(token1).transfer(to, amount1);
+        _safeTransfer(token0, to, amount0);
+        _safeTransfer(token1, to, amount1);
 
         bal0 = IERC20Minimal(token0).balanceOf(address(this));
         bal1 = IERC20Minimal(token1).balanceOf(address(this));
@@ -184,8 +185,8 @@ contract GoodSwap {
         if (amount0Out >= r0 || amount1Out >= r1) revert InsufficientLiquidity();
         if (to == token0 || to == token1) revert InvalidRecipient();
 
-        if (amount0Out > 0) IERC20Minimal(token0).transfer(to, amount0Out);
-        if (amount1Out > 0) IERC20Minimal(token1).transfer(to, amount1Out);
+        if (amount0Out > 0) _safeTransfer(token0, to, amount0Out);
+        if (amount1Out > 0) _safeTransfer(token1, to, amount1Out);
         if (data.length > 0) IGoodSwapCallee(to).goodSwapCall(msg.sender, amount0Out, amount1Out, data);
 
         uint256 bal0 = IERC20Minimal(token0).balanceOf(address(this));
@@ -202,8 +203,8 @@ contract GoodSwap {
      * @notice Force balances to match reserves (rescue mistakenly sent tokens).
      */
     function skim(address to) external lock {
-        IERC20Minimal(token0).transfer(to, IERC20Minimal(token0).balanceOf(address(this)) - _reserve0);
-        IERC20Minimal(token1).transfer(to, IERC20Minimal(token1).balanceOf(address(this)) - _reserve1);
+        _safeTransfer(token0, to, IERC20Minimal(token0).balanceOf(address(this)) - _reserve0);
+        _safeTransfer(token1, to, IERC20Minimal(token1).balanceOf(address(this)) - _reserve1);
     }
 
     /**
@@ -268,6 +269,10 @@ contract GoodSwap {
         _blockTimestampLast  = ts;
 
         emit Sync(_reserve0, _reserve1);
+    }
+
+    function _safeTransfer(address token, address to, uint256 amount) internal {
+        if (!IERC20Minimal(token).transfer(to, amount)) revert TransferFailed();
     }
 
     function _sqrt(uint256 y) internal pure returns (uint256 z) {

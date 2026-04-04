@@ -465,6 +465,39 @@ contract GoodSwapTest is Test {
         assertEq(pair.balanceOf(address(0)), 1000);
     }
 
+    // ── TransferFailed: non-standard ERC-20 that returns false ────────────────
+
+    function test_burn_revert_transferFailed() public {
+        // Deploy a failing-transfer token as token0
+        FailingToken ft = new FailingToken();
+        GoodSwap badPair = new GoodSwap(address(ft), address(t1));
+
+        // Seed: mint tokens directly to pair and call mint
+        ft.mint(address(badPair), 1_000e18);
+        t1.mint(address(badPair), 1_000e18);
+        badPair.mint(address(this));
+
+        uint256 lp = badPair.totalSupply() - badPair.MINIMUM_LIQUIDITY();
+        uint256 burnSlot = uint256(keccak256(abi.encode(address(badPair), uint256(8))));
+        vm.store(address(badPair), bytes32(burnSlot), bytes32(lp));
+
+        vm.expectRevert(GoodSwap.TransferFailed.selector);
+        badPair.burn(alice);
+    }
+
+    function test_swap_revert_transferFailed() public {
+        FailingToken ft = new FailingToken();
+        GoodSwap badPair = new GoodSwap(address(ft), address(t1));
+
+        ft.mint(address(badPair), 1_000e18);
+        t1.mint(address(badPair), 1_000e18);
+        badPair.mint(address(this));
+
+        t1.mint(address(badPair), 10e18); // input
+        vm.expectRevert(GoodSwap.TransferFailed.selector);
+        badPair.swap(1e18, 0, alice, "");
+    }
+
     // ── _sqrt: small value branch (y <= 3, y != 0) ────────────────────────────
 
     function test_mint_sqrt_small_value() public {
@@ -487,6 +520,25 @@ contract GoodSwapTest is Test {
         // but it DOES execute _sqrt with y=2, covering lines 278-279.
         vm.expectRevert(); // arithmetic underflow
         pair.mint(address(this));
+    }
+}
+
+// ─── ERC-20 that returns false on transfer (USDT-style) ──────────────────────
+
+contract FailingToken {
+    string  public name     = "FailToken";
+    string  public symbol   = "FAIL";
+    uint8   public decimals = 18;
+    uint256 public totalSupply;
+    mapping(address => uint256) public balanceOf;
+
+    function mint(address to, uint256 amount) external {
+        balanceOf[to] += amount;
+        totalSupply   += amount;
+    }
+
+    function transfer(address, uint256) external pure returns (bool) {
+        return false; // always fails silently
     }
 }
 
