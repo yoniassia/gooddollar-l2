@@ -180,6 +180,7 @@ export function SwapCard() {
               type="text"
               inputMode="decimal"
               placeholder="0"
+              aria-label={`Amount to swap (${inputToken?.symbol ?? 'token'})`}
               value={inputAmount}
               onChange={e => setInputAmount(sanitizeNumericInput(e.target.value))}
               style={inputFontSize ? { fontSize: inputFontSize } : undefined}

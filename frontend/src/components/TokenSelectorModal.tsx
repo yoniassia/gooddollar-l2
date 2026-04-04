@@ -104,6 +104,7 @@ export function TokenSelectorModal({ open, onClose, onSelect, selected, exclude 
             ref={searchRef}
             type="text"
             placeholder="Search by name or symbol"
+            aria-label="Search tokens by name or symbol"
             value={query}
             onChange={e => setQuery(e.target.value)}
             className="w-full px-4 py-3 rounded-xl bg-dark/80 border border-gray-700/30 text-white placeholder:text-gray-500 text-sm outline-none focus-visible:ring-2 focus-visible:ring-goodgreen/50 focus-visible:border-goodgreen/30"

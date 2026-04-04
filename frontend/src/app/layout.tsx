@@ -9,6 +9,7 @@ import { Header } from '@/components/Header'
 import { UBIBanner } from '@/components/UBIBanner'
 import { LandingFooter } from '@/components/LandingFooter'
 import { PageTransition } from '@/components/PageTransition'
+import { AxeDevTools } from '@/components/AxeDevTools'
 
 export const metadata: Metadata = {
   title: 'GoodDollar — DeFi That Funds UBI',
@@ -23,16 +24,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${GeistSans.variable} ${GeistMono.variable}`}
     >
       <body className="font-sans min-h-screen flex flex-col">
+        {/* Skip to main content — WCAG 2.4.1 */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-goodgreen focus:text-dark focus:rounded-lg focus:font-medium focus:text-sm"
+        >
+          Skip to main content
+        </a>
         <Providers>
           <Header />
           <UBIBanner />
-          <main className="flex-1 flex flex-col items-center px-4 pt-8 pb-12">
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="flex-1 flex flex-col items-center px-4 pt-8 pb-12 outline-none"
+          >
             <PageTransition>{children}</PageTransition>
           </main>
           <LandingFooter />
         </Providers>
         <Analytics />
         <SpeedInsights />
+        <AxeDevTools />
       </body>
     </html>
   )

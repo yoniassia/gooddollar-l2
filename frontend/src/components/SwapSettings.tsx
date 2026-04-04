@@ -43,7 +43,7 @@ export function SwapSettings() {
           <h3 className="text-sm font-semibold text-white mb-3">Transaction Settings</h3>
 
           <div className="mb-4">
-            <label className="text-xs text-gray-400 mb-2 block">Slippage Tolerance</label>
+            <label htmlFor="slippage-custom" className="text-xs text-gray-400 mb-2 block">Slippage Tolerance</label>
             <div className="flex gap-2">
               {PRESETS.map(p => (
                 <button
@@ -60,9 +60,11 @@ export function SwapSettings() {
               ))}
               <div className="relative flex-1">
                 <input
+                  id="slippage-custom"
                   type="text"
                   inputMode="decimal"
                   placeholder="Custom"
+                  aria-label="Custom slippage tolerance percentage"
                   value={customSlippage}
                   onChange={e => {
                     const val = sanitizeNumericInput(e.target.value)
@@ -104,12 +106,14 @@ export function SwapSettings() {
           </div>
 
           <div>
-            <label className="text-xs text-gray-400 mb-2 block">Transaction Deadline</label>
+            <label htmlFor="deadline-minutes" className="text-xs text-gray-400 mb-2 block">Transaction Deadline</label>
             <div className="flex items-center gap-2">
               <input
+                id="deadline-minutes"
                 type="text"
                 inputMode="numeric"
                 placeholder="1–180"
+                aria-label="Transaction deadline in minutes"
                 value={deadline}
                 onChange={e => {
                   const raw = e.target.value.replace(/[^0-9]/g, '')
