@@ -17,9 +17,8 @@ import "forge-std/interfaces/IERC20.sol";
 interface IStabilityPool {
     function deposit(uint256 amount) external;
     function withdraw(uint256 amount) external;
-    function getDepositorBalance(address depositor) external view returns (uint256);
-    function getDepositorGain(address depositor) external view returns (uint256 ethGain);
-    function claimGains() external returns (uint256);
+    /// @dev Matches GoodStable StabilityPool public mapping getter.
+    function deposits(address depositor) external view returns (uint256);
 }
 
 contract StablecoinStrategy {
@@ -68,7 +67,7 @@ contract StablecoinStrategy {
     }
 
     function totalAssets() external view returns (uint256) {
-        return stabilityPool.getDepositorBalance(address(this));
+        return stabilityPool.deposits(address(this));
     }
 
     function deposit(uint256 amount) external onlyVault {
@@ -81,7 +80,7 @@ contract StablecoinStrategy {
     }
 
     function withdraw(uint256 amount) external onlyVault returns (uint256) {
-        uint256 bal = stabilityPool.getDepositorBalance(address(this));
+        uint256 bal = stabilityPool.deposits(address(this));
         if (amount > bal) amount = bal;
         stabilityPool.withdraw(amount);
 
@@ -98,22 +97,12 @@ contract StablecoinStrategy {
     }
 
     function harvest() external onlyVault returns (uint256 profit, uint256 loss) {
-        uint256 currentBal = stabilityPool.getDepositorBalance(address(this));
+        uint256 currentBal = stabilityPool.deposits(address(this));
 
-        // Claim liquidation gains (ETH/WETH).
-        // Read actual balance delta after claim instead of the pre-query estimate to
-        // avoid reverts or underpayment when getDepositorGain() and claimGains() diverge.
-        uint256 ethGain = stabilityPool.getDepositorGain(address(this));
-        if (ethGain > 0) {
-            uint256 balBefore = gainToken != address(0) ? IERC20(gainToken).balanceOf(address(this)) : 0;
-            stabilityPool.claimGains();
-            if (gainToken != address(0)) {
-                uint256 actualGain = IERC20(gainToken).balanceOf(address(this)) - balBefore;
-                if (actualGain > 0) IERC20(gainToken).transfer(vault, actualGain);
-                ethGain = actualGain;
-            }
-            emit GainsClaimed(ethGain);
-        }
+        // Collateral-gain claiming requires per-ilk calls (claimCollateral(bytes32 ilk)).
+        // The StabilityPool does not expose a single-call claimAll; skip for now.
+        // Collateral gains accumulate in the SP and can be claimed off-band by the vault admin
+        // once ilk keys are wired to this strategy.
 
         // Report gUSD profit/loss
         if (currentBal > totalDeposited) {
@@ -129,7 +118,7 @@ contract StablecoinStrategy {
 
     function emergencyWithdraw() external onlyVault returns (uint256) {
         paused = true;
-        uint256 bal = stabilityPool.getDepositorBalance(address(this));
+        uint256 bal = stabilityPool.deposits(address(this));
         if (bal > 0) {
             stabilityPool.withdraw(bal);
             IERC20(asset).transfer(vault, bal);

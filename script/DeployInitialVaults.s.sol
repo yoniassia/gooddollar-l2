@@ -27,7 +27,7 @@ interface IMintable {
 
 contract DeployInitialVaults is Script {
     // ─── Existing addresses (updated after devnet reset — GOO-363) ───
-    address constant VAULT_FACTORY   = 0xD5ac451B0c50B9476107823Af206eD814a2e2580;
+    address constant VAULT_FACTORY   = 0xe70f935c32dA4dB13e7876795f1e175465e6458e;
     address constant UBI_FEE         = 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512;
     address constant GOOD_LEND_POOL  = 0x49fd2BE640DB2910c2fAb69bB8531Ab6E76127ff;
     address constant WETH            = 0xfbC22278A96299D91d41C453234d97b4F5Eb9B2d;
@@ -35,7 +35,8 @@ contract DeployInitialVaults is Script {
     address constant GD_TOKEN        = 0x36C02dA8a0983159322a80FFE9F24b1acfF8B570;
     address constant G_TOKEN_WETH    = 0xA4899D35897033b927acFCf422bc745916139776;
     address constant G_TOKEN_USDC    = 0x4631BCAbD6dF18D94796344963cB60d44a4136b6;
-    address constant GUSD            = 0xc351628EB244ec633d5f21fBD6621e1a683B1181;
+    address constant GUSD            = 0x5D42EBdBBa61412295D7b0302d6F50aC449Ddb4F;
+    address constant STABILITY_POOL  = 0xAD523115cd35a8d4E60B3C0953E0E0ac10418309;
 
     // We need mock stability pool and gToken for G$
     // For now, deploy simplified mock versions for the devnet demo
@@ -82,17 +83,14 @@ contract DeployInitialVaults is Script {
         // 2. gUSD-Stability Vault — gUSD → StabilityPool
         // ════════════════════════════════════════════════════════
 
-        // Deploy a mock stability pool for gUSD
-        MockStabilityPool stPool = new MockStabilityPool(GUSD);
-        console.log("Mock StabilityPool:", address(stPool));
-
+        // Use real StabilityPool (GOO-376: updated from MockStabilityPool to real SP)
         StablecoinStrategy gusdStrategy = new StablecoinStrategy(
             GUSD,
-            address(stPool),
-            WETH, // gain token (ETH from liquidations)
+            STABILITY_POOL,
+            WETH, // gain token (ETH from liquidations, claimed off-band via claimCollateral)
             address(0) // temp vault
         );
-        console.log("gUSD StablecoinStrategy:", address(gusdStrategy));
+        console.log("gUSD StablecoinStrategy (real SP):", address(gusdStrategy));
 
         factory.approveStrategy(address(gusdStrategy));
 
