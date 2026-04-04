@@ -143,7 +143,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Contract addresses + ABIs exported
 - [x] Unit tests (25 passing)
 - [x] Integration tests against live devnet — 28 tests across all 6 modules (chain, tokens, perps, predict, lend, stocks, swap, UBI, writes)
-- [ ] Publish to npm
+- [x] Publish to npm — build fixed for viem v2, dist clean, prepublishOnly + .npmignore + metadata ready (GOO-225)
 - [x] Agent examples (trading bot, arbitrage) — examples/trading-bot.ts + examples/arbitrage-agent.ts
 - [x] Multi-agent orchestration helpers — AgentSwarm, SignalBus, PortfolioAggregator, Strategies + 26 tests (GOO-224)
 
