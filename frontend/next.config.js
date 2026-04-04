@@ -23,8 +23,8 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      // Scripts: self + wagmi/rainbowkit bundles; unsafe-eval for WASM
-      "script-src 'self' 'unsafe-eval'",
+      // Scripts: self + wagmi/rainbowkit bundles; unsafe-eval for WASM; unsafe-inline for Next.js RSC inline scripts
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
       // Styles: self + inline (Tailwind injects via style attributes)
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       // Fonts
