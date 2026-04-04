@@ -347,7 +347,10 @@ contract GoodVault {
         if (idle < needed) {
             uint256 deficit = needed - idle;
             uint256 withdrawn = IStrategy(strategy).withdraw(deficit);
-            totalDebt -= withdrawn;
+            // Clamp to avoid underflow when withdrawn includes unharvested yield
+            // that is not yet reflected in totalDebt (yield accrues in strategy
+            // but totalDebt is only synced during harvest()).
+            totalDebt = withdrawn >= totalDebt ? 0 : totalDebt - withdrawn;
         }
     }
 

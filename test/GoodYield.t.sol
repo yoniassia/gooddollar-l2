@@ -180,6 +180,25 @@ contract GoodYieldTest is Test {
         assertEq(vault.balanceOf(alice), 5 ether);
     }
 
+    function test_withdrawWithUnharvestedYield() public {
+        // GOO-351: _ensureLiquidity totalDebt underflow when strategy has unharvested profit
+        vm.prank(alice);
+        vault.deposit(100 ether, alice);
+
+        // Strategy earns 10 ETH (unharvested) => totalDebt=100, strategy.totalAssets()=110
+        strategy.setGrowth(10 ether);
+
+        // Alice redeems all shares — value includes the 10 ETH unharvested profit.
+        // Previously caused arithmetic underflow: totalDebt(100) -= withdrawn(~110).
+        uint256 shares = vault.balanceOf(alice);
+        vm.prank(alice);
+        vault.redeem(shares, alice, alice);
+
+        // Funds returned, totalDebt floored at 0 (not underflowed)
+        assertTrue(weth.balanceOf(alice) > 100 ether);
+        assertEq(vault.totalDebt(), 0);
+    }
+
     function test_redeem() public {
         vm.prank(alice);
         vault.deposit(10 ether, alice);
