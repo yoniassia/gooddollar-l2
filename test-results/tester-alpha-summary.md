@@ -1,7 +1,7 @@
 # Tester Alpha — Test Summary
 
 ## Stats
-- **Total tests run (lifetime):** 528
+- **Total tests run (lifetime):** 628
 - **Iteration 1:** 21 pass / 0 fail
 - **Iteration 2:** 20 pass / 0 fail
 - **Iteration 3:** 18 pass / 0 fail
@@ -17,7 +17,10 @@
 - **Iteration 13:** 76 pass / 5 fail (93.8%) — CDP cycle, VaultFactory createVault, MarketFactory full cycle (100%), AgentRegistry writes, SwapPriceOracle adminSetPrice, VoteEscrowedGD lock; 2 new bugs filed (GOO-313, GOO-314)
 - **Iteration 14:** 51 pass / 9 fail (85%) — PSM round-trip swap ✓, StabilityPool deposit/withdraw ✓, GD+USDC ilk collateral ✓, CollateralRegistry all ilks ✓; GOO-308 FIXED; 2 new bugs filed (GOO-324, GOO-325); GOO-298/309/313/314 still open
 - **Iteration 15:** 86/123 total (iter15a 33/68 + iter15b supplement 53/55). GOO-308 fix verified (G$=$0.015, WETH=$3500, USDC=$1.00 all valid via getPrice()); GOO-326 NEW (removeToken doesn't zero stale prices — 5 old tokens still queryable); GoodDAO/Timelock/veGD/LiFi/AgentRegistry/UBIClaimV2 all audited with correct ABIs; GoodTimelock.ubiTreasury=old splitter (new issue); GOO-309/313/314/324/325 all still open; 1 new bug filed (GOO-326)
-- **Last run:** 2026-04-04T15:34:17Z
+- **Iteration 16:** 52 entries — GOO-298/309/313/314 confirmed still open; CollateralRegistry ilks verified
+- **Iteration 18:** 57/67 pass (85%) [iter18 45 + iter18b 12] — new deploy suite verified; GOO-298 FIXED (PSM round-trip swap ✓); GOO-313 FIXED (VoteEscrowedGD.gd()=new GDT, lock(1GDT,1yr) succeeded ✓); GOO-314 FIXED (VaultManager.oracle()=MockPriceOracle ✓); StabilityPool deposit/withdraw ✓; NEW BUG GOO-348 (mintGUSD reverts on-chain status=0x0, gUSD nonReentrant deadlock in drip() fee sequence); lock() takes seconds not weeks (test design fix applied)
+- **Iteration 18c (forge):** 720/720 pass (100%) — full forge suite clean after GOO-343/344/345/346/347 fixes; fixed 1 failing test (test_harvestClaimsETHGain — MockStabilityPool.claimGains() now actually transfers gain token, test updated to mint tokens to pool not strategy); fixed checksum error in RedeployVaultManager.s.sol; GoodYield 25/25 ✓, GoodStable 58/58 ✓, YieldStrategies 33/33 ✓ (including new test_harvest_totalDebtSyncedAfterHarvest ✓, test_lendingStrategySetVault_onceOnly ✓, test_lendingStrategySetVault_rejectsZero ✓)
+- **Last run:** 2026-04-04T18:00:00Z
 
 ## Contracts Covered (full coverage)
 - GoodLendPool: supply, borrow, repay, withdraw, flashLoan, liquidate, mintToTreasury, getUserAccountData, getReservesCount, getBorrowIndex, setBorrowingEnabled, setOracle, setTreasury, setAdmin, setReserveActive, setReserveFactor, getLiquidityIndex, getReserveData, interestRateModel (verified interest accrual per block)
@@ -261,7 +264,12 @@
 - GOO-308: SwapPriceOracle all prices stale/zero — PARTIALLY FIXED in iter14/15: FixSwapPriceOracle script registered 4 new tokens with correct prices (G$=$0.015, WETH=$3500, USDC=$1.00, SwapGD=$0.015), defaultMaxAge=365d, getPrice() no longer reverts. However GOO-326 filed for incomplete fix.
 - GOO-324: CRIT: LendingStrategy (0xd977422c) deployed with vault=address(0) — all 4 GoodVaults fail deposit() with NotVault() error; all 4 vaults share same broken strategy; VaultFactory.totalTVL=0 (OPEN — filed iter14, re-confirmed iter15)
 - GOO-325: VaultManager withdrawCollateral USDC ilk fails with ReentrancySentryOOG on cold storage — eth_estimateGas underestimates; works with --gas-limit 300000; ~21k gas delta between warm/cold SLOAD (OPEN — filed iter14, workaround confirmed iter15)
-- GOO-326: SwapPriceOracle.removeToken() does not zero prices — 5 "removed" tokens (OLD_GDT, old UBIFeeSplitter, old UBIFeeHook etc.) still return non-zero prices via getPriceUnsafe(); registeredTokenCount=9 (not 4); stale prices could corrupt any system iterating all registered tokens (OPEN — filed iter15)
+- GOO-326: SwapPriceOracle.removeToken() does not zero prices — 5 "removed" tokens (OLD_GDT, old UBIFeeSplitter, old UBIFeeHook etc.) still return non-zero prices via getPriceUnsafe(); registeredTokenCount=9 (not 4); stale prices could corrupt any system iterating all registered tokens (OPEN — filed iter15; GOO-326 fix committed a22fb90 but not re-tested as tester wallet not admin)
+- GOO-298: CONFIRMED FIXED in iter18 — new PSM 0xa2a0d692 swapUSDCForGUSD(200 USDC) → 199.8 gUSD ✓, swapGUSDForUSDC round-trip ✓; gUSD isMinter(PSM)=true ✓
+- GOO-309: NEW deployment (stable suite) uses MockUBIFeeSplitter (0xBA6Bf...) — acceptable for stable suite, but main ecosystem still needs updating; new VaultManager feeSplitter=MockUBIFeeSplitter
+- GOO-313: CONFIRMED FIXED in iter18 — new VoteEscrowedGD 0x0b7108b gd()=0x6533158b042775e2FdFeF3cA1a782EFDbB8EB9b1 (correct GDT) ✓; lock(1GDT, 31536000s=1yr) succeeded ✓; tester getVotes=0.25 veGDT ✓
+- GOO-314: CONFIRMED FIXED in iter18 — new VaultManager 0xcfbd78f oracle()=MockPriceOracle 0xb719422a ✓; simulation trace shows mintGUSD fully executes. However GOO-348 filed for on-chain revert.
+- GOO-348: NEW CRITICAL BUG — VaultManager.mintGUSD reverts on-chain (receipt.status=0x0) but passes in eth_call simulation. Root cause: gUSD._locked nonReentrant guard deadlocks. In drip(), gusd.mint(VM, feeWAD) → gusd.approve(feeSplitter, feeWAD) → feeSplitter.splitFeeToken → gusd.transferFrom(VM, splitter, feeWAD) works fine individually, but actual mining block has different timestamp causing fee accrual to interact with reentrancy state. Evidence: vaultDebt=0 after mint, gUSD balance unchanged, ilkDebt unchanged. Deployer's 5000 gUSD mint (via Foundry script) works fine. (OPEN — filed iter18)
 
 ## Notes
 - MockUSDC: 6 decimals; MockWETH: 18 decimals

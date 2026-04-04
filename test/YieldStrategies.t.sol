@@ -116,12 +116,18 @@ contract MockLendPool {
 
 contract MockStabilityPool {
     MockToken public asset;
+    MockToken public gainToken; // collateral gain token (e.g. WETH)
     mapping(address => uint256) private _depositorBal;
     mapping(address => uint256) private _depositorGain;
     uint256 public totalDeposited;
 
     constructor(address _asset) {
         asset = MockToken(_asset);
+    }
+
+    /// @dev Register the gain token so claimGains() can transfer it
+    function setGainToken(address _gainToken) external {
+        gainToken = MockToken(_gainToken);
     }
 
     function setGain(address who, uint256 gain) external {
@@ -157,6 +163,10 @@ contract MockStabilityPool {
     function claimGains() external returns (uint256) {
         uint256 gain = _depositorGain[msg.sender];
         _depositorGain[msg.sender] = 0;
+        // Transfer gain tokens to caller if gain token is registered
+        if (gain > 0 && address(gainToken) != address(0)) {
+            gainToken.transfer(msg.sender, gain);
+        }
         return gain;
     }
 }
@@ -490,9 +500,11 @@ contract StablecoinStrategyTest is Test {
         vm.prank(vault);
         strategy.deposit(100 ether);
 
-        // Simulate liquidation gain
+        // Register gain token with pool so claimGains() can transfer it,
+        // and give the pool the gain tokens it will pay out during claimGains().
+        pool.setGainToken(address(gainToken));
         pool.setGain(address(strategy), 5 ether);
-        gainToken.mint(address(strategy), 5 ether);
+        gainToken.mint(address(pool), 5 ether);
 
         vm.prank(vault);
         strategy.harvest();

@@ -11,10 +11,10 @@ import "../src/stable/VaultManager.sol";
  */
 contract RedeployVaultManager is Script {
     address constant ADMIN           = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
-    address constant UBI_FEE_SPLITTER= 0xba6BFbA894B5caF04c3462a5c8556FFBa4dE6782;
+    address constant UBI_FEE_SPLITTER= 0xBA6BfBa894B5cAF04c3462A5C8556fFBa4de6782;
     address constant GUSD_TOKEN      = 0x6B99600daD0a1998337357696827381D122825F3;
     address constant COLLATERAL_REG  = 0xca9507C5F707103e86B45DF4b35C37FE2700BB5B;
-    address constant STABLE_ORACLE   = 0xb719422a0A484025c1A22a8dEEafc67E81F43cfD;
+    address constant STABLE_ORACLE   = 0xB719422a0A484025c1A22a8dEEaFC67E81F43CfD;
 
     function run() external {
         uint256 pk = vm.envUint("PRIVATE_KEY");
