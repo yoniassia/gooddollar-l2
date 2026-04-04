@@ -139,6 +139,9 @@ contract PegStabilityModule {
     function withdrawReserves(address to, uint256 usdcAmount) external onlyAdmin {
         require(to != address(0), "PSM: zero address");
         require(usdcAmount <= totalUSDCReserves, "PSM: exceeds reserves");
+        // Enforce minimum backing: remaining reserves must cover all outstanding gUSD
+        uint256 minUSDC = gusd.totalSupply() / SCALE;
+        require(totalUSDCReserves - usdcAmount >= minUSDC, "PSM: undercollateralized");
         totalUSDCReserves -= usdcAmount;
         require(usdc.transfer(to, usdcAmount), "PSM: transfer failed");
     }

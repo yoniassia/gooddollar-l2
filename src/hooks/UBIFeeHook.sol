@@ -295,6 +295,6 @@ contract UBIFeeHook {
      */
     function rescueTokens(address token, address to, uint256 amount) external onlyAdmin {
         if (to == address(0)) revert ZeroAddress();
-        IERC20Minimal(token).transfer(to, amount);
+        if (!IERC20Minimal(token).transfer(to, amount)) revert TransferFailed();
     }
 }
