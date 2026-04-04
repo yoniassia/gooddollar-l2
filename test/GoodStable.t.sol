@@ -435,6 +435,73 @@ contract GoodStableTest is Test {
         assertGt(weth.balanceOf(carol), 0, "carol earned ETH");
     }
 
+    function test_SP_MultiDepositorWithdrawAfterOffset() public {
+        // GOO-352: _settleGains() was a no-op; totalDeposits underflowed when
+        // a depositor tried to withdraw after a partial offset with >1 depositor.
+        address david = address(0xA5);
+
+        // Give carol and david equal gUSD
+        vm.startPrank(admin);
+        gusd.setMinter(admin, true);
+        gusd.mint(carol, 600e18);
+        gusd.mint(david, 600e18);
+        vm.stopPrank();
+
+        vm.startPrank(carol);
+        gusd.approve(address(sp), 600e18);
+        sp.deposit(600e18);
+        vm.stopPrank();
+
+        vm.startPrank(david);
+        gusd.approve(address(sp), 600e18);
+        sp.deposit(600e18);
+        vm.stopPrank();
+
+        // totalDeposits = 1200. Offset burns 600 (50%)
+        // Simulate: give SP the collateral it will receive, then call offset
+        weth.mint(address(vault), 0.5 ether); // vault holds collateral pre-offset
+
+        // Create a small vault to trigger offset via liquidation
+        vm.startPrank(alice);
+        weth.approve(address(vault), 1 ether);
+        vault.depositCollateral(ETH_ILK, 1 ether);
+        vault.mintGUSD(ETH_ILK, 600e18);
+        vm.stopPrank();
+
+        // Price drop makes alice undercollateralized
+        vm.prank(admin);
+        oracle.setPrice(ETH_ILK, 700e18);
+
+        vm.prank(bob);
+        vault.liquidate(ETH_ILK, alice);
+
+        // totalDeposits should be ~600 now (half burned)
+        assertLt(sp.totalDeposits(), 1200e18, "SP reduced");
+
+        // Carol and david should each be able to withdraw their proportional share
+        // (previously this would underflow on the second withdrawal).
+        // claimCollateral triggers _settleGains, materialising the scaled balance.
+        vm.prank(carol);
+        sp.claimCollateral(ETH_ILK); // triggers _settleGains internally
+        uint256 carolShare = sp.deposits(carol); // now reflects effective (scaled) balance
+
+        vm.prank(david);
+        sp.claimCollateral(ETH_ILK); // triggers _settleGains internally
+        uint256 davidShare = sp.deposits(david);
+
+        if (carolShare > 0) {
+            vm.prank(carol);
+            sp.withdraw(carolShare);
+        }
+        if (davidShare > 0) {
+            vm.prank(david);
+            sp.withdraw(davidShare);
+        }
+
+        // totalDeposits should be ~0 after both withdrawals (no underflow)
+        assertEq(sp.totalDeposits(), 0, "SP drained cleanly");
+    }
+
     // ============================================================
     // Section 4: PSM — swap both directions
     // ============================================================

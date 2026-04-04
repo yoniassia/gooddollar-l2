@@ -42,11 +42,19 @@ contract StabilityPool {
     /// @notice Total gUSD in pool
     uint256 public totalDeposits;
 
-    /// @notice depositor -> gUSD amount
+    /// @notice depositor -> gUSD amount at their last deposit/settle (nominal, pre-scale)
     mapping(address => uint256) public deposits;
 
     /// @notice depositor -> ilk -> snapshot of cumulativeGainPerGUSD at deposit time
     mapping(address => mapping(bytes32 => uint256)) public gainSnapshots;
+
+    /// @notice depositor -> scaleIndex at time of last deposit/settle (PRECISION-scaled)
+    mapping(address => uint256) public depositScaleSnapshot;
+
+    /// @notice Global scale index: product of (remaining/before) fractions after each offset.
+    ///         Starts at PRECISION (= 1.0). Used to lazily pro-rate deposit balances after
+    ///         partial offsets without iterating all depositors. GOO-352 fix.
+    uint256 public scaleIndex = PRECISION;
 
     /// @notice ilk -> cumulative collateral gain per unit of gUSD deposited (scaled by PRECISION)
     mapping(bytes32 => uint256) public cumulativeGainPerGUSD;
@@ -125,7 +133,8 @@ contract StabilityPool {
     function deposit(uint256 amount) external nonReentrant {
         require(amount > 0, "SP: zero amount");
 
-        // Settle any existing gains before adjusting deposit size
+        // Materialise current effective balance before changing deposit size.
+        // _settleGains updates deposits[user] to reflect any offsets since last action.
         _settleGains(msg.sender);
 
         require(
@@ -133,8 +142,9 @@ contract StabilityPool {
             "SP: transfer failed"
         );
 
-        deposits[msg.sender]  += amount;
-        totalDeposits         += amount;
+        deposits[msg.sender]       += amount;
+        depositScaleSnapshot[msg.sender] = scaleIndex;
+        totalDeposits              += amount;
 
         emit Deposited(msg.sender, amount);
     }
@@ -144,10 +154,11 @@ contract StabilityPool {
      */
     function withdraw(uint256 amount) external nonReentrant {
         require(amount > 0, "SP: zero amount");
-        require(deposits[msg.sender] >= amount, "SP: insufficient deposit");
 
-        // Settle gains, then reduce deposit
+        // Materialise the effective (scaled) deposit balance first.
         _settleGains(msg.sender);
+
+        require(deposits[msg.sender] >= amount, "SP: insufficient deposit");
 
         deposits[msg.sender]  -= amount;
         totalDeposits         -= amount;
@@ -161,6 +172,7 @@ contract StabilityPool {
      * @notice Claim earned collateral for a single ilk without withdrawing gUSD.
      */
     function claimCollateral(bytes32 ilk) external nonReentrant {
+        _settleGains(msg.sender); // materialise effective deposit before gain calc
         _claimIlk(msg.sender, ilk);
     }
 
@@ -200,13 +212,19 @@ contract StabilityPool {
 
         // Burn pool gUSD in place (StabilityPool holds the tokens, calls burn)
         gusd.burn(debtAmount);
-        totalDeposits -= debtAmount;
 
-        // Reduce every depositor's recorded amount proportionally.
-        // We do this by treating totalDeposits as the pool's buying power;
-        // individual balances are reduced on settlement.
-        // NOTE: individual `deposits` mappings are settled lazily on
-        // deposit/withdraw/claim to avoid O(n) loops.
+        // Update global scaleIndex to reflect the proportional reduction of deposits.
+        // Each depositor's effective balance = deposits[user] * scaleIndex / depositScaleSnapshot[user].
+        // This avoids iterating all depositors on every offset (GOO-352 fix).
+        uint256 remaining = totalDeposits - debtAmount;
+        if (totalDeposits > 0 && remaining > 0) {
+            scaleIndex = (scaleIndex * remaining) / totalDeposits;
+        } else if (remaining == 0) {
+            // Pool fully drained — reset scale index for future deposits
+            scaleIndex = PRECISION;
+        }
+
+        totalDeposits = remaining;
 
         emit Offset(ilk, debtAmount, collAmount);
     }
@@ -214,25 +232,33 @@ contract StabilityPool {
     // ============ Internal helpers ============
 
     /**
-     * @notice Settle collateral gains for all known ilks for `user`,
-     *         and pro-rate their deposit balance to reflect burnt gUSD.
+     * @notice Materialise the user's effective deposit balance by applying the
+     *         global scaleIndex. This converts the stored nominal deposit
+     *         (as of the user's last action) to the current proportional share,
+     *         accounting for all offsets that occurred in between.
      *
-     * Because offsets reduce totalDeposits but individual `deposits` are
-     * lazy-updated, we scale the user's share by totalDeposits/recordedTotal
-     * to keep accounting consistent.
-     *
-     * For simplicity we track gains since last snapshot per ilk.
+     *         After this call, `deposits[user]` reflects the actual gUSD the user
+     *         is entitled to withdraw (their pro-rata share of remaining pool).
+     *         The gainSnapshot is NOT updated here — per-ilk gain claims continue
+     *         to use the raw deposit amount and must be claimed explicitly via
+     *         claimCollateral(). GOO-352 fix.
      */
     function _settleGains(address user) internal {
         uint256 userDeposit = deposits[user];
         if (userDeposit == 0) return;
 
-        // Iterate registered ilks by querying each the user has a snapshot for.
-        // To avoid unbounded loops we handle known ilks stored in collateralTokens.
-        // The contract does not maintain a dynamic list of ilks internally;
-        // instead each ilk's gain snapshot is checked in _claimIlk.
-        // Settlement across all ilks must be done explicitly via claimCollateral.
-        // This is the deliberate simplified design trade-off.
+        uint256 snapshot = depositScaleSnapshot[user];
+        // snapshot == 0 means user deposited before scaleIndex tracking was added;
+        // treat as PRECISION (no scaling applied yet).
+        if (snapshot == 0) snapshot = PRECISION;
+
+        if (scaleIndex != snapshot) {
+            // Scale down the user's recorded deposit to match current pool fraction.
+            // effective = nominal * currentScale / snapshotScale
+            uint256 effective = (userDeposit * scaleIndex) / snapshot;
+            deposits[user] = effective;
+            depositScaleSnapshot[user] = scaleIndex;
+        }
     }
 
     function _claimIlk(address user, bytes32 ilk) internal {
@@ -273,6 +299,11 @@ contract StabilityPool {
     function pendingGain(address user, bytes32 ilk) external view returns (uint256) {
         uint256 userDeposit = deposits[user];
         if (userDeposit == 0) return 0;
+        // Apply scale lazily for view (mirrors _settleGains without state mutation)
+        uint256 snapshot = depositScaleSnapshot[user] == 0 ? PRECISION : depositScaleSnapshot[user];
+        if (scaleIndex != snapshot) {
+            userDeposit = (userDeposit * scaleIndex) / snapshot;
+        }
         uint256 gained = cumulativeGainPerGUSD[ilk] - gainSnapshots[user][ilk];
         return (userDeposit * gained) / PRECISION;
     }
