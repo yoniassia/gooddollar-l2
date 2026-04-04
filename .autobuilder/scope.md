@@ -155,7 +155,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Verify on Blockscout
 - [x] SDK: UBIRevenueTrackerABI + address exported
 - [x] Frontend: /ubi-impact page — per-protocol fee breakdown, UBI flow visualization, historical charts
-- [ ] Backend: revenue-tracker keeper — periodic on-chain fee reporting from each protocol
+- [x] Backend: revenue-tracker keeper — periodic on-chain fee reporting from each protocol
 - [x] SDK: `sdk.ubi.getDashboard()` + `sdk.ubi.getProtocolBreakdown()` convenience methods
 
 ## Principles
