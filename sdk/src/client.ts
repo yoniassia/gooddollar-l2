@@ -15,6 +15,7 @@ import {
   SyntheticAssetFactoryABI,
   MarginVaultABI,
   UBIFeeHookABI,
+  UBIRevenueTrackerABI,
 } from './abis'
 
 /** GoodDollar L2 chain definition for viem */
@@ -435,5 +436,58 @@ class UBIModule {
       abi: UBIFeeHookABI,
       functionName: 'totalSwapsProcessed',
     })
+  }
+
+  /**
+   * Get aggregate dashboard data from UBIRevenueTracker.
+   * Returns total fees, UBI funded, tx count, protocol counts, splitter stats.
+   */
+  async getDashboard(): Promise<{
+    totalFees: bigint
+    totalUBI: bigint
+    totalTx: bigint
+    protocolCount: bigint
+    activeProtocols: bigint
+    splitterFees: bigint
+    splitterUBI: bigint
+    snapshotCount: bigint
+  }> {
+    const result = await this.sdk.publicClient.readContract({
+      address: ADDRESSES.UBIRevenueTracker as Address,
+      abi: UBIRevenueTrackerABI,
+      functionName: 'getDashboardData',
+    })
+    const [totalFees, totalUBI, totalTx, protocolCount, activeProtocols, splitterFees, splitterUBI, snapshotCount] = result as bigint[]
+    return { totalFees, totalUBI, totalTx, protocolCount, activeProtocols, splitterFees, splitterUBI, snapshotCount }
+  }
+
+  /**
+   * Get per-protocol fee breakdown from UBIRevenueTracker.
+   */
+  async getProtocolBreakdown(): Promise<Array<{
+    name: string
+    category: string
+    feeSource: string
+    totalFees: bigint
+    ubiContribution: bigint
+    txCount: bigint
+    lastUpdateBlock: bigint
+    active: boolean
+  }>> {
+    const result = await this.sdk.publicClient.readContract({
+      address: ADDRESSES.UBIRevenueTracker as Address,
+      abi: UBIRevenueTrackerABI,
+      functionName: 'getAllProtocols',
+    })
+    return (result as any[]).map((p: any) => ({
+      name: p.name,
+      category: p.category,
+      feeSource: p.feeSource,
+      totalFees: p.totalFees,
+      ubiContribution: p.ubiContribution,
+      txCount: p.txCount,
+      lastUpdateBlock: p.lastUpdateBlock,
+      active: p.active,
+    }))
   }
 }

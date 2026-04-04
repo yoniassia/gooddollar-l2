@@ -1054,3 +1054,99 @@ export const TestRegistryABI = [
     anonymous: false,
   },
 ] as const
+
+// ── UBI Revenue Tracker (GOO-226) ─────────────────────────────────────────────
+
+export const UBIRevenueTrackerABI = [
+  {
+    type: 'function',
+    name: 'getDashboardData',
+    inputs: [],
+    outputs: [
+      { name: '_totalFees', type: 'uint256' },
+      { name: '_totalUBI', type: 'uint256' },
+      { name: '_totalTx', type: 'uint256' },
+      { name: '_protocolCount', type: 'uint256' },
+      { name: '_activeProtocols', type: 'uint256' },
+      { name: '_splitterFees', type: 'uint256' },
+      { name: '_splitterUBI', type: 'uint256' },
+      { name: '_snapshotCount', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getAllProtocols',
+    inputs: [],
+    outputs: [
+      {
+        name: 'result',
+        type: 'tuple[]',
+        components: [
+          { name: 'name', type: 'string' },
+          { name: 'category', type: 'string' },
+          { name: 'feeSource', type: 'address' },
+          { name: 'totalFees', type: 'uint256' },
+          { name: 'ubiContribution', type: 'uint256' },
+          { name: 'txCount', type: 'uint256' },
+          { name: 'lastUpdateBlock', type: 'uint256' },
+          { name: 'active', type: 'bool' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getSnapshots',
+    inputs: [{ name: 'count', type: 'uint256' }],
+    outputs: [
+      {
+        name: 'result',
+        type: 'tuple[]',
+        components: [
+          { name: 'timestamp', type: 'uint256' },
+          { name: 'totalUBI', type: 'uint256' },
+          { name: 'totalFees', type: 'uint256' },
+          { name: 'protocolCount', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'protocolCount',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'snapshotCount',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'totalFeesTracked',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'totalUBITracked',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'totalTxTracked',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+] as const

@@ -20,6 +20,7 @@ export function Header() {
   const isPerps = pathname?.startsWith('/perps')
   const isLend = pathname?.startsWith('/lend')
   const isGovernance = pathname?.startsWith('/governance')
+  const isUBIImpact = pathname?.startsWith('/ubi-impact')
   const isActivity = pathname?.startsWith('/activity')
   const isTestDashboard = pathname?.startsWith('/test-dashboard')
   const isPortfolio = pathname === '/portfolio'
@@ -68,6 +69,7 @@ export function Header() {
           <Link href="/lend" className={isLend ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Lend</Link>
           <Link href="/stable" className={isStable ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Stable</Link>
           <Link href="/governance" className={isGovernance ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Govern</Link>
+          <Link href="/ubi-impact" className={isUBIImpact ? 'text-green-400 font-medium' : 'text-green-400/60 hover:text-green-400 transition-colors'}>UBI</Link>
           <Link href="/activity" className={isActivity ? 'text-goodgreen font-medium' : 'text-goodgreen/60 hover:text-goodgreen transition-colors'}>
             <span className="flex items-center gap-1">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-goodgreen animate-pulse" />
@@ -189,6 +191,13 @@ export function Header() {
               className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isGovernance ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
             >
               Govern
+            </Link>
+            <Link
+              href="/ubi-impact"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isUBIImpact ? 'text-green-400 font-medium bg-dark-50/50' : 'text-green-400/60 hover:text-green-400'}`}
+            >
+              🌍 UBI Impact
             </Link>
             <Link
               href="/activity"

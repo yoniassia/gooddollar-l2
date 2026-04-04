@@ -104,6 +104,9 @@ export const CONTRACTS = {
   StableMockUSDC:        '0xf5059a5d33d5853360d16c683c16e67980206f36' as `0x${string}`,
   StableMockGD:          '0x95401dc811bb5740090279ba06cfa8fcf6113778' as `0x${string}`,
 
+  // ── UBI Analytics — deployed (chain 42069), 2026-04-03 (GOO-226) ──────────
+  UBIRevenueTracker:     '0x1D3EDBa836caB11C26A186873abf0fFeB8bbaE63' as `0x${string}`,
+
   // ── QA TestRegistry — deployed (chain 42069), 2026-04-03 ─────────────────
   TestRegistry:          '0x12bcb546bc60ff39f1adfc7ce4605d5bd6a6a876' as `0x${string}`,
 } as const
@@ -138,4 +141,5 @@ export {
   VoteEscrowedGDABI,
   GoodDAOABI,
   TestRegistryABI,
+  UBIRevenueTrackerABI,
 } from './abi'
