@@ -173,11 +173,11 @@ contract VaultManager {
         if (elapsed == 0) return;
 
         ICollateralRegistry.CollateralConfig memory cfg = registry.getConfig(ilk);
-        uint256 rate = cfg.stabilityFeeRate; // RAY per-second
 
-        // Compute new chi: chi * rate^elapsed using linear approximation for gas efficiency
-        // For production: use _rpow for exact compounding.
-        uint256 newChi = _rpow(rate, elapsed, RAY);
+        // Inline cfg.stabilityFeeRate to avoid an extra local variable on the stack.
+        // forge coverage disables the optimizer, so every slot counts; _rpow uses assembly
+        // which consumes several more slots, leaving no headroom.
+        uint256 newChi = _rpow(cfg.stabilityFeeRate, elapsed, RAY);
         newChi = (acc.chi * newChi) / RAY;
 
         if (newChi <= acc.chi) {
@@ -412,18 +412,8 @@ contract VaultManager {
         uint256 actualDebt = (vault.normalizedDebt * chi) / RAY;
         uint256 collateral = vault.collateral;
 
-        // Calculate collateral value at oracle price
-        uint256 price = oracle.getPrice(ilk);
-
-        // Total collateral value in gUSD (WAD)
-        uint256 collValueWAD = _collateralToGUSD(collateral, price, cfg.token);
-
-        // Seized collateral = debt * liquidationRatio (already underwater) + penalty
-        // We seize all collateral (vault is unhealthy, so all col covers debt+penalty)
-        uint256 seizedCollateral = collateral; // seize everything
-
-        // Value of seized collateral
-        uint256 seizedValue = collValueWAD;
+        // Seize all collateral (vault is unhealthy, so all collateral covers debt + penalty)
+        uint256 seizedCollateral = collateral;
 
         // Wipe vault state
         acc.totalNormalizedDebt -= vault.normalizedDebt;
@@ -431,34 +421,12 @@ contract VaultManager {
         vault.collateral     = 0;
         ilkDebt[ilk] = (acc.totalNormalizedDebt * chi) / RAY;
 
-        // Approve StabilityPool to pull collateral for offset
+        // Stability pool offset extracted to helper to keep stack depth within EVM limit
+        // (forge coverage disables the optimizer, so every local variable counts).
         address colToken = cfg.token;
-        uint256 spDebt    = 0;
-        uint256 spColl    = 0;
-        uint256 liqColl   = seizedCollateral;
-
-        if (address(stabilityPool) != address(0)) {
-            uint256 spBalance = stabilityPool.totalDeposits();
-
-            if (spBalance > 0) {
-                // SP absorbs up to min(spBalance, actualDebt)
-                spDebt = actualDebt < spBalance ? actualDebt : spBalance;
-
-                // Proportion of collateral going to SP
-                // spColl = seizedCollateral * spDebt / actualDebt
-                if (actualDebt > 0) {
-                    spColl = (seizedCollateral * spDebt) / actualDebt;
-                }
-                liqColl = seizedCollateral - spColl;
-
-                if (spColl > 0 && spDebt > 0) {
-                    // Approve SP to pull collateral
-                    IERC20(colToken).approve(address(stabilityPool), spColl);
-                    // SP burns its own gUSD for spDebt and distributes spColl
-                    stabilityPool.offset(spDebt, ilk, spColl);
-                }
-            }
-        }
+        (uint256 spDebt, uint256 spColl) =
+            _offsetWithStabilityPool(actualDebt, seizedCollateral, ilk, colToken);
+        uint256 liqColl = seizedCollateral - spColl;
 
         // Remaining debt after SP offset
         uint256 remainingDebt = actualDebt - spDebt;
@@ -480,6 +448,39 @@ contract VaultManager {
     }
 
     // ============ Internal helpers ============
+
+    /**
+     * @dev Runs the StabilityPool offset step of a liquidation.
+     *      Extracted from `liquidate` to keep that function's stack depth within the
+     *      EVM limit when forge coverage disables the optimizer.
+     *
+     * @return spDebt  Amount of debt absorbed by the StabilityPool.
+     * @return spColl  Amount of collateral transferred to the StabilityPool.
+     */
+    function _offsetWithStabilityPool(
+        uint256 actualDebt,
+        uint256 seizedCollateral,
+        bytes32 ilk,
+        address colToken
+    ) internal returns (uint256 spDebt, uint256 spColl) {
+        if (address(stabilityPool) == address(0)) return (0, 0);
+
+        uint256 spBalance = stabilityPool.totalDeposits();
+        if (spBalance == 0) return (0, 0);
+
+        // SP absorbs up to min(spBalance, actualDebt)
+        spDebt = actualDebt < spBalance ? actualDebt : spBalance;
+
+        // Proportional collateral: spColl = seizedCollateral * spDebt / actualDebt
+        if (actualDebt > 0) {
+            spColl = (seizedCollateral * spDebt) / actualDebt;
+        }
+
+        if (spColl > 0 && spDebt > 0) {
+            IERC20(colToken).approve(address(stabilityPool), spColl);
+            stabilityPool.offset(spDebt, ilk, spColl);
+        }
+    }
 
     /**
      * @notice Returns true if vault health factor >= 1.0 (healthy).
@@ -537,34 +538,30 @@ contract VaultManager {
     /**
      * @dev RAY-precision exponentiation (binary exponentiation).
      *      result = base^n with base and result in RAY units.
+     *
+     *      Originally implemented with inline assembly for gas efficiency.
+     *      Rewritten in pure Solidity so that forge coverage (which disables
+     *      the optimizer) can compile it — the assembly version exceeds the
+     *      EVM stack limit after coverage instrumentation adds extra slots.
      */
     function _rpow(uint256 x, uint256 n, uint256 base) internal pure returns (uint256 z) {
-        assembly {
-            switch x
-            case 0 {
-                switch n
-                case 0 { z := base }
-                default { z := 0 }
-            }
-            default {
-                switch mod(n, 2)
-                case 0 { z := base }
-                default { z := x }
-                let half := div(base, 2)
-                for { n := div(n, 2) } n { n := div(n, 2) } {
-                    let xx := mul(x, x)
-                    if iszero(eq(div(xx, x), x)) { revert(0, 0) }
-                    let xxRound := add(xx, half)
-                    if lt(xxRound, xx) { revert(0, 0) }
-                    x := div(xxRound, base)
-                    if mod(n, 2) {
-                        let zx := mul(z, x)
-                        if and(iszero(iszero(x)), iszero(eq(div(zx, x), z))) { revert(0, 0) }
-                        let zxRound := add(zx, half)
-                        if lt(zxRound, zx) { revert(0, 0) }
-                        z := div(zxRound, base)
-                    }
-                }
+        if (x == 0) {
+            return n == 0 ? base : 0;
+        }
+        z = n % 2 != 0 ? x : base;
+        uint256 half = base / 2;
+        for (n /= 2; n != 0; n /= 2) {
+            uint256 xx = x * x;
+            require(x == 0 || xx / x == x, "rpow/overflow");
+            uint256 xxRound = xx + half;
+            require(xxRound >= xx, "rpow/overflow");
+            x = xxRound / base;
+            if (n % 2 != 0) {
+                uint256 zx = z * x;
+                require(x == 0 || zx / x == z, "rpow/overflow");
+                uint256 zxRound = zx + half;
+                require(zxRound >= zx, "rpow/overflow");
+                z = zxRound / base;
             }
         }
     }

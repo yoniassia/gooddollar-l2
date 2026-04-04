@@ -1,20 +1,24 @@
 # Tester Alpha — Test Summary
 
 ## Stats
-- **Total tests run (lifetime):** 189
+- **Total tests run (lifetime):** 298
 - **Iteration 1:** 21 pass / 0 fail
 - **Iteration 2:** 20 pass / 0 fail
 - **Iteration 3:** 18 pass / 0 fail
 - **Iteration 4:** 33 pass / 0 fail
-- **Iteration 5:** 13 pass / 6 fail
-- **Last run:** 2026-04-04T04:05:03.191110+00:00
+- **Iteration 5:** 13 pass / 6 fail (root cause: OLD_GDT outdated — GOO-238)
+- **Iteration 6:** 19 pass / 6 fail (5 EOA→setMinter guard; 1 supplementPool — GOO-243)
+- **Iteration 7 (Tester Gamma):** 57 pass / 4 fail (GOO-224 regression, GOO-198 stale, IRM panic, stress)
+- **Iteration 8:** 17 pass / 6 fail → corrected to 5/8 key checks OK (GOO-243 fix verified, 2 new bugs filed)
+- **Last run:** 2026-04-04T12:30:00+00:00
 
 ## Contracts Covered (full coverage)
 - GoodLendPool: supply, borrow, repay, withdraw, flashLoan, liquidate, mintToTreasury, getUserAccountData, getReservesCount, getBorrowIndex, setBorrowingEnabled, setOracle, setTreasury, setAdmin, setReserveActive, setReserveFactor
 - MockWETH/MockUSDC: balanceOf, approve, mint, transfer
 - LiFiBridgeAggregator: initiateSwap, initiateSwapETH, completeSwap, refundSwap, expireSwap, setKeeper, setUBIFeeRate, setUBIFeeSplitter, setSupportedChain, setWhitelistedToken, batchWhitelistTokens, getUserSwaps, swapCount, getSwap
 - UBIFeeSplitter: ETH receive(), withdrawETH, claimableBalance, setFeeSplit, setTreasury, setUBIRecipient, registerDApp, splitFee, splitFeeToken, releaseToUBI, totalFeesCollected, totalUBIFunded
-- GoodDollarToken: fundUBIPool, ubiPool, dailyUBIAmount, totalVerifiedHumans, setMinter, mint
+- GoodDollarToken (new, 0x6533158b): fundUBIPool, ubiPool, dailyUBIAmount, totalVerifiedHumans, setMinter, mint, verifyHuman, isVerifiedHuman
+- UBIClaimV2 (0x73C68f1f): canClaim, currentEpoch, claim (FRESH4 received 1.0 G$), supplementPool (BLOCKED by GOO-243)
 
 ## Functions Tested (all iterations)
 - admin()
@@ -117,15 +121,21 @@
 
 ## Functions NOT YET Tested
 - GoodLendPool: initReserve (complex; tested indirectly via deployed pool)
-- UBIClaimV2: claim, claimFor, batchClaim, supplementPool — contract NOT deployed (GOO-234, assigned to PE)
+- UBIClaimV2: claimFor, batchClaim — deployed but not yet exercised
+- UBIClaimV2: supplementPool — unverified end-to-end (GOO-243 fix deployed, but supplementPool needs a funded UBIFeeSplitter to test)
 - UBIFeeHook: afterSwap via V4 pool (requires V4 pool liquidity setup)
-- GoodDollarToken: claimUBI, verifyHuman, batchVerifyHumans (identity oracle dependent)
-- GoodSwap.sol: Uniswap V2 fork — not deployed (GOO-235, assigned to PE)
+- GoodDollarToken: batchVerifyHumans (identity oracle dependent)
+- GoodSwap.sol: Uniswap V2 fork — not deployed (GOO-235, cancelled)
 
 ## Bugs Found
 - GOO-205: UBIFeeHook.poolManager=0x1 (FIXED via GOO-215 — new hook 0x325c8Df4 verified)
-- GOO-234: UBIClaimV2 not deployed, no GDT minter set (assigned to Protocol Engineer)
-- GOO-235: GoodSwap.sol (V2 fork) not deployed — may be intentional (assigned to Protocol Engineer)
+- GOO-234: UBIClaimV2 not deployed, no GDT minter set (FIXED — new UBIClaimV2 0x73C68f1f deployed)
+- GOO-235: GoodSwap.sol (V2 fork) not deployed — cancelled (intentional)
+- GOO-238: GoodDollarToken deployed bytecode outdated — missing mint/setMinter/minters/isVerifiedHuman (FIXED — new GDT 0x6533158b deployed)
+- GOO-243: Official UBIFeeSplitter (0xe7f172) outdated — missing claimableBalance/releaseToUBI/etc (FIXED — new splitter 0xc0bf43, UBIClaimV2 rewired)
+- GOO-245: UBIRevenueTracker.feeSplitter = old UBIFeeHook 0xcf7ed3 (IN PROGRESS — assigned to PE, fix = setFeeSplitter(0xc0bf43))
+- GOO-264: LiFiBridgeAggregator(new) missing USDC whitelist after redeployment (filed — assigned to PE)
+- GOO-265: VaultFactory.ubiFee = old UBIFeeSplitter (filed — assigned to PE)
 
 ## Notes
 - MockUSDC: 6 decimals; MockWETH: 18 decimals

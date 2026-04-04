@@ -98,8 +98,10 @@ contract GoodLendPool {
         uint256 accruedToTreasury;
     }
 
-    /// @notice All reserves
-    mapping(address => ReserveData) public reserves;
+    // Reserves storage is internal; use getReserveData() for external reads.
+    // A public mapping with a 17-field struct generates an auto-getter with 17 return
+    // values which exceeds the EVM stack limit when the optimizer is disabled (forge coverage).
+    mapping(address => ReserveData) internal reserves;
     address[] public reservesList;
 
     /// @notice Price oracle
@@ -369,25 +371,12 @@ contract GoodLendPool {
 
         // Close factor: 50% if HF >= 0.95, 100% if HF < 0.95
         uint256 userDebt = _debtBalance(debtAsset, user, debtReserve.variableBorrowIndex);
-        uint256 maxClose;
-        if (hf >= (RAY * 95) / 100) {
-            maxClose = userDebt / 2;
-        } else {
-            maxClose = userDebt;
-        }
+        uint256 maxClose = hf >= (RAY * 95) / 100 ? userDebt / 2 : userDebt;
         if (debtToCover > maxClose) debtToCover = maxClose;
         require(debtToCover > 0, "GoodLendPool: zero liquidation");
 
-        // Calculate collateral to seize
-        uint256 debtPrice = oracle.getAssetPrice(debtAsset);
-        uint256 collateralPrice = oracle.getAssetPrice(collateralAsset);
-        require(debtPrice > 0 && collateralPrice > 0, "GoodLendPool: oracle fail");
-
-        // collateralAmount = (debtToCover * debtPrice * liquidationBonus) / (collateralPrice * 10000)
-        // Normalize for decimals
-        uint256 debtValue = debtToCover * debtPrice / (10 ** debtReserve.decimals);
-        uint256 collateralAmountRaw = (debtValue * collateralReserve.liquidationBonusBPS) / BPS;
-        uint256 collateralToSeize = collateralAmountRaw * (10 ** collateralReserve.decimals) / collateralPrice;
+        // Calculate collateral to seize (extracted to avoid stack-too-deep without optimizer)
+        uint256 collateralToSeize = _calcCollateralToSeize(debtToCover, debtAsset, collateralAsset);
 
         // Cap at user's collateral
         uint256 userCollateral = _gTokenBalance(collateralAsset, user, collateralReserve.liquidityIndex);
@@ -398,7 +387,6 @@ contract GoodLendPool {
         IDebtToken(debtReserve.debtToken).burn(user, debtToCover, debtReserve.variableBorrowIndex);
 
         // Transfer collateral gTokens from user to liquidator
-        // Burn from user, mint to liquidator at current index
         IGoodLendToken(collateralReserve.gToken).burn(user, collateralToSeize, collateralReserve.liquidityIndex);
 
         // Send underlying to liquidator
@@ -408,6 +396,28 @@ contract GoodLendPool {
         _updateRates(debtAsset);
 
         emit Liquidation(collateralAsset, debtAsset, user, debtToCover, collateralToSeize, msg.sender);
+    }
+
+    /**
+     * @dev Compute the amount of collateral to seize for a given debt repayment.
+     *      Extracted from `liquidate` to reduce stack depth for forge coverage.
+     */
+    function _calcCollateralToSeize(
+        uint256 debtToCover,
+        address debtAsset,
+        address collateralAsset
+    ) internal view returns (uint256 collateralToSeize) {
+        ReserveData storage debtReserve      = reserves[debtAsset];
+        ReserveData storage collateralReserve = reserves[collateralAsset];
+        uint256 debtPrice       = oracle.getAssetPrice(debtAsset);
+        uint256 collateralPrice = oracle.getAssetPrice(collateralAsset);
+        require(debtPrice > 0 && collateralPrice > 0, "GoodLendPool: oracle fail");
+
+        // collateralToSeize = (debtToCover * debtPrice / debtDecimals)
+        //                     * liquidationBonus / collateralPrice * collateralDecimals
+        uint256 debtValue          = debtToCover * debtPrice / (10 ** debtReserve.decimals);
+        uint256 collateralAmountRaw = (debtValue * collateralReserve.liquidationBonusBPS) / BPS;
+        collateralToSeize          = collateralAmountRaw * (10 ** collateralReserve.decimals) / collateralPrice;
     }
 
     // ============ Flash Loans ============
@@ -660,43 +670,59 @@ contract GoodLendPool {
         uint256 totalCollateralUSD,
         uint256 totalDebtUSD
     ) {
-        totalCollateralUSD = 0;
-        totalDebtUSD = 0;
         uint256 totalCollateralThresholdUSD = 0;
 
         for (uint256 i = 0; i < reservesList.length; i++) {
             address asset = reservesList[i];
-            ReserveData storage reserve = reserves[asset];
-            if (!reserve.isActive) continue;
+            if (!reserves[asset].isActive) continue;
 
             uint256 price = oracle.getAssetPrice(asset);
             if (price == 0) continue;
 
-            // Use view-index helpers to include pending (unwritten) interest in the HF check.
-            // Reading raw storage indexes here would understate debt (borrow compounds faster
-            // than supply), causing the HF to appear higher than the true value.
-            uint256 liqIdx = getLiquidityIndex(asset);
-            uint256 borIdx = getBorrowIndex(asset);
-
-            // Collateral (gToken balance)
-            uint256 collateral = _gTokenBalance(asset, user, liqIdx);
-            if (collateral > 0) {
-                uint256 collateralValueUSD = (collateral * price) / (10 ** reserve.decimals);
-                totalCollateralUSD += collateralValueUSD;
-                totalCollateralThresholdUSD += (collateralValueUSD * reserve.liquidationThresholdBPS) / BPS;
-            }
-
-            // Debt
-            uint256 debt = _debtBalance(asset, user, borIdx);
-            if (debt > 0) {
-                totalDebtUSD += (debt * price) / (10 ** reserve.decimals);
-            }
+            // Per-asset accumulation extracted to keep loop body stack-depth within
+            // the EVM limit when the optimizer is disabled (forge coverage).
+            (uint256 colUSD, uint256 debtUSD, uint256 threshUSD) =
+                _accumulateAssetValues(asset, user, price);
+            totalCollateralUSD          += colUSD;
+            totalDebtUSD                += debtUSD;
+            totalCollateralThresholdUSD += threshUSD;
         }
 
         if (totalDebtUSD == 0) {
             healthFactor = type(uint256).max; // No debt = infinite health
         } else {
             healthFactor = (totalCollateralThresholdUSD * RAY) / totalDebtUSD;
+        }
+    }
+
+    /**
+     * @dev Return the USD collateral value, debt value, and threshold-weighted collateral
+     *      for a single reserve/user pair.  Extracted from `_calculateHealthFactor` to
+     *      reduce stack depth for forge coverage (optimizer disabled).
+     */
+    function _accumulateAssetValues(
+        address asset,
+        address user,
+        uint256 price
+    ) internal view returns (
+        uint256 collateralValueUSD,
+        uint256 debtValueUSD,
+        uint256 collateralThresholdUSD
+    ) {
+        ReserveData storage reserve = reserves[asset];
+        // Use view-index helpers so pending interest is included in the HF calculation.
+        uint256 liqIdx = getLiquidityIndex(asset);
+        uint256 borIdx = getBorrowIndex(asset);
+
+        uint256 collateral = _gTokenBalance(asset, user, liqIdx);
+        if (collateral > 0) {
+            collateralValueUSD    = (collateral * price) / (10 ** reserve.decimals);
+            collateralThresholdUSD = (collateralValueUSD * reserve.liquidationThresholdBPS) / BPS;
+        }
+
+        uint256 debt = _debtBalance(asset, user, borIdx);
+        if (debt > 0) {
+            debtValueUSD = (debt * price) / (10 ** reserve.decimals);
         }
     }
 }

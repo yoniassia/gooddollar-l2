@@ -287,48 +287,69 @@ contract CreateInitialPools is Script {
 
         vm.startBroadcast(deployerKey);
 
-        // ── 1. Token setup ─────────────────────────────────────────────────────
+        // Steps 1-5 are split into helpers to keep this function's stack depth
+        // below the EVM limit (needed for forge coverage which disables the optimizer).
+        (gdAddr, wethAddr, usdcAddr) =
+            _deployMockTokens(deployer, gdAddr, wethAddr, usdcAddr);
+        _deployPoolsSeedAndLog(deployer, gdAddr, wethAddr, usdcAddr, ubiSplitterAddr);
 
-        IERC20 gd;
+        vm.stopBroadcast();
+    }
+
+    /**
+     * @dev Step 1 — deploy MockERC20 stand-ins for any token addresses not
+     *      supplied via environment variables.  Real addresses are passed through
+     *      unchanged.
+     */
+    function _deployMockTokens(
+        address deployer,
+        address gdAddr,
+        address wethAddr,
+        address usdcAddr
+    ) internal returns (address, address, address) {
         if (gdAddr == address(0)) {
-            // Use a MockERC20 stand-in on devnet; on production pass the real G$ address
             MockERC20 mock = new MockERC20("GoodDollar", "G$", 18);
             mock.mint(deployer, SEED_GD_FOR_WETH_POOL + SEED_GD_FOR_USDC_POOL);
             gdAddr = address(mock);
             console.log("G$ (devnet mock):", gdAddr);
         }
-        gd = IERC20(gdAddr);
 
-        IERC20 weth;
         if (wethAddr == address(0)) {
             MockERC20 mock = new MockERC20("Wrapped Ether", "WETH", 18);
             mock.mint(deployer, SEED_WETH_FOR_GD_POOL + SEED_WETH_FOR_USDC_POOL);
             wethAddr = address(mock);
             console.log("WETH (devnet mock):", wethAddr);
         }
-        weth = IERC20(wethAddr);
 
-        IERC20 usdc;
         if (usdcAddr == address(0)) {
             MockERC20 mock = new MockERC20("USD Coin", "USDC", 6);
             mock.mint(deployer, SEED_USDC_FOR_GD_POOL + SEED_USDC_FOR_WETH_POOL);
             usdcAddr = address(mock);
             console.log("USDC (devnet mock):", usdcAddr);
         }
-        usdc = IERC20(usdcAddr);
 
+        return (gdAddr, wethAddr, usdcAddr);
+    }
+
+    /**
+     * @dev Steps 2-5 — deploy the three GoodPools, wire the UBI fee beneficiary,
+     *      seed initial liquidity, and emit a deployment summary.
+     */
+    function _deployPoolsSeedAndLog(
+        address deployer,
+        address gdAddr,
+        address wethAddr,
+        address usdcAddr,
+        address ubiSplitterAddr
+    ) internal {
         // ── 2. Deploy pools ────────────────────────────────────────────────────
 
-        // Pool 1: G$ / WETH
-        GoodPool gdWethPool = new GoodPool(gdAddr, wethAddr, deployer);
-        console.log("GoodPool G$/WETH:  ", address(gdWethPool));
-
-        // Pool 2: G$ / USDC
-        GoodPool gdUsdcPool = new GoodPool(gdAddr, usdcAddr, deployer);
-        console.log("GoodPool G$/USDC:  ", address(gdUsdcPool));
-
-        // Pool 3: WETH / USDC
+        GoodPool gdWethPool  = new GoodPool(gdAddr, wethAddr, deployer);
+        GoodPool gdUsdcPool  = new GoodPool(gdAddr, usdcAddr, deployer);
         GoodPool wethUsdcPool = new GoodPool(wethAddr, usdcAddr, deployer);
+
+        console.log("GoodPool G$/WETH:  ", address(gdWethPool));
+        console.log("GoodPool G$/USDC:  ", address(gdUsdcPool));
         console.log("GoodPool WETH/USDC:", address(wethUsdcPool));
 
         // ── 3. Wire UBI fee beneficiary ────────────────────────────────────────
@@ -341,28 +362,22 @@ contract CreateInitialPools is Script {
 
         // ── 4. Seed liquidity ──────────────────────────────────────────────────
 
-        // G$/WETH: tokenA = the lower address. We supply both regardless of ordering
-        // because GoodPool sorts internally.
-        gd.approve(address(gdWethPool), SEED_GD_FOR_WETH_POOL);
-        weth.approve(address(gdWethPool), SEED_WETH_FOR_GD_POOL);
-
-        // GoodPool constructor sorts by address. We must pass (tokenA, tokenB) order.
-        // Since we don't know which is tokenA here, supply separately then call addLiquidity
-        // in the canonical (tokenA, tokenB) order the pool expects.
+        // GoodPool constructor sorts tokens by address; _addLiquidity re-sorts
+        // arguments to match the pool's canonical (tokenA, tokenB) order.
+        IERC20(gdAddr).approve(address(gdWethPool), SEED_GD_FOR_WETH_POOL);
+        IERC20(wethAddr).approve(address(gdWethPool), SEED_WETH_FOR_GD_POOL);
         _addLiquidity(gdWethPool, gdAddr, wethAddr,
             SEED_GD_FOR_WETH_POOL, SEED_WETH_FOR_GD_POOL, deployer);
 
-        gd.approve(address(gdUsdcPool), SEED_GD_FOR_USDC_POOL);
-        usdc.approve(address(gdUsdcPool), SEED_USDC_FOR_GD_POOL);
+        IERC20(gdAddr).approve(address(gdUsdcPool), SEED_GD_FOR_USDC_POOL);
+        IERC20(usdcAddr).approve(address(gdUsdcPool), SEED_USDC_FOR_GD_POOL);
         _addLiquidity(gdUsdcPool, gdAddr, usdcAddr,
             SEED_GD_FOR_USDC_POOL, SEED_USDC_FOR_GD_POOL, deployer);
 
-        weth.approve(address(wethUsdcPool), SEED_WETH_FOR_USDC_POOL);
-        usdc.approve(address(wethUsdcPool), SEED_USDC_FOR_WETH_POOL);
+        IERC20(wethAddr).approve(address(wethUsdcPool), SEED_WETH_FOR_USDC_POOL);
+        IERC20(usdcAddr).approve(address(wethUsdcPool), SEED_USDC_FOR_WETH_POOL);
         _addLiquidity(wethUsdcPool, wethAddr, usdcAddr,
             SEED_WETH_FOR_USDC_POOL, SEED_USDC_FOR_WETH_POOL, deployer);
-
-        vm.stopBroadcast();
 
         // ── 5. Summary ─────────────────────────────────────────────────────────
 

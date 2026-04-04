@@ -77,8 +77,11 @@ contract SyntheticAssetFactory {
         bytes32 key = _key(ticker);
         if (assets[key] != address(0)) revert AlreadyListed(ticker);
 
-        string memory syntheticSymbol = string(abi.encodePacked("s", ticker));
+        // Compute syntheticSymbol after _clone to avoid holding an extra stack slot
+        // inside _clone's inline assembly (coverage instrumentation adds counters that
+        // push the stack close to the 16-slot EVM limit).
         asset = _clone(implementation);
+        string memory syntheticSymbol = string(abi.encodePacked("s", ticker));
         SyntheticAsset(asset).initialize(assetName, syntheticSymbol, vault);
 
         assets[key] = asset;
