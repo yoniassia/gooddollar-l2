@@ -183,7 +183,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Frontend: /agents page — leaderboard with rank badges, dashboard stats, SDK CTA
 - [x] SDK: AgentRegistryABI + address exported
 - [x] Navigation: Header desktop + mobile menu links
-- [ ] Agent detail page (/agents/[address]) with per-protocol breakdown
+- [x] Agent detail page (/agents/[address]) with per-protocol breakdown
 - [ ] Integration with protocol contracts (auto-report activity from swaps/perps/etc.)
 - [ ] Agent registration frontend (connect wallet → register your bot)
 
