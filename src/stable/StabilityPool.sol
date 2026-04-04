@@ -77,6 +77,12 @@ contract StabilityPool {
     ///         Used to iterate and reset gainSnapshots on epoch boundary re-deposits (GOO-367).
     bytes32[] public registeredIlks;
 
+    /// @notice epoch -> scaleIndex value recorded just before the drain reset.
+    ///         When drainEpoch increments, the scaleIndex is first saved here so that
+    ///         pre-drain depositors can be settled against the correct (pre-reset) scale
+    ///         rather than the post-reset PRECISION value (GOO-371 fix).
+    mapping(uint256 => uint256) public epochBoundaryScaleIndex;
+
     /// @notice ilk -> pending undistributed collateral (dust from rounding)
     mapping(bytes32 => uint256) public collateralDust;
 
@@ -262,9 +268,11 @@ contract StabilityPool {
         if (totalDeposits > 0 && remaining > 0) {
             scaleIndex = (scaleIndex * remaining) / totalDeposits;
         } else if (remaining == 0) {
-            // Pool fully drained — increment epoch so pre-drain depositors' balances
-            // are zeroed on their next interaction (GOO-361 fix).
-            // Reset scaleIndex for fresh start within the new epoch.
+            // Pool fully drained — record the current scaleIndex at this epoch boundary
+            // before resetting it. Pre-drain depositors whose depositScaleSnapshot is
+            // below PRECISION would otherwise be incorrectly inflated by _settleGains
+            // when it sees the post-reset scaleIndex == PRECISION (GOO-371 fix).
+            epochBoundaryScaleIndex[drainEpoch] = scaleIndex;
             drainEpoch += 1;
             scaleIndex = PRECISION;
         }
@@ -302,12 +310,25 @@ contract StabilityPool {
         // treat as PRECISION (no scaling applied yet).
         if (snapshot == 0) snapshot = PRECISION;
 
-        if (scaleIndex != snapshot) {
-            // Scale down the user's recorded deposit to match current pool fraction.
-            // effective = nominal * currentScale / snapshotScale
-            uint256 effective = (userDeposit * scaleIndex) / snapshot;
+        // GOO-371: if the user deposited in a previous drain epoch, the current
+        // scaleIndex has been reset to PRECISION and no longer reflects the pool
+        // fraction that was active when the drain occurred. Using the reset value
+        // inflates deposits for users whose snapshot < PRECISION. Instead, clamp to
+        // the scaleIndex recorded at the epoch boundary (just before the drain reset).
+        uint256 userEpoch = depositEpoch[user];
+        uint256 effectiveScale = (userEpoch < drainEpoch)
+            ? epochBoundaryScaleIndex[userEpoch]
+            : scaleIndex;
+        // Guard: epochBoundaryScaleIndex defaults to 0 for epochs predating this fix.
+        // Fall back to PRECISION so the deposit is not zeroed by division.
+        if (effectiveScale == 0) effectiveScale = PRECISION;
+
+        if (effectiveScale != snapshot) {
+            // Scale the user's recorded deposit to match the pool fraction at settle.
+            // effective = nominal * effectiveScale / snapshotScale
+            uint256 effective = (userDeposit * effectiveScale) / snapshot;
             deposits[user] = effective;
-            depositScaleSnapshot[user] = scaleIndex;
+            depositScaleSnapshot[user] = effectiveScale;
         }
     }
 
@@ -376,10 +397,16 @@ contract StabilityPool {
         if (userDeposit == 0) return 0;
         // GOO-361: even for stale-epoch depositors, unclaimed collateral gains are still
         // owed (their gUSD was burned but they earned collateral from the liquidation).
-        // Apply scale lazily for view (mirrors _settleGains without state mutation)
+        // Apply scale lazily for view (mirrors _settleGains without state mutation).
         uint256 snapshot = depositScaleSnapshot[user] == 0 ? PRECISION : depositScaleSnapshot[user];
-        if (scaleIndex != snapshot) {
-            userDeposit = (userDeposit * scaleIndex) / snapshot;
+        // GOO-371: mirror the epoch-boundary clamp from _settleGains.
+        uint256 userEpoch = depositEpoch[user];
+        uint256 effectiveScale = (userEpoch < drainEpoch)
+            ? epochBoundaryScaleIndex[userEpoch]
+            : scaleIndex;
+        if (effectiveScale == 0) effectiveScale = PRECISION;
+        if (effectiveScale != snapshot) {
+            userDeposit = (userDeposit * effectiveScale) / snapshot;
         }
         uint256 gained = cumulativeGainPerGUSD[ilk] - gainSnapshots[user][ilk];
         return (userDeposit * gained) / PRECISION;

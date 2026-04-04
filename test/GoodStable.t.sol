@@ -701,6 +701,136 @@ contract GoodStableTest is Test {
         assertEq(weth.balanceOf(lateUser) - wethBefore, 0, "lateUser receives 0 pre-entry gain");
     }
 
+    function test_SP_PartialDrainThenFullDrain_NoInflation() public {
+        // GOO-371: scaleIndex reset on full drain must not inflate pre-drain depositors.
+        //
+        // Scenario (mirrors the issue's concrete example):
+        //   sp1 deposits 100 gUSD  → sole depositor, scaleIndex = PRECISION
+        //   partial offset: 50 gUSD burned, vault1 collateral distributed
+        //       → scaleIndex = PRECISION/2, sp1's effective balance = 50 gUSD
+        //   sp2 deposits 100 gUSD  → snapshot = PRECISION/2, totalDeposits = 150
+        //   full drain: 150 gUSD burned, vault2 collateral distributed
+        //       → epochBoundaryScaleIndex[0] = PRECISION/2, drainEpoch = 1
+        //       → scaleIndex resets to PRECISION
+        //   Without fix: sp2's _settleGains sees 100 * PRECISION / (PRECISION/2) = 200
+        //                → claims 266% of vault2 collateral — drains the contract.
+        //   With fix: sp2 correctly settles to 100 (boundary scale == snapshot).
+
+        address sp1 = address(0xB2);
+        address sp2 = address(0xB3);
+        address vaultOwner1 = address(0xB4);
+        address vaultOwner2 = address(0xB5);
+
+        // Fund SP depositors with gUSD
+        vm.startPrank(admin);
+        gusd.setMinter(admin, true);
+        gusd.mint(sp1, 100e18);
+        gusd.mint(sp2, 100e18);
+        vm.stopPrank();
+
+        // Fund vault owners with WETH
+        weth.mint(vaultOwner1, 1 ether);
+        weth.mint(vaultOwner2, 1 ether);
+
+        // ── Step 1: sp1 deposits 100 gUSD ──────────────────────────────
+        vm.startPrank(sp1);
+        gusd.approve(address(sp), 100e18);
+        sp.deposit(100e18);
+        vm.stopPrank();
+
+        assertEq(sp.scaleIndex(), sp.PRECISION(), "scaleIndex starts at PRECISION");
+
+        // ── Step 2: vaultOwner1 opens vault, gets liquidated (partial drain) ──
+        // At $2000: 0.05 ETH = $100. Mint 50 gUSD (CR = 200% ≥ 150%).
+        vm.startPrank(vaultOwner1);
+        weth.approve(address(vault), 0.05 ether);
+        vault.depositCollateral(ETH_ILK, 0.05 ether);
+        vault.mintGUSD(ETH_ILK, 50e18);
+        vm.stopPrank();
+
+        // Drop price so vaultOwner1 is liquidatable: 0.05 * 1200 = $60 < 50 * 1.5 = $75.
+        vm.prank(admin);
+        oracle.setPrice(ETH_ILK, 1200e18);
+
+        uint256 collateral1 = weth.balanceOf(address(sp)); // should be 0 before
+        vm.prank(bob); // any caller can liquidate
+        vault.liquidate(ETH_ILK, vaultOwner1);
+
+        uint256 wethAfterOffset1 = weth.balanceOf(address(sp));
+        assertGt(wethAfterOffset1, collateral1, "SP received collateral from offset-1");
+        assertEq(sp.totalDeposits(), 50e18, "50 gUSD remains after partial drain");
+        assertLt(sp.scaleIndex(), sp.PRECISION(), "scaleIndex dropped after partial offset");
+        assertEq(sp.drainEpoch(), 0, "drainEpoch still 0 (partial, not full)");
+
+        // ── Step 3: sp2 deposits 100 gUSD (snapshot = current scaleIndex < PRECISION) ──
+        vm.startPrank(sp2);
+        gusd.approve(address(sp), 100e18);
+        sp.deposit(100e18);
+        vm.stopPrank();
+
+        uint256 sp2DepositSnapshot = sp.depositScaleSnapshot(sp2);
+        assertEq(sp2DepositSnapshot, sp.scaleIndex(), "sp2 snapshot = current scaleIndex");
+        assertLt(sp2DepositSnapshot, sp.PRECISION(), "sp2 snapshot < PRECISION (key pre-condition)");
+        assertEq(sp.totalDeposits(), 150e18, "pool = 150 gUSD");
+
+        // ── Step 4: vaultOwner2 opens vault for 150 gUSD, gets liquidated (full drain) ──
+        // At $1200: need 0.2 ETH = $240 to support 150 gUSD at CR 150% ($225).
+        vm.startPrank(vaultOwner2);
+        weth.approve(address(vault), 0.2 ether);
+        vault.depositCollateral(ETH_ILK, 0.2 ether);
+        vault.mintGUSD(ETH_ILK, 150e18);
+        vm.stopPrank();
+
+        // Drop price: 0.2 * 700 = $140 < 150 * 1.5 = $225 → liquidatable.
+        vm.prank(admin);
+        oracle.setPrice(ETH_ILK, 700e18);
+
+        vm.prank(bob);
+        vault.liquidate(ETH_ILK, vaultOwner2);
+
+        uint256 wethAfterOffset2 = weth.balanceOf(address(sp));
+        assertGt(wethAfterOffset2, wethAfterOffset1, "SP received collateral from offset-2");
+        assertEq(sp.totalDeposits(), 0, "pool fully drained");
+        assertEq(sp.drainEpoch(), 1, "drainEpoch incremented to 1");
+        assertEq(sp.scaleIndex(), sp.PRECISION(), "scaleIndex reset to PRECISION after full drain");
+
+        // epochBoundaryScaleIndex[0] must have been recorded before the reset.
+        assertEq(sp.epochBoundaryScaleIndex(0), sp2DepositSnapshot,
+            "epochBoundaryScaleIndex[0] = scaleIndex at boundary (= PRECISION/2)");
+
+        uint256 totalWethInSP = weth.balanceOf(address(sp));
+
+        // ── Step 5: both depositors claim — total must not exceed available ETH ──
+        uint256 sp1Before = weth.balanceOf(sp1);
+        uint256 sp2Before = weth.balanceOf(sp2);
+
+        vm.prank(sp1);
+        sp.claimCollateral(ETH_ILK);
+
+        vm.prank(sp2);
+        sp.claimCollateral(ETH_ILK);
+
+        uint256 sp1Gained = weth.balanceOf(sp1) - sp1Before;
+        uint256 sp2Gained = weth.balanceOf(sp2) - sp2Before;
+        uint256 totalClaimed = sp1Gained + sp2Gained;
+
+        // Core invariant: no over-payment — the contract must not be drained.
+        assertLe(totalClaimed, totalWethInSP,
+            "GOO-371: total claimed must not exceed available collateral");
+
+        // sp2's effective deposit at drain time == sp2's nominal deposit (boundary scale == snapshot).
+        // The bug would set effective = 200e18 → sp2 gets ~2/3 * vault2Collateral ≈ impossible amount.
+        // With fix, sp2's effective = 100e18 and gains only from offset-2.
+        uint256 vault2Collateral = wethAfterOffset2 - wethAfterOffset1;
+        // sp2 should receive no more than their proportional share of vault2 collateral
+        // (100 gUSD out of 150 total = 2/3). Allow 1 wei rounding.
+        assertLe(sp2Gained, (vault2Collateral * 2) / 3 + 1,
+            "GOO-371: sp2 must not receive more than 2/3 of vault2 collateral");
+
+        // Sanity: sp2 should receive a non-trivial share of vault2 collateral.
+        assertGt(sp2Gained, 0, "sp2 earned collateral from offset-2");
+    }
+
     // ============================================================
     // Section 4: PSM — swap both directions
     // ============================================================
