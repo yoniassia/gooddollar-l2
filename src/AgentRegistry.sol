@@ -49,6 +49,11 @@ contract AgentRegistry {
     address public admin;
     uint256 public ubiBPS = 3333; // 33.33% of fees → UBI
 
+    /// @notice Hard cap on registered agents to bound getTopAgents gas usage
+    uint256 public maxAgents = 10_000;
+    /// @notice Hard cap on leaderboard query size (outer × inner = count × n)
+    uint256 public constant MAX_LEADERBOARD_COUNT = 200;
+
     // All registered agents
     address[] public agents;
     mapping(address => bool) public isRegistered;
@@ -112,6 +117,7 @@ contract AgentRegistry {
     ) external {
         require(!isRegistered[agent], "AgentRegistry: already registered");
         require(bytes(name).length > 0, "AgentRegistry: name required");
+        require(agents.length < maxAgents, "AgentRegistry: capacity reached");
 
         isRegistered[agent] = true;
         agents.push(agent);
@@ -229,7 +235,7 @@ contract AgentRegistry {
 
     // ============ Leaderboard Queries ============
 
-    /// @notice Get top N agents by UBI contribution
+    /// @notice Get top N agents by UBI contribution (capped at MAX_LEADERBOARD_COUNT)
     function getTopAgents(uint256 count) external view returns (
         address[] memory topAddrs,
         string[] memory topNames,
@@ -237,10 +243,11 @@ contract AgentRegistry {
         uint256[] memory topVolume,
         uint256[] memory topTrades
     ) {
+        if (count > MAX_LEADERBOARD_COUNT) count = MAX_LEADERBOARD_COUNT;
         uint256 len = agents.length;
         if (count > len) count = len;
 
-        // Simple selection sort for top N (fine for <1000 agents)
+        // Selection sort for top N — bounded by MAX_LEADERBOARD_COUNT × maxAgents
         topAddrs = new address[](count);
         topNames = new string[](count);
         topUBI = new uint256[](count);
@@ -330,5 +337,10 @@ contract AgentRegistry {
     function setUBIBPS(uint256 _bps) external onlyAdmin {
         require(_bps <= 10000, "AgentRegistry: bps too high");
         ubiBPS = _bps;
+    }
+
+    function setMaxAgents(uint256 _max) external onlyAdmin {
+        require(_max >= agents.length, "AgentRegistry: below current count");
+        maxAgents = _max;
     }
 }
