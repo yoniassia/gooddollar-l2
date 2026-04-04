@@ -36,3 +36,17 @@ export {
   MarginVaultABI,
   UBIFeeHookABI,
 } from './abis'
+export {
+  AgentSwarm,
+  ManagedAgent,
+  SignalBus,
+  PortfolioAggregator,
+  Strategies,
+  type AgentRole,
+  type AgentConfig,
+  type Signal,
+  type SignalHandler,
+  type AgentState,
+  type SwarmSnapshot,
+  type ProtocolExposure,
+} from './orchestration'

@@ -541,3 +541,82 @@ Chain: GoodDollar L2 Devnet (Chain ID 42069, RPC http://localhost:8545)
 4. **LOW**: FastWithdrawalLP `ubiPool` should be updated from deployer address to the real UBIFeeSplitter (0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512) before mainnet.
 5. **CARRY-FORWARD**: GOO-198, GOO-204, GOO-205, GOO-213, GOO-214 remain open from prior iterations.
 
+---
+
+# Tester Gamma - Iteration 5 Test Results (Source Code Audit)
+
+Date: 2026-04-04
+Wallet: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
+Chain: GoodDollar L2 Devnet (Chain ID 42069)
+
+**Iteration 5 Tests: 22 | Passed: 22 | Failed: 0**
+**Cumulative Total: 177 entries across 5 iterations**
+
+## Source Code Audit Findings
+
+### PerpEngine.sol
+- `closePosition(uint256 marketId)` closes position, settles PnL + funding, deletes position storage.
+- `liquidate(address trader, uint256 marketId)` checks marginRatio < MAINTENANCE_MARGIN_BPS (200 = 2%). Pays 5% bonus. LIQUIDATION_BONUS_BPS=500.
+
+### ValidatorStaking.sol
+- No single `unstake()`. Flow: `initiateUnstake(uint256 amount)` starts 7-day unbonding, `completeUnstake()` claims after period.
+- Slashing applies to both staked AND unbonding amounts. MIN_STAKE=1,000,000e18 GDT. UNBONDING_PERIOD=7 days.
+
+### SimplePriceOracle.sol
+- `setAssetPrice(address asset, uint256 price)` admin-only, 8-decimal USD prices.
+- `setAssetPrices(address[], uint256[])` batch variant.
+
+### FastWithdrawalLP.sol
+- Full LP lifecycle: depositLiquidity / claimFastWithdrawal / settleWithdrawal / withdrawLiquidity.
+- Caller IS the LP in claimFastWithdrawal (_findLP returns msg.sender if sufficient balance).
+- feeBps=10, UBI_FEE_SHARE=3333 (33.33% of fee to UBI pool).
+
+### VaultManager.sol
+- `liquidate(bytes32 ilk, address owner)` (not liquidateVault). Seizes ALL collateral. SP absorbs debt first, remainder to liquidator. Reverts "VM: vault is healthy" if healthFactor >= 1e18.
+
+## Test Results
+
+| Test | Contract | Function | Status | Gas | Notes |
+|------|----------|----------|--------|-----|-------|
+| 1 | PerpEngine | closePosition(0) [iter4 position] | PASS | 77,972 | PnL=0, vault 999999e18->1099999e18 |
+| 2 | PerpEngine | liquidate() healthy (negative) | PASS | 0 | PositionHealthy(2000, 200) revert |
+| 3 | ValidatorStaking | initiateUnstake(1M GDT) | PASS | 70,028 | unbondAt=1775873431, isActive=false |
+| 4 | ValidatorStaking | completeUnstake() (negative) | PASS | 0 | UnbondingNotReady revert (7-day enforced) |
+| 5 | SimplePriceOracle | GOO-204/213 verification | PASS | 0 | USDC=$1, WETH=$2000, getUserAccountData works |
+| 6 | FastWithdrawalLP | depositLiquidity(1000 USDC) | PASS | 101,566 | lpBalance=1e9 |
+| 7 | FastWithdrawalLP | claimFastWithdrawal(100 USDC) | PASS | 159,806 | Fee split correct, claimed=true |
+| 8 | FastWithdrawalLP | settleWithdrawal | PASS | 83,891 | LP reclaims capital+fee |
+| 9 | FastWithdrawalLP | withdrawLiquidity | PASS | 57,800 | Full LP lifecycle complete |
+| 10 | UBIClaimV2 | deploy (fresh) | PASS | 832,069 | 0x018ECbAD742Fa1ce05efd0981f36Eb14D9625e14 |
+| 11 | UBIClaimV2 | view functions | PASS | 0 | epoch=20547, selfClaimEnabled=true |
+| 12 | UBIClaimV2 | claim() not verified human | PASS | 0 | NotVerifiedHuman revert |
+| 13 | UBIClaimV2 | setRelayer / batchClaim / toggle | PASS | 29,723 | Admin governance working |
+| 14 | GoodPool | swap(1000 TokenA -> TokenB) | PASS | 116,293 | 332222924581397448 TokenB received, k preserved |
+| 15 | VaultManager | liquidate() healthy vault (negative) | PASS | 0 | "VM: vault is healthy" revert |
+| 16 | StabilityPool | withdraw(1000 gUSD) | PASS | 75,100 | Iter4 deposit recovered |
+| 17-22 | Multi | Stress: 20 sequential TXs | PASS | 668,456 | 20/20. Avg 2.00s/tx. Avg gas 33,422. 0 failures |
+
+## Key Findings
+
+GOO-204/213 RESOLVED: Prices already configured. getUserAccountData working.
+
+UBIClaimV2 not in devnet deployment — deployed fresh at 0x018ECbAD742Fa1ce05efd0981f36Eb14D9625e14.
+
+GoodSwap.sol (Uniswap V2 fork) NOT deployed — GoodPool (custom AMM) is the deployed swap mechanism.
+
+1M GDT in 7-day unbonding, completeUnstake() testable after 2026-04-11.
+
+Stress test: 20/20 success, 0 failures, avg gas 33,422.
+
+## New Bugs Found This Iteration
+
+None. All 22 tests passed.
+
+## Open Issues Carry-Forward
+
+- GOO-214 (CRITICAL): PerpEngine markets 2-5 no oracle prices
+- GOO-205: CollateralVault dust deposit
+- ValidatorStaking.completeUnstake() follow-up: 2026-04-11
+- UBIClaimV2 not in official deployment scripts
+- GoodSwap.sol not deployed on devnet
+

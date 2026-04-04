@@ -145,7 +145,9 @@ async function run() {
   // ═══ TEST 5: Explorer ═══
   try {
     const page = await context.newPage();
-    await page.goto(EXPLORER_URL, { waitUntil: 'networkidle', timeout: 30000 });
+    // Use 'load' instead of 'networkidle' — Blockscout has persistent websocket connections
+    await page.goto(EXPLORER_URL, { waitUntil: 'load', timeout: 30000 });
+    await page.waitForTimeout(1500);
 
     totalTests++;
     const title = await page.title();

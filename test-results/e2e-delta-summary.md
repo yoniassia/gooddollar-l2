@@ -1,4 +1,4 @@
-# E2E Delta Summary — 2026-04-03/04
+# E2E Delta Summary — 2026-04-03/04 (updated 2026-04-04)
 
 ## Pass Rate Trend
 
@@ -14,14 +14,14 @@
 | 8 | 2026-04-03T22:25Z | 25 | 19 | 6 | 76.0% | **GOO-209 detected** |
 | 9 | 2026-04-04T00:05Z | 25 | 23 | 2 | 92.0% | GOO-209+202 fixed |
 | 10 | 2026-04-04T00:25Z | 24 | 20 | 4 | 83.3% | **GOO-219 detected** |
+| 11 | 2026-04-04T02:08Z | 25 | 22 | 3 | 88.0% | **GOO-233: 6 chunks 400** + GOO-232 filed |
 
-## Current Failures (Run 10)
+## Current Failures (Run 11)
 
 | Page | Check | Status | Root Cause | Ticket |
 |------|-------|--------|------------|--------|
-| infra | js_and_css_load | 🚨 HIGH | Tailwind utility CSS missing from deployment | [GOO-219](/GOO/issues/GOO-219) |
-| mobile | no_horizontal_scroll | 🚨 HIGH | Desktop nav renders at 375px (no `hidden` CSS) | [GOO-219](/GOO/issues/GOO-219) |
-| explorer | page_loads | ⚠️ TRANSIENT | networkidle timeout — explorer slow/unavailable | monitor |
+| infra | js_and_css_load | 🚨 HIGH | 6 App Router chunks returning 400 (incomplete deploy) | [GOO-233](/GOO/issues/GOO-233) |
+| mobile | no_horizontal_scroll | 🚨 HIGH | JS broken → RainbowKit missing → Tailwind also suspect | [GOO-233](/GOO/issues/GOO-233) |
 | explorer/address | transactions_visible | Known bug | Blockscout infra issue | [GOO-193](/GOO/issues/GOO-193) |
 
 ## 🚨 NEW: GOO-219 — Tailwind Utility CSS Missing
@@ -54,7 +54,9 @@ Deployed CSS files on goodswap.goodclaw.org:
 |--------|-------|--------|----------|
 | [GOO-209](/GOO/issues/GOO-209) | JS/CSS chunks 404 (stale deploy) | **done** | critical |
 | [GOO-202](/GOO/issues/GOO-202) | Lend mock data no disclaimer | **done** | medium |
-| [GOO-219](/GOO/issues/GOO-219) | Tailwind utilities missing from deploy | todo → FE | high |
+| [GOO-219](/GOO/issues/GOO-219) | Tailwind utilities missing from deploy | done | high |
+| [GOO-232](/GOO/issues/GOO-232) | **CSP connect-src missing rpc.goodclaw.org** | backlog → FE | high |
+| [GOO-233](/GOO/issues/GOO-233) | **6 App Router chunks 400 (incomplete deploy)** | backlog → FE | high |
 
 ## All Bugs History
 
@@ -69,7 +71,36 @@ Deployed CSS files on goodswap.goodclaw.org:
 | [GOO-202](/GOO/issues/GOO-202) | Lend mock data disclaimer | done |
 | [GOO-203](/GOO/issues/GOO-203) | PriceOracle not seeded | done |
 | [GOO-209](/GOO/issues/GOO-209) | JS/CSS chunks 404 (stale deploy) | done |
-| [GOO-219](/GOO/issues/GOO-219) | **Tailwind utilities missing** | todo |
+| [GOO-219](/GOO/issues/GOO-219) | Tailwind utilities missing | done |
+| [GOO-232](/GOO/issues/GOO-232) | **CSP connect-src missing rpc.goodclaw.org** | backlog |
+| [GOO-233](/GOO/issues/GOO-233) | **6 App Router chunks 400 (incomplete deploy)** | backlog |
+
+## 🚨 NEW: GOO-232 — CSP connect-src Missing rpc.goodclaw.org
+
+**Root cause confirmed via check_csp.js on 2026-04-04:**
+
+Live `connect-src` directive on goodswap.goodclaw.org:
+```
+connect-src 'self' https://*.alchemyapi.io https://*.g.alchemy.com wss://*.alchemyapi.io
+  wss://*.g.alchemy.com https://api.coingecko.com https://*.infura.io wss://*.infura.io
+  https://api.walletconnect.com wss://*.walletconnect.com https://explorer-api.walletconnect.com
+  https://rpc.gooddollar.org https://clapi.gooddollar.org
+```
+
+`rpc.gooddollar.org` (production domain) is listed. `rpc.goodclaw.org` (devnet) is **NOT listed**.
+
+**Impact:**
+- Browser silently blocks ALL `fetch()` calls to `https://rpc.goodclaw.org`
+- wagmi `useReadContracts` makes 0 RPC calls — stocks page shows empty
+- Perps, lend, any on-chain data page will also be empty
+- CSP violations visible in console: `pulse.walletconnect.org`, `api.web3modal.org` also blocked
+
+**Confirmed by:**
+- `stocks_errors.js`: only 1 network request (HTML page), 0 RPC calls
+- `stocks_live_check.js`: `rpcCalls: 0`, `hasTickerSymbols: false`, `hasDollarPrices: false`
+- `check_csp.js`: `Allows rpc.goodclaw.org: false`
+
+**Fix:** Add `https://rpc.goodclaw.org` and `wss://rpc.goodclaw.org` to `connect-src` in `next.config.js` headers section.
 
 ## On-Chain Verification
 
@@ -84,7 +115,7 @@ Deployed CSS files on goodswap.goodclaw.org:
 |----------|-------|---------|-------|
 | Homepage | 3 | 3 | |
 | Navigation | 1 | 1 | |
-| Stocks | 3 | 3 | Empty state (oracle ok, wagmi reads pending GOO-219 fix) |
+| Stocks | 3 | 3 | Empty state (oracle ok, wagmi reads blocked by CSP — GOO-232) |
 | Predict | 1 | 1 | |
 | Perps | 2 | 2 | |
 | Bridge | 2 | 2 | |
