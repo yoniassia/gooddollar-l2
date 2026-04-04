@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useAccount } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { formatEther, parseEther } from 'viem'
@@ -385,11 +386,19 @@ export default function GovernancePage() {
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-6">
-      <InfoBanner
-        title="GoodDAO Governance"
-        description="Lock G$ → get veG$ → vote on protocol changes. Longer locks = more voting power (Curve-style). 33% of all protocol fees fund UBI."
-        storageKey="governance-info-banner"
-      />
+      <div className="flex items-center justify-between">
+        <InfoBanner
+          title="GoodDAO Governance"
+          description="Lock G$ → get veG$ → vote on protocol changes. Longer locks = more voting power (Curve-style). 33% of all protocol fees fund UBI."
+          storageKey="governance-info-banner"
+        />
+        <Link
+          href="/governance/analytics"
+          className="shrink-0 ml-4 px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm text-blue-400 hover:text-blue-300 transition-colors"
+        >
+          📊 Analytics
+        </Link>
+      </div>
 
       {!isConnected ? (
         <div className="bg-gray-900 rounded-2xl border border-gray-800 p-12 text-center">
