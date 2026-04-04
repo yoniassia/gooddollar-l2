@@ -145,7 +145,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Integration tests against live devnet — 28 tests across all 6 modules (chain, tokens, perps, predict, lend, stocks, swap, UBI, writes)
 - [ ] Publish to npm
 - [x] Agent examples (trading bot, arbitrage) — examples/trading-bot.ts + examples/arbitrage-agent.ts
-- [ ] Multi-agent orchestration helpers
+- [x] Multi-agent orchestration helpers — AgentSwarm, SignalBus, PortfolioAggregator, Strategies + 26 tests (GOO-224)
 
 ## Principles
 1. **Fork the best, adapt for UBI** — Don't reinvent. Clone proven codebases, add UBI fee routing.
