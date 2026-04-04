@@ -102,7 +102,7 @@ export function useDashboardData(): {
 
   const data = useMemo(() => {
     if (!result.data) return null
-    const [totalFees, totalUBI, totalTx, protocolCount, activeProtocols, splitterFees, splitterUBI, snapshotCount] = result.data as bigint[]
+    const [totalFees, totalUBI, totalTx, protocolCount, activeProtocols, splitterFees, splitterUBI, snapshotCount] = result.data as unknown as bigint[]
     const ubiPct = totalFees > 0n ? Number((totalUBI * 10000n) / totalFees) / 100 : 0
     return {
       totalFees,

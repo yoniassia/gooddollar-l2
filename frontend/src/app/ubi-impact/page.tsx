@@ -245,10 +245,11 @@ export default function UBIImpactPage() {
         </p>
       </div>
 
-      <InfoBanner storageKey="ubi-impact-info">
-        GoodDollar L2 routes 33% of all protocol fees to the UBI pool. This dashboard tracks
-        every protocol&apos;s contribution in real-time, directly from the UBIRevenueTracker contract.
-      </InfoBanner>
+      <InfoBanner
+        storageKey="ubi-impact-info"
+        title="UBI Fee Routing"
+        description="GoodDollar L2 routes 33% of all protocol fees to the UBI pool. This dashboard tracks every protocol's contribution in real-time, directly from the UBIRevenueTracker contract."
+      />
 
       {/* Hero Stats */}
       {isLoading ? (
