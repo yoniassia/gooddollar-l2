@@ -345,8 +345,8 @@ export default function UBIImpactPage() {
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
         <h3 className="text-sm font-semibold text-zinc-400 mb-2">📝 Contract Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-zinc-500 font-mono">
-          <div>UBIRevenueTracker: <a href="https://explorer.goodclaw.org/address/0x1D3EDBa836caB11C26A186873abf0fFeB8bbaE63" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">0x1D3E...e63</a></div>
-          <div>UBIFeeSplitter: <a href="https://explorer.goodclaw.org/address/0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">0xe7f1...512</a></div>
+          <div>UBIRevenueTracker: <a href="https://explorer.goodclaw.org/address/0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">0x021D...99d</a></div>
+          <div>UBIFeeSplitter: <a href="https://explorer.goodclaw.org/address/0xC0BF43A4Ca27e0976195E6661b099742f10507e5" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">0xC0BF...e5</a></div>
           <div>Chain: GoodDollar L2 (ID 42069)</div>
           <div>Data: Refreshes every 15s</div>
         </div>

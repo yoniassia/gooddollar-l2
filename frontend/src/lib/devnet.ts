@@ -108,7 +108,7 @@ export const CONTRACTS = {
   StableMockGD:          '0x95401dc811bb5740090279ba06cfa8fcf6113778' as `0x${string}`,
 
   // ── UBI Analytics — deployed (chain 42069), 2026-04-03 (GOO-226) ──────────
-  UBIRevenueTracker:     '0x1D3EDBa836caB11C26A186873abf0fFeB8bbaE63' as `0x${string}`,
+  UBIRevenueTracker:     '0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d' as `0x${string}`,
 
   // ── GoodYield — VaultFactory (chain 42069), deployed 2026-04-04 (GOO-240) ──
   VaultFactory:          '0x0b27a79cb9c0b38ee06ca3d94daa68e0ed17f953' as `0x${string}`,
