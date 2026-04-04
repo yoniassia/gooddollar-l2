@@ -625,6 +625,263 @@ contract GoodStableTest is Test {
         assertLe(minUSDC, reserves, "minUSDC must be <= reserves (no over-withdrawal allowed)");
     }
 
+    // ── PSM: admin functions ───────────────────────────────────────────────────
+
+    function test_PSM_SetFeeBPS() public {
+        vm.prank(admin);
+        psm.setFeeBPS(50);
+        assertEq(psm.feeBPS(), 50);
+    }
+
+    function test_PSM_SetFeeBPS_TooHigh() public {
+        vm.prank(admin);
+        vm.expectRevert("PSM: fee too high");
+        psm.setFeeBPS(201);
+    }
+
+    function test_PSM_SetFeeBPS_OnlyAdmin() public {
+        vm.prank(alice);
+        vm.expectRevert("PSM: not admin");
+        psm.setFeeBPS(5);
+    }
+
+    function test_PSM_SetSwapCap() public {
+        vm.prank(admin);
+        psm.setSwapCap(500_000e6);
+        assertEq(psm.swapCap(), 500_000e6);
+    }
+
+    function test_PSM_SetSwapCap_OnlyAdmin() public {
+        vm.prank(alice);
+        vm.expectRevert("PSM: not admin");
+        psm.setSwapCap(1e6);
+    }
+
+    function test_PSM_SwapCap_Enforcement() public {
+        vm.prank(admin);
+        psm.setSwapCap(500e6); // cap at 500 USDC
+
+        vm.startPrank(alice);
+        usdc.approve(address(psm), 1000e6);
+
+        // First 500 USDC should succeed
+        psm.swapUSDCForGUSD(500e6);
+        assertEq(psm.totalUSDCReserves(), 500e6);
+
+        // Next deposit would exceed cap
+        vm.expectRevert("PSM: swap cap reached");
+        psm.swapUSDCForGUSD(1e6);
+        vm.stopPrank();
+    }
+
+    function test_PSM_SwapCap_Zero_Unlimited() public {
+        // Cap = 0 means unlimited
+        vm.prank(admin);
+        psm.setSwapCap(0);
+
+        vm.startPrank(alice);
+        usdc.approve(address(psm), 10_000e6);
+        psm.swapUSDCForGUSD(10_000e6); // should succeed with no cap
+        vm.stopPrank();
+        assertEq(psm.totalUSDCReserves(), 10_000e6);
+    }
+
+    function test_PSM_TransferAdmin() public {
+        vm.prank(admin);
+        psm.transferAdmin(alice);
+        assertEq(psm.admin(), alice);
+    }
+
+    function test_PSM_TransferAdmin_ZeroAddress() public {
+        vm.prank(admin);
+        vm.expectRevert("PSM: zero address");
+        psm.transferAdmin(address(0));
+    }
+
+    function test_PSM_TransferAdmin_OnlyAdmin() public {
+        vm.prank(alice);
+        vm.expectRevert("PSM: not admin");
+        psm.transferAdmin(bob);
+    }
+
+    function test_PSM_SetPaused_OnlyAdmin() public {
+        vm.prank(alice);
+        vm.expectRevert("PSM: not admin");
+        psm.setPaused(true);
+    }
+
+    function test_PSM_Unpause() public {
+        vm.prank(admin);
+        psm.setPaused(true);
+
+        vm.prank(admin);
+        psm.setPaused(false);
+        assertEq(psm.paused(), false);
+
+        // Should succeed after unpause
+        vm.startPrank(alice);
+        usdc.approve(address(psm), 100e6);
+        psm.swapUSDCForGUSD(100e6);
+        vm.stopPrank();
+    }
+
+    function test_PSM_SwapGUSDForUSDC_Paused() public {
+        vm.startPrank(alice);
+        usdc.approve(address(psm), 1000e6);
+        psm.swapUSDCForGUSD(1000e6);
+        vm.stopPrank();
+
+        vm.prank(admin);
+        psm.setPaused(true);
+
+        vm.startPrank(alice);
+        gusd.approve(address(psm), 500e18);
+        vm.expectRevert("PSM: paused");
+        psm.swapGUSDForUSDC(500e18);
+        vm.stopPrank();
+    }
+
+    // ── PSM: fee=0 paths ───────────────────────────────────────────────────────
+
+    function test_PSM_SwapUSDCForGUSD_ZeroFee() public {
+        vm.prank(admin);
+        psm.setFeeBPS(0);
+
+        uint256 usdcAmount = 1000e6;
+        vm.startPrank(alice);
+        usdc.approve(address(psm), usdcAmount);
+        psm.swapUSDCForGUSD(usdcAmount);
+        vm.stopPrank();
+
+        // With 0% fee, alice gets exactly 1000e18 gUSD
+        assertEq(gusd.balanceOf(alice), 1000e18);
+        assertEq(feeSplitter.totalReceived(), 0); // no fee sent to splitter
+    }
+
+    function test_PSM_SwapGUSDForUSDC_ZeroFee() public {
+        vm.prank(admin);
+        psm.setFeeBPS(0);
+
+        vm.startPrank(alice);
+        usdc.approve(address(psm), 1000e6);
+        psm.swapUSDCForGUSD(1000e6); // alice gets 1000e18 gUSD with fee=0
+        vm.stopPrank();
+
+        uint256 aliceUsdcBefore = usdc.balanceOf(alice);
+        uint256 gusdIn = 500e18;
+        vm.startPrank(alice);
+        gusd.approve(address(psm), gusdIn);
+        psm.swapGUSDForUSDC(gusdIn);
+        vm.stopPrank();
+
+        // With 0% fee, net = full gusdIn, usdcOut = 500e18 / 1e12 = 500e6
+        assertEq(usdc.balanceOf(alice) - aliceUsdcBefore, 500e6);
+        assertEq(feeSplitter.totalReceived(), 0); // no fee sent
+    }
+
+    // ── PSM: view functions ────────────────────────────────────────────────────
+
+    function test_PSM_PreviewUSDCForGUSD() public view {
+        (uint256 gusdOut, uint256 fee) = psm.previewUSDCForGUSD(1000e6);
+        uint256 expected = (1000e18 * 10) / 10_000;
+        assertEq(fee, expected);
+        assertEq(gusdOut, 1000e18 - expected);
+    }
+
+    function test_PSM_PreviewGUSDForUSDC() public view {
+        (uint256 usdcOut, uint256 fee) = psm.previewGUSDForUSDC(1000e18);
+        uint256 expectedFee = (1000e18 * 10) / 10_000;
+        assertEq(fee, expectedFee);
+        assertEq(usdcOut, (1000e18 - expectedFee) / 1e12);
+    }
+
+    // ── PSM: error reverts ─────────────────────────────────────────────────────
+
+    function test_PSM_SwapUSDCForGUSD_ZeroAmount() public {
+        vm.prank(alice);
+        vm.expectRevert("PSM: zero amount");
+        psm.swapUSDCForGUSD(0);
+    }
+
+    function test_PSM_SwapGUSDForUSDC_ZeroAmount() public {
+        vm.prank(alice);
+        vm.expectRevert("PSM: zero amount");
+        psm.swapGUSDForUSDC(0);
+    }
+
+    function test_PSM_WithdrawReserves_ZeroBalance() public {
+        // No deposits — totalUSDCReserves = 0
+        vm.prank(admin);
+        vm.expectRevert("PSM: exceeds reserves");
+        psm.withdrawReserves(treasury, 1e6);
+    }
+
+    function test_PSM_WithdrawReserves_ZeroAddress() public {
+        vm.startPrank(alice);
+        usdc.approve(address(psm), 1000e6);
+        psm.swapUSDCForGUSD(1000e6);
+        vm.stopPrank();
+
+        vm.prank(admin);
+        vm.expectRevert("PSM: zero address");
+        psm.withdrawReserves(address(0), 1e6);
+    }
+
+    function test_PSM_WithdrawReserves_OnlyAdmin() public {
+        vm.prank(alice);
+        vm.expectRevert("PSM: not admin");
+        psm.withdrawReserves(treasury, 1e6);
+    }
+
+    function test_PSM_WithdrawReserves_OutstandingZero() public {
+        // When psmBurnedGUSD >= psmMintedGUSD, outstanding = 0, minUSDC = 0.
+        // Use feeBPS=0 so burned amount exactly matches minted amount.
+        vm.prank(admin);
+        psm.setFeeBPS(0);
+
+        vm.startPrank(alice);
+        usdc.approve(address(psm), 1000e6);
+        psm.swapUSDCForGUSD(1000e6); // psmMintedGUSD = 1000e18
+        vm.stopPrank();
+
+        // Redeem all 1000e18 gUSD — with fee=0, netGUSD = 1000e18, psmBurnedGUSD = 1000e18
+        uint256 aliceGusd = gusd.balanceOf(alice);
+        vm.startPrank(alice);
+        gusd.approve(address(psm), aliceGusd);
+        psm.swapGUSDForUSDC(aliceGusd);
+        vm.stopPrank();
+
+        // outstanding = max(0, 1000e18 - 1000e18) = 0, minUSDC = 0
+        assertEq(psm.psmMintedGUSD(), psm.psmBurnedGUSD());
+        // Admin can now withdraw all remaining USDC (if any dust remains)
+        uint256 reserves = psm.totalUSDCReserves();
+        if (reserves > 0) {
+            vm.prank(admin);
+            psm.withdrawReserves(treasury, reserves);
+            assertEq(psm.totalUSDCReserves(), 0);
+        }
+    }
+
+    function test_PSM_Constructor_ZeroGUSD() public {
+        vm.expectRevert("PSM: zero gUSD");
+        new PegStabilityModule(address(0), address(usdc), address(feeSplitter), admin);
+    }
+
+    function test_PSM_Constructor_ZeroUSDC() public {
+        vm.expectRevert("PSM: zero USDC");
+        new PegStabilityModule(address(gusd), address(0), address(feeSplitter), admin);
+    }
+
+    function test_PSM_Constructor_ZeroSplitter() public {
+        vm.expectRevert("PSM: zero splitter");
+        new PegStabilityModule(address(gusd), address(usdc), address(0), admin);
+    }
+
+    function test_PSM_Constructor_ZeroAdmin() public {
+        vm.expectRevert("PSM: zero admin");
+        new PegStabilityModule(address(gusd), address(usdc), address(feeSplitter), address(0));
+    }
+
     // ============================================================
     // Section 5: Stability Pool — deposit / withdraw / claim
     // ============================================================
