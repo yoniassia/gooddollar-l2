@@ -641,6 +641,66 @@ contract GoodStableTest is Test {
         assertLe(wethGained, attackerFairShare, "attacker cannot receive more than fair share");
     }
 
+    function test_SP_FreshDepositorCannotClaimPreEntryGains() public {
+        // GOO-369: a brand-new depositor in the SAME epoch whose gainSnapshots default
+        // to 0 must not claim collateral gains from liquidations before their entry.
+        address lateUser = address(0xB1);
+
+        vm.startPrank(admin);
+        gusd.setMinter(admin, true);
+        gusd.mint(alice,    200e18);
+        gusd.mint(lateUser, 200e18);
+        vm.stopPrank();
+
+        // Alice deposits 200 gUSD as the sole depositor.
+        vm.startPrank(alice);
+        gusd.approve(address(sp), 200e18);
+        sp.deposit(200e18);
+        vm.stopPrank();
+
+        // Create an under-collateralised vault for a partial offset (not full drain).
+        vm.startPrank(bob);
+        weth.approve(address(vault), 0.2 ether);
+        vault.depositCollateral(ETH_ILK, 0.2 ether);
+        vault.mintGUSD(ETH_ILK, 150e18);
+        vm.stopPrank();
+
+        vm.prank(admin);
+        oracle.setPrice(ETH_ILK, 100e18); // price crash — collateral only covers 150% at $100
+
+        // Liquidate bob's vault: 150 gUSD offset from Alice's 200 deposit.
+        // ~0.15 ETH worth of collateral distributed. drainEpoch stays at 0.
+        vm.prank(alice); // anyone can liquidate
+        vault.liquidate(ETH_ILK, bob);
+
+        // Verify epoch did NOT advance (partial drain, pool still has gUSD).
+        assertEq(sp.drainEpoch(), 0, "no drain epoch increment for partial offset");
+
+        // cumulativeGainPerGUSD is now > 0.
+        uint256 cumGain = sp.cumulativeGainPerGUSD(ETH_ILK);
+        assertGt(cumGain, 0, "gain accumulated from liquidation");
+
+        // lateUser now enters the pool AFTER the liquidation, same epoch.
+        vm.startPrank(lateUser);
+        gusd.approve(address(sp), 200e18);
+        sp.deposit(200e18);
+        vm.stopPrank();
+
+        // lateUser's gainSnapshot must be initialised to the current cumulative,
+        // NOT left at 0 (which would let them claim pre-entry gains).
+        assertEq(
+            sp.gainSnapshots(lateUser, ETH_ILK),
+            cumGain,
+            "GOO-369: gainSnapshot must equal current cumulative on fresh deposit"
+        );
+
+        // lateUser claims: should receive 0 (no liquidations after their entry).
+        uint256 wethBefore = weth.balanceOf(lateUser);
+        vm.prank(lateUser);
+        sp.claimCollateral(ETH_ILK);
+        assertEq(weth.balanceOf(lateUser) - wethBefore, 0, "lateUser receives 0 pre-entry gain");
+    }
+
     // ============================================================
     // Section 4: PSM — swap both directions
     // ============================================================

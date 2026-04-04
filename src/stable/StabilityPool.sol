@@ -158,13 +158,16 @@ contract StabilityPool {
         // GOO-361: if the user's prior deposit was from an earlier drain epoch, their
         // gUSD was already burned. Reset it to 0 before adding new funds so they don't
         // double-count.
-        // GOO-367: also reset gainSnapshots to current cumulative for all registered ilks.
-        // Without this, the new (potentially larger) deposit would be used to claim
-        // pre-drain collateral gains, enabling collateral overpayment proportional to
-        // the deposit size increase. Pre-drain gains must be claimed via claimCollateral()
-        // BEFORE re-depositing; after re-deposit they are forfeited.
         if (depositEpoch[msg.sender] < drainEpoch) {
             deposits[msg.sender] = 0;
+        }
+
+        // GOO-367 + GOO-369: if the user has no active stake (stale epoch or fresh entry
+        // in the current epoch), reset gainSnapshots to the current cumulative so this
+        // deposit cannot claim collateral gains from liquidations that occurred before entry.
+        // This covers both the cross-epoch case (handled above) and a same-epoch fresh
+        // depositor whose snapshots default to 0 while cumulativeGainPerGUSD > 0.
+        if (deposits[msg.sender] == 0) {
             uint256 numIlks = registeredIlks.length;
             for (uint256 i = 0; i < numIlks; ) {
                 gainSnapshots[msg.sender][registeredIlks[i]] = cumulativeGainPerGUSD[registeredIlks[i]];
