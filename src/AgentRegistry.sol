@@ -181,6 +181,7 @@ contract AgentRegistry {
     ) external onlyReporter {
         // Auto-register unknown agents with a default profile
         if (!isRegistered[agent]) {
+            require(agents.length < maxAgents, "AgentRegistry: capacity reached");
             isRegistered[agent] = true;
             agents.push(agent);
             totalAgents++;

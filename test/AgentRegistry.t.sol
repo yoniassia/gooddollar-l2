@@ -274,6 +274,27 @@ contract AgentRegistryTest is Test {
         registry.addReporter(address(0xDEAD));
     }
 
+    // ============ maxAgents Cap ============
+
+    function test_registerAgent_revertsAtCap() public {
+        registry.setMaxAgents(2);
+        registry.registerAgent(agentAlpha, "A", "", "");
+        registry.registerAgent(agentBeta, "B", "", "");
+        vm.expectRevert("AgentRegistry: capacity reached");
+        registry.registerAgent(agentGamma, "C", "", "");
+    }
+
+    function test_recordActivity_autoRegisterRespectsMaxAgents() public {
+        registry.setMaxAgents(1);
+        // Fill the cap via direct registration
+        registry.registerAgent(agentAlpha, "A", "", "");
+
+        // recordActivity with a new unknown agent should revert — cap is full
+        vm.prank(reporter);
+        vm.expectRevert("AgentRegistry: capacity reached");
+        registry.recordActivity(agentBeta, "swap", 1 ether, 0.003 ether);
+    }
+
     // ============ Multiple Activity Accumulation ============
 
     function test_multipleTradesAccumulate() public {
