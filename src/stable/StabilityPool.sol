@@ -56,6 +56,17 @@ contract StabilityPool {
     ///         partial offsets without iterating all depositors. GOO-352 fix.
     uint256 public scaleIndex = PRECISION;
 
+    /// @notice Incremented each time the pool is fully drained (remaining == 0 after offset).
+    ///         Deposits from a previous epoch are treated as zero on next _settleGains call.
+    ///         This prevents pre-drain depositors from reclaiming burned gUSD from new depositors.
+    ///         GOO-361 fix.
+    uint256 public drainEpoch;
+
+    /// @notice depositor -> drainEpoch at the time of their last deposit/settle.
+    ///         If depositEpoch[user] < drainEpoch, the user's gUSD was burned and their
+    ///         nominal balance is zeroed on next _settleGains call.
+    mapping(address => uint256) public depositEpoch;
+
     /// @notice ilk -> cumulative collateral gain per unit of gUSD deposited (scaled by PRECISION)
     mapping(bytes32 => uint256) public cumulativeGainPerGUSD;
 
@@ -137,14 +148,23 @@ contract StabilityPool {
         // _settleGains updates deposits[user] to reflect any offsets since last action.
         _settleGains(msg.sender);
 
+        // GOO-361: if the user's prior deposit was from an earlier drain epoch, their
+        // gUSD was already burned. Reset it to 0 before adding new funds so they don't
+        // double-count. Any unclaimed collateral gains from that epoch must be claimed
+        // via claimCollateral() BEFORE re-depositing, or they are forfeited.
+        if (depositEpoch[msg.sender] < drainEpoch) {
+            deposits[msg.sender] = 0;
+        }
+
         require(
             gusd.transferFrom(msg.sender, address(this), amount),
             "SP: transfer failed"
         );
 
-        deposits[msg.sender]       += amount;
-        depositScaleSnapshot[msg.sender] = scaleIndex;
-        totalDeposits              += amount;
+        deposits[msg.sender]             += amount;
+        depositScaleSnapshot[msg.sender]  = scaleIndex;
+        depositEpoch[msg.sender]          = drainEpoch;
+        totalDeposits                    += amount;
 
         emit Deposited(msg.sender, amount);
     }
@@ -158,6 +178,9 @@ contract StabilityPool {
         // Materialise the effective (scaled) deposit balance first.
         _settleGains(msg.sender);
 
+        // GOO-361: gUSD from a previous drain epoch was burned in a liquidation;
+        // it cannot be withdrawn against new depositors' funds.
+        require(depositEpoch[msg.sender] >= drainEpoch, "SP: deposit burned in liquidation");
         require(deposits[msg.sender] >= amount, "SP: insufficient deposit");
 
         deposits[msg.sender]  -= amount;
@@ -220,7 +243,10 @@ contract StabilityPool {
         if (totalDeposits > 0 && remaining > 0) {
             scaleIndex = (scaleIndex * remaining) / totalDeposits;
         } else if (remaining == 0) {
-            // Pool fully drained — reset scale index for future deposits
+            // Pool fully drained — increment epoch so pre-drain depositors' balances
+            // are zeroed on their next interaction (GOO-361 fix).
+            // Reset scaleIndex for fresh start within the new epoch.
+            drainEpoch += 1;
             scaleIndex = PRECISION;
         }
 
@@ -246,6 +272,11 @@ contract StabilityPool {
     function _settleGains(address user) internal {
         uint256 userDeposit = deposits[user];
         if (userDeposit == 0) return;
+
+        // Note: epoch check is NOT done here — pre-drain depositors still have
+        // earned collateral gains that should be claimable. The epoch check lives in
+        // withdraw() (blocks gUSD withdrawal) and deposit() (zeros stale balance before
+        // adding new funds). GOO-361.
 
         uint256 snapshot = depositScaleSnapshot[user];
         // snapshot == 0 means user deposited before scaleIndex tracking was added;
@@ -299,6 +330,8 @@ contract StabilityPool {
     function pendingGain(address user, bytes32 ilk) external view returns (uint256) {
         uint256 userDeposit = deposits[user];
         if (userDeposit == 0) return 0;
+        // GOO-361: even for stale-epoch depositors, unclaimed collateral gains are still
+        // owed (their gUSD was burned but they earned collateral from the liquidation).
         // Apply scale lazily for view (mirrors _settleGains without state mutation)
         uint256 snapshot = depositScaleSnapshot[user] == 0 ? PRECISION : depositScaleSnapshot[user];
         if (scaleIndex != snapshot) {

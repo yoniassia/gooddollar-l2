@@ -502,6 +502,73 @@ contract GoodStableTest is Test {
         assertEq(sp.totalDeposits(), 0, "SP drained cleanly");
     }
 
+    function test_SP_FullDrainEpochPreventsSteal() public {
+        // GOO-361: after a full pool drain, pre-drain depositors must NOT be able
+        // to withdraw against new depositors' funds.
+        address eve = address(0xA6);
+
+        vm.startPrank(admin);
+        gusd.setMinter(admin, true);
+        gusd.mint(carol, 200e18);
+        gusd.mint(eve,   500e18);
+        vm.stopPrank();
+
+        // Carol deposits 200 gUSD
+        vm.startPrank(carol);
+        gusd.approve(address(sp), 200e18);
+        sp.deposit(200e18);
+        vm.stopPrank();
+
+        // Create an undercollateralised vault for alice so the pool can offset it
+        vm.startPrank(alice);
+        weth.approve(address(vault), 0.2 ether);
+        vault.depositCollateral(ETH_ILK, 0.2 ether);
+        vault.mintGUSD(ETH_ILK, 200e18);
+        vm.stopPrank();
+
+        // Price crash — alice's vault is immediately under-collateralised
+        vm.prank(admin);
+        oracle.setPrice(ETH_ILK, 100e18); // $100/ETH, well below CR
+
+        // Liquidation triggers offset: burns all 200 gUSD from pool (full drain)
+        vm.prank(bob);
+        vault.liquidate(ETH_ILK, alice);
+
+        // Pool should be fully drained
+        assertEq(sp.totalDeposits(), 0, "pool fully drained");
+        // drainEpoch must have incremented
+        assertEq(sp.drainEpoch(), 1, "drainEpoch incremented");
+
+        // Eve deposits fresh gUSD AFTER the drain
+        vm.startPrank(eve);
+        gusd.approve(address(sp), 500e18);
+        sp.deposit(500e18);
+        vm.stopPrank();
+
+        assertEq(sp.totalDeposits(), 500e18, "Eve's deposit recorded");
+
+        // Carol (pre-drain depositor whose gUSD was burned) tries to withdraw
+        // She should get ZERO — her 200 gUSD was already burned in the liquidation.
+        vm.prank(carol);
+        vm.expectRevert("SP: deposit burned in liquidation");
+        sp.withdraw(1);
+
+        // claimCollateral still works — Carol earned collateral when her gUSD absorbed
+        // the liquidation. The epoch guard only blocks gUSD withdrawal, not collateral claims.
+        vm.prank(carol);
+        sp.claimCollateral(ETH_ILK); // succeeds (earns whatever collateral was distributed)
+
+        // Verify Carol still CANNOT withdraw gUSD even after claimCollateral
+        vm.prank(carol);
+        vm.expectRevert("SP: deposit burned in liquidation");
+        sp.withdraw(1);
+
+        // Eve should still be able to withdraw her full 500 gUSD
+        vm.prank(eve);
+        sp.withdraw(500e18);
+        assertEq(sp.totalDeposits(), 0, "Eve withdrew cleanly");
+    }
+
     // ============================================================
     // Section 4: PSM — swap both directions
     // ============================================================
