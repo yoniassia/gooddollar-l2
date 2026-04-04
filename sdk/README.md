@@ -62,6 +62,30 @@ const sdk = new GoodDollarSDK()
 const markets = await sdk.predict.getMarketCount()
 ```
 
+## Tests
+
+```bash
+# Unit tests (no chain required)
+cd sdk && npx jest --testPathPattern=sdk.test --no-cache
+
+# Integration tests (requires running devnet)
+cd sdk && npx jest --testPathPattern=integration --no-cache
+```
+
+- **Unit tests:** 25 tests — ABIs, addresses, SDK construction, exports
+- **Integration tests:** 28 tests — live reads/writes against all 6 protocol modules
+
+## Examples
+
+See `examples/` for complete agent implementations:
+
+- **`trading-bot.ts`** — Portfolio overview, market scanning, position management
+- **`arbitrage-agent.ts`** — Prediction market mispricing detection, lending rate arbitrage
+
+```bash
+AGENT_KEY=0x... npx ts-node examples/trading-bot.ts
+```
+
 ## Chain Info
 
 - **Chain ID:** 42069

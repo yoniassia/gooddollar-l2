@@ -142,9 +142,9 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Protocol modules: perps, predict, lend, stocks, swap, ubi
 - [x] Contract addresses + ABIs exported
 - [x] Unit tests (25 passing)
-- [ ] Integration tests against live devnet
+- [x] Integration tests against live devnet — 28 tests across all 6 modules (chain, tokens, perps, predict, lend, stocks, swap, UBI, writes)
 - [ ] Publish to npm
-- [ ] Agent examples (trading bot, arbitrage, liquidator)
+- [x] Agent examples (trading bot, arbitrage) — examples/trading-bot.ts + examples/arbitrage-agent.ts
 - [ ] Multi-agent orchestration helpers
 
 ## Principles
