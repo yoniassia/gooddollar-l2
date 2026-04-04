@@ -75,6 +75,12 @@ contract MockStrategy {
 
     function withdraw(uint256 amount) external returns (uint256) {
         if (amount > deposited + simulatedGrowth) amount = deposited + simulatedGrowth;
+        // Mint simulated growth before transferring (mirrors harvest() behaviour)
+        if (simulatedGrowth > 0) {
+            MockERC20(asset).mint(address(this), simulatedGrowth);
+            deposited += simulatedGrowth;
+            simulatedGrowth = 0;
+        }
         deposited = deposited > amount ? deposited - amount : 0;
         MockERC20(asset).transfer(msg.sender, amount);
         return amount;
