@@ -135,6 +135,18 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Governance analytics (voting activity, proposal history charts) — /governance/analytics page with 7 viz components + 16 tests (GOO-221)
 - [x] Timelock contract (separate from DAO for multi-sig execution) — GoodTimelock.sol: role-based proposers/executors, batch ops, predecessor chains, 1-day delay, 14-day grace, verified on Blockscout (GOO-220)
 
+### 10. Agent SDK (PRIORITY: HIGH — NEW)
+**Status:** v0.1.0 published, 25 tests passing
+**Next:**
+- [x] Core SDK package (@gooddollar/agent-sdk) with viem client
+- [x] Protocol modules: perps, predict, lend, stocks, swap, ubi
+- [x] Contract addresses + ABIs exported
+- [x] Unit tests (25 passing)
+- [ ] Integration tests against live devnet
+- [ ] Publish to npm
+- [ ] Agent examples (trading bot, arbitrage, liquidator)
+- [ ] Multi-agent orchestration helpers
+
 ## Principles
 1. **Fork the best, adapt for UBI** — Don't reinvent. Clone proven codebases, add UBI fee routing.
 2. **External liquidity first** — Connect to existing protocols before building our own liquidity.
