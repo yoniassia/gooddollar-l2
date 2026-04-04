@@ -133,9 +133,9 @@
 - GOO-235: GoodSwap.sol (V2 fork) not deployed — cancelled (intentional)
 - GOO-238: GoodDollarToken deployed bytecode outdated — missing mint/setMinter/minters/isVerifiedHuman (FIXED — new GDT 0x6533158b deployed)
 - GOO-243: Official UBIFeeSplitter (0xe7f172) outdated — missing claimableBalance/releaseToUBI/etc (FIXED — new splitter 0xc0bf43, UBIClaimV2 rewired)
-- GOO-245: UBIRevenueTracker.feeSplitter = old UBIFeeHook 0xcf7ed3 (IN PROGRESS — assigned to PE, fix = setFeeSplitter(0xc0bf43))
-- GOO-264: LiFiBridgeAggregator(new) missing USDC whitelist after redeployment (filed — assigned to PE)
-- GOO-265: VaultFactory.ubiFee = old UBIFeeSplitter (filed — assigned to PE)
+- GOO-245: UBIRevenueTracker.feeSplitter = old UBIFeeHook (FIXED — redeployed at 0x021DBfF4, commit 35c9d59)
+- GOO-264: LiFiBridgeAggregator(new) missing USDC whitelist (FIXED — setWhitelistedToken called, USDC+WETH whitelisted)
+- GOO-265: VaultFactory.ubiFee = old UBIFeeSplitter (FIXED — redeployed at 0x77AD263C, commit 7af8f35)
 
 ## Notes
 - MockUSDC: 6 decimals; MockWETH: 18 decimals

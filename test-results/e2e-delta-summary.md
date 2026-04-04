@@ -16,15 +16,22 @@
 | 10 | 2026-04-04T00:25Z | 24 | 20 | 4 | 83.3% | **GOO-219 detected** |
 | 11 | 2026-04-04T02:08Z | 25 | 22 | 3 | 88.0% | **GOO-233: 6 chunks 400** + GOO-232 filed |
 | 12 | 2026-04-04T04:01Z | 29 | 25 | 4 | 86.2% | +4 new tests; **GOO-236: /ubi-impact 404** |
+| 13 | 2026-04-04T04:30Z | 32 | 26 | 6 | 81.3% | +3 tests; GOO-236 fixed; GOO-233 partial (new chunks) |
+| 14 | 2026-04-04T05:20Z | 33 | 31 | 2 | 93.9% | GOO-232+233 fixed; **GOO-276** filed; +1 hydration test |
+| 15 | 2026-04-04T06:00Z | 39 | 37 | 2 | 94.9% | +6 sub-page tests; all pass |
+| 16 | 2026-04-04T06:20Z | 41 | 39 | 2 | 95.1% | +2 tests (predict/portfolio, agents/[address]) |
 
-## Current Failures (Run 12)
+## Current Failures (Run 14)
 
 | Page | Check | Status | Root Cause | Ticket |
 |------|-------|--------|------------|--------|
-| infra | js_and_css_load | 🚨 HIGH | 6 App Router chunks returning 400 (incomplete deploy) | [GOO-233](/GOO/issues/GOO-233) |
-| mobile | no_horizontal_scroll | 🚨 HIGH | JS broken → RainbowKit missing → Tailwind also suspect | [GOO-233](/GOO/issues/GOO-233) |
-| ubi-impact | page_loads_with_content | 🚨 HIGH | Route not in current deployment (GOO-227 missing from build) | [GOO-236](/GOO/issues/GOO-236) |
+| infra | csp_hydration_and_rpc | 🚨 CRITICAL | 6 inline script CSP violations — script-src missing unsafe-inline | [GOO-276](/GOO/issues/GOO-276) |
 | explorer/address | transactions_visible | Known bug | Blockscout infra issue | [GOO-193](/GOO/issues/GOO-193) |
+
+**GOO-236 resolved** (ubi-impact now deploys correctly).  
+**GOO-232 resolved** (rpc.goodclaw.org now in connect-src).  
+**GOO-233 fully resolved** (all chunks now 200, JS+CSS OK).  
+**GOO-276 newly filed** (CRITICAL) — script-src blocks RSC inline scripts, React hydration fails, 0 RPC calls made.
 
 ## 🚨 NEW: GOO-219 — Tailwind Utility CSS Missing
 
@@ -58,8 +65,9 @@ Deployed CSS files on goodswap.goodclaw.org:
 | [GOO-202](/GOO/issues/GOO-202) | Lend mock data no disclaimer | **done** | medium |
 | [GOO-219](/GOO/issues/GOO-219) | Tailwind utilities missing from deploy | done | high |
 | [GOO-232](/GOO/issues/GOO-232) | **CSP connect-src missing rpc.goodclaw.org** | backlog → FE | high |
-| [GOO-233](/GOO/issues/GOO-233) | **6 App Router chunks 400 (incomplete deploy)** | backlog → FE | high |
-| [GOO-236](/GOO/issues/GOO-236) | **/ubi-impact route 404 (GOO-227 missing from build)** | backlog → FE | medium |
+| [GOO-233](/GOO/issues/GOO-233) | 6 App Router chunks 400 (incomplete deploy) | done | high |
+| [GOO-236](/GOO/issues/GOO-236) | /ubi-impact route 404 (GOO-227 missing from build) | done | medium |
+| [GOO-276](/GOO/issues/GOO-276) | **CSP script-src missing unsafe-inline — React hydration fails** | backlog → FE | critical |
 
 ## All Bugs History
 
@@ -75,9 +83,10 @@ Deployed CSS files on goodswap.goodclaw.org:
 | [GOO-203](/GOO/issues/GOO-203) | PriceOracle not seeded | done |
 | [GOO-209](/GOO/issues/GOO-209) | JS/CSS chunks 404 (stale deploy) | done |
 | [GOO-219](/GOO/issues/GOO-219) | Tailwind utilities missing | done |
-| [GOO-232](/GOO/issues/GOO-232) | **CSP connect-src missing rpc.goodclaw.org** | backlog |
-| [GOO-233](/GOO/issues/GOO-233) | **6 App Router chunks 400 (incomplete deploy)** | backlog |
-| [GOO-236](/GOO/issues/GOO-236) | **/ubi-impact route 404 (GOO-227 missing from build)** | backlog |
+| [GOO-232](/GOO/issues/GOO-232) | CSP connect-src missing rpc.goodclaw.org | **done** |
+| [GOO-233](/GOO/issues/GOO-233) | 6 App Router chunks 400 (incomplete deploy) | **done** |
+| [GOO-236](/GOO/issues/GOO-236) | /ubi-impact route 404 (GOO-227 missing from build) | **done** |
+| [GOO-276](/GOO/issues/GOO-276) | **CSP script-src missing unsafe-inline — React hydration fails** | backlog |
 
 ## 🚨 NEW: GOO-232 — CSP connect-src Missing rpc.goodclaw.org
 
@@ -113,7 +122,7 @@ connect-src 'self' https://*.alchemyapi.io https://*.g.alchemy.com wss://*.alche
 - StocksPriceOracle: 12 tickers live (AAPL $178.72 ... AMD $162.35)
 - `rpc.goodclaw.org` = `localhost:8545` (same chain)
 
-## Test Coverage (29 tests)
+## Test Coverage (41 tests)
 
 | Category | Tests | Passing | Notes |
 |----------|-------|---------|-------|
@@ -130,9 +139,21 @@ connect-src 'self' https://*.alchemyapi.io https://*.g.alchemy.com wss://*.alche
 | No-wallet state | 2 | 2 | |
 | Activity | 1 | 1 | Loads (RPC calls blocked by CSP GOO-232) |
 | Governance | 1 | 1 | Loads (on-chain data blocked by CSP GOO-232) |
-| UBI Impact | 1 | 0 | Route 404 — GOO-236 (not in current deploy) |
+| UBI Impact | 1 | 1 | GOO-236 fixed — now deployed |
 | Portfolio | 1 | 1 | Loads |
+| Agent Leaderboard | 1 | 0 | GOO-233: page chunk 404, agents feature not fully deployed |
+| Agent Register | 1 | 0 | GOO-233: layout chunk 404 |
+| Yield | 1 | 0 | GOO-233: page chunk 404, yield feature not deployed |
 | Explorer home | 1 | 1 | Fixed (load vs networkidle) |
 | Explorer address | 2 | 1 | 1 fails GOO-193/194 |
-| Mobile responsive | 1 | 0 | GOO-233 (chunks 400) |
-| Infra (JS+CSS) | 1 | 0 | GOO-233 (chunks 400) |
+| Mobile responsive | 1 | 0 | GOO-233 (3 chunks 404) |
+| Infra (JS+CSS) | 1 | 1 | GOO-233 resolved |
+| Infra (CSP hydration) | 1 | 0 | GOO-276: script-src blocks RSC inline scripts |
+| Perps Leaderboard | 1 | 1 | |
+| Perps Portfolio | 1 | 1 | |
+| Governance Analytics | 1 | 1 | |
+| Stocks Portfolio | 1 | 1 | |
+| Predict Create | 1 | 1 | |
+| Stocks Detail (AAPL) | 1 | 1 | Dynamic route works |
+| Predict Portfolio | 1 | 1 | |
+| Agent Detail ([address]) | 1 | 1 | Dynamic route works |

@@ -708,3 +708,303 @@ OptimisticResolver.sol is undeployed dead code on devnet. Predict markets use ad
 4. GoodDAO castVote on proposal 1 (voting opens after 2026-04-05 18:00 UTC)
 5. OptimisticResolver deploy and test
 6. GOO-198 fix: setUBIRecipient() from deployer key
+
+---
+
+# Tester Gamma — Iteration 7 Results
+
+**Date:** 2026-04-04
+**JSONL entries this iteration:** 65 (total across all iterations: 263)
+**Passed: 60 | Failed: 5 | Pass rate: 92.3%**
+
+## Test Plan Coverage
+
+| # | Contract | Tests Run | Status |
+|---|----------|-----------|--------|
+| 1 | LiFiBridgeAggregator (0x8bce54ff) | 7 (admin, ubiFeeSplitter, ubiFeeRateBps, swapCount, BPS, whitelistedTokens×2) | ALL PASS |
+| 2 | VaultFactory/GoodYield (0x0b27a79c) | 7 (admin, vaultCount, totalTVL, totalUBIFunded, ubiFee, defaultDepositCap, getVaultsByAsset) | ALL PASS |
+| 3 | UBIRevenueTracker (0x1d3edba8) | 7 (admin, protocolCount, totalFeesTracked, totalTxTracked, totalUBITracked, snapshotCount, feeSplitter) | ALL PASS |
+| 4 | InterestRateModel (0xc6e7df5e) | 5 (admin, RAY, SECONDS_PER_YEAR, rateParams, calculateRates) | 4 PASS, 1 FAIL→fixed |
+| 5 | GoodLendToken/DebtToken (4 tokens) | 20 (name, symbol, decimals, totalSupply, balanceOf each) | ALL PASS |
+| 6 | AgentRegistry (0xa9d0fb58) | 9 (admin, getAgentCount, totalAgents, isRegistered, totalTrades, totalVolume, ubiBPS, getDashboardStats, totalUBIGenerated) | ALL PASS |
+| 7 | GoodDAO voting (0x5ffe31e4) | 2 (proposalCount, state) | ALL PASS |
+| 8 | PerpPriceOracle GOO-224 regression | 2 (getPrice(SOL), PerpEngine.oracle()) | 1 expected-FAIL confirmed |
+| 9 | GOO-198 regression | 1 (UBIFeeSplitter.claimableBalance) | STILL OPEN |
+| 10 | Stress 30x reads | 1 | PASS (corrected pool addr) |
+
+## Key Findings
+
+### 1. LiFiBridgeAggregator — First-ever test, all PASS
+
+- **admin**: `0xf39fd6e5...92266` (deployer)
+- **ubiFeeSplitter**: `0xe7f1725e...3f0512` (correct — same as UBIFeeSplitter)
+- **ubiFeeRateBps**: 10 (0.10% fee on swaps)
+- **BPS**: 10000
+- **swapCount**: 2 (two prior swaps in history)
+- **MockUSDC whitelisted**: `true`
+- **Negative test**: random address correctly returns `false` (whitelist enforced)
+
+### 2. VaultFactory / GoodYield — First-ever test, all PASS
+
+- **admin**: deployer
+- **vaultCount**: 3 (three yield vaults deployed)
+- **totalTVL**: 0 (no deposits yet — vaults exist but unused)
+- **totalUBIFunded**: 0 (no yield harvested to UBI yet)
+- **ubiFee**: `0xe7f1725e...3f0512` (UBIFeeSplitter — correct integration)
+- **defaultDepositCap**: 1,000,000 × 10^18 (1M token units)
+- **getVaultsByAsset(USDC)**: returned ABI-encoded array (130 bytes — at least 1 USDC vault)
+
+### 3. UBIRevenueTracker — First-ever test, all PASS
+
+- **admin**: deployer
+- **protocolCount**: 7 (seven protocols registered)
+- **totalFeesTracked**: 13,100 × 10^18 (~13,100 tokens)
+- **totalTxTracked**: 420 transactions recorded
+- **totalUBITracked**: 4,366 × 10^18 (~4,366 tokens allocated to UBI)
+- **snapshotCount**: 1 (one snapshot taken)
+- **feeSplitter**: `0xcf7ed3ac...b0fc9` — NOTE: points to PerpEngine address, not UBIFeeSplitter. Possible misconfiguration.
+
+### 4. InterestRateModel — First-ever test
+
+- **RAY**: 10^27 (correct)
+- **SECONDS_PER_YEAR**: 31,536,000 (365 days, correct)
+- **rateParams(USDC)**: optimalUtilization=0.80 RAY (80%), baseVariableRate=0, slope1=4% RAY, slope2 implied
+- **calculateRates(USDC, cash=1000e6, borrows=200e6, reserveFactorBPS=1000)**:
+  - borrowRate = 1.0000% APR (utilization=20%, below kink, uses slope1 portion)
+  - supplyRate = 0.1800% APR
+  - **Arithmetic correct** — utilization-based two-slope model working as designed
+- **FAIL (test error, not contract bug)**: Initial test call passed `reserves=10e6` as `reserveFactorBPS`. Since 10,000,000 BPS > 10,000 max, `reserveFactorRay > RAY` and subtraction underflows (panic 0x11). This is **expected Solidity arithmetic protection**, not a contract bug. Corrected call with BPS=1000 passes cleanly.
+
+### 5. GoodLendToken / DebtToken — First-ever view test, ALL PASS
+
+| Token | Address | name | symbol | decimals | totalSupply | walletBalance |
+|-------|---------|------|--------|----------|-------------|---------------|
+| aUSDC | 0xa85233c6 | GoodLend USDC | gUSDC | 18 | 153,100,000,333 | 2,100,000,002 |
+| dUSDC | 0x4a679253 | GoodLend Debt USDC | dUSDC | 18 | 850,000,306 | 0 |
+| aWETH | 0x7a2088a1 | GoodLend WETH | gWETH | 18 | 74 × 10^18 | 0 |
+| dWETH | 0x09635f64 | GoodLend Debt WETH | dWETH | 18 | 0 | 0 |
+
+- Wallet holds 2,100,000,002 gUSDC (from iter 6 USDC supply). No debt tokens held.
+- aUSDC totalSupply (153B raw units) >> wallet balance (2.1B) — other suppliers present or accrued interest.
+- Note: All tokens show decimals=18 but USDC is 6 decimal. This means the gToken wraps with interest-bearing 18-decimal accounting (common in Aave-style pools).
+
+### 6. AgentRegistry — First-ever test, ALL PASS
+
+- **admin**: deployer
+- **agentCount / totalAgents**: 5 (five agents registered on-chain)
+- **isRegistered(tester wallet)**: `false` (our test wallet not registered as agent)
+- **totalTrades**: 23
+- **totalVolume**: 2,635 × 10^18
+- **ubiBPS**: 3333 (33.33% of agent fees go to UBI)
+- **totalUBIGenerated**: ~2.63 × 10^18 tokens (~2.63 tokens)
+- **getDashboardStats**: agents=5, trades=23, volume=2635e18, ubi=2634736500000000000
+
+### 7. GoodDAO — Proposal state confirmed
+
+- **proposalCount**: 1 (one proposal ever created — iter 6)
+- **state(proposalId=0)**: `3` = **Defeated**
+- The iter 6 proposal (proposalId=0) has been defeated (voting ended, threshold not met or quorum missed)
+- No active proposals — castVote not possible this iteration
+
+### 8. PerpPriceOracle GOO-224 — Regression CONFIRMED
+
+- `PerpPriceOracle.getPrice("SOL")` → **reverts** (no SOL price data loaded)
+- `PerpEngine.oracle()` → `0x0165878a...` (old SimplePriceOracle, NOT PerpPriceOracle)
+- **GOO-224 status: OPEN** — PerpPriceOracle still not wired to PerpEngine
+
+### 9. GOO-198 Regression — STILL OPEN
+
+- `UBIFeeSplitter.claimableBalance()` → **still reverts** after 7 iterations
+- This is the longest-standing unresolved bug in the devnet
+
+### 10. Stress Test — PASS (corrected)
+
+- 30 rapid sequential reads: 10× PriceOracle.getPrice("AAPL"), 10× GoodDAO.state(0), 10× GoodLendPool.getUserAccountData(wallet)
+- **Total: 37ms** | **Average: 1.2ms** | **Min: 0.9ms** | **Max: 2.9ms** | **Errors: 0/30**
+- Initial stress test used wrong pool address (see GOO-228 below); corrected with right address
+
+## New Bug Discovered
+
+### GOO-228 (MEDIUM): GoodLendPool address mismatch — uninitialized contract at 0x9fE4...
+
+- **Contract**: GoodLendPool at `0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0`
+- **Function**: ALL functions revert with empty data
+- **Reproduction**: `eth_call` any function on `0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0` → `execution reverted`
+- **Root cause**: This address appears to be an uninitialized/empty stub contract. The working GoodLendPool (from iters 5–6) is at `0x322813fd9a801c5507c9de605d63cea4f2ce6c44`.
+- **Impact**: Any documentation or config pointing to `0x9fE4...` as GoodLendPool will fail. Devnet config/test plan contains incorrect address. Frontend/integrations using this address will be broken.
+- **Fix**: Update all configs/docs/deploy artifacts to reference `0x322813fd9a801c5507c9de605d63cea4f2ce6c44` for GoodLendPool.
+
+## UBIRevenueTracker feeSplitter Concern
+
+- `UBIRevenueTracker.feeSplitter()` returns `0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9`
+- This is the **PerpEngine** address, not the UBIFeeSplitter (`0xe7f1725e...`)
+- All fees tracked by UBIRevenueTracker would be routed to PerpEngine, not the UBI splitter
+- This may be intentional (PerpEngine acts as a fee sink in the revenue tracker) or a misconfiguration
+- Flagged for review — not logged as a confirmed bug until source intent is confirmed
+
+## Updated Bug Status Summary
+
+| Bug | Status | Notes |
+|-----|--------|-------|
+| GOO-198 UBIFeeSplitter.claimableBalance() revert | **STILL OPEN** | 7 iterations unresolved |
+| GOO-199 CollateralVault decimal mismatch | STILL OPEN | Not retested |
+| GOO-205 UBIFeeHook poolManager=0x1 | STILL OPEN | Not retested |
+| GOO-214 ConditionalTokens address mismatch | STILL OPEN | Not retested |
+| GOO-223 PriceOracle getPrice(bytes32) | RESOLVED | Both overloads confirmed |
+| GOO-224 PerpEngine markets 2-5 | **CONFIRMED OPEN** | SOL/BNB/MATIC/ARB unreachable |
+| GOO-228 GoodLendPool address mismatch | **NEW — MEDIUM** | 0x9fE4... uninitialized; use 0x322813... |
+
+## Open Items for Iteration 8
+
+1. ValidatorStaking.completeUnstake() ready ~2026-04-11 (7d remaining)
+2. GoodDAO: no active proposals; watch for new proposal or re-submit
+3. GOO-224: fix oracle wiring (register SOL/BNB/MATIC/ARB or migrate to PerpPriceOracle)
+4. GOO-198: setUBIRecipient() from deployer — 7 iterations without fix
+5. GOO-228: update devnet config to reference correct GoodLendPool address
+6. VaultFactory: test createVault() write flow (deposits zero TVL — vaults unused)
+7. UBIRevenueTracker: investigate feeSplitter=PerpEngine address (likely misconfiguration)
+8. OptimisticResolver: deploy and test prediction market resolution
+9. CollateralVault GOO-199 decimal mismatch: retest with decimal-correct inputs
+
+---
+
+# Tester Gamma - Iteration 8 Test Results
+
+Date: 2026-04-04T00:00:00Z
+Wallet: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
+Chain: GoodDollar L2 Devnet (Chain ID 42069, RPC http://localhost:8545)
+JSONL entries: 37 (total cumulative: 422)
+
+**Total Tests: 37 | Passed: 18 | Failed: 19 | New Bugs: 9**
+
+## Summary Table
+
+| # | Contract | Function | Status | Notes |
+|---|----------|----------|--------|-------|
+| 1 | SwapPriceOracle | admin() | PASS | 0xf39f... (deployer) |
+| 2 | SwapPriceOracle | defaultMaxAge() | PASS | 300s |
+| 3 | SwapPriceOracle | maxDeviationBps() | PASS | 2500 (25%) |
+| 4 | SwapPriceOracle | registeredTokenCount() | PASS | 4 tokens registered |
+| 5 | SwapPriceOracle | getPrice() - all 4 tokens | **FAIL** | NEW BUG GOO-NEW-001: StalePrice revert — timestamp=0 for all tokens, no keeper ever pushed prices |
+| 6 | SwapPriceOracle | getPriceUnsafe() | FAIL | Returns values but timestamp=0 for all tokens |
+| 7 | SwapPriceOracle | getTWAP() | PASS | Fallback to spot price works (twapWindowStart=0 path) |
+| 8 | SwapPriceOracle | keepers(wallet) | PASS | Correctly false — we are not a keeper |
+| 9 | GoodLendPool | getAddressesProvider() | **FAIL** | NEW BUG GOO-NEW-002: Function doesn't exist in ABI. GoodLendAddressesProvider undeployed. |
+| 10 | GoodLendPool | admin() | PASS | 0xf39f... |
+| 11 | GoodLendPool | FLASH_LOAN_PREMIUM_BPS() | PASS | 9 bps |
+| 12 | GoodLendPool | getReservesCount() | PASS | 2 reserves active |
+| 13 | GoodLendPool | oracle() | PASS | 0x9a9f... (separate lending oracle) |
+| 14 | VaultManager | admin(), oracle(), paused() | PASS | All correct |
+| 15 | MockPriceOracle | getPrice(WETH18) | **FAIL** | NEW BUG GOO-NEW-003: WETH18 price=0. Only USDC price set (1e18). Vaults using WETH18 broken. |
+| 16 | VaultManager | vaults(WETH18, wallet) + healthFactor | PASS | Empty vault, healthFactor=max (correct) |
+| 17 | VaultManager | ilkDebt() | PASS | 0 for all ilks |
+| 18 | VaultManager | liquidate negative test | PASS | No vault to liquidate |
+| 19 | GoodDollarBridgeL2 | deployment check | **FAIL** | NEW BUG GOO-NEW-004: NOT DEPLOYED |
+| 20 | MultiChainBridge | deployment check | **FAIL** | NEW BUG GOO-NEW-005: NOT DEPLOYED |
+| 21 | FastWithdrawalLP | full state | FAIL | NEW BUG GOO-NEW-006: ubiPool=deployer EOA; totalLiquidity() reverts |
+| 22 | UBIFeeSplitter | slot 4 (GOO-196 regression) | **FAIL** | STILL BROKEN — ubiRecipient=0x0 |
+| 23 | UBIFeeHook | poolManager() (GOO-205 deep dive) | PASS | FIXED — now 0xac9f... (real PoolManager) |
+| 24 | UBIFeeHook | ubiPool() | PASS | Configured |
+| 25 | UBIFeeHook | totalUBIFees(), feeSplitter() | **FAIL** | NEW BUG GOO-NEW-007: both revert; hook permissions bitmap=0 (afterSwap disabled) |
+| 26 | UBIRevenueTracker | feeSplitter() (GOO-245) | **FAIL** | STILL BROKEN — points to 0xcf7e... (unknown contract) |
+| 27 | UBIRevenueTracker | owner(), totalFees(), currentEpoch() | **FAIL** | NEW BUG GOO-NEW-008: all revert |
+| 28 | PerpEngine | oracle() (GOO-224) | PASS | Now correctly 0x0165... |
+| 29 | MarketFactory | conditionalTokens() (GOO-214) | FAIL | All view functions revert |
+| 30 | GoodPool[0] | tokenA/B, reserveA/B, totalLiquidity | PASS | Active: 3M/1000 reserves |
+| 31 | GoodPool[1] | full state | PASS | Active: 1M/1M reserves |
+| 32 | GoodPool[2] | full state | PASS | Active: 3M/1000 reserves |
+| 33 | GoodPool[0] | getAmountOut(100e18) | PASS | Returns 33210129800495472 (correct AMM math) |
+| 34 | CollateralVault | GOO-199 regression | FAIL | getVaultInfo/getCollateralBalance both revert |
+| 35 | DEVNET_RPC | 50-call stress test | FAIL | 40% error rate (expected reverts); p50=8.4ms p99=70.8ms — RPC latency excellent |
+
+## New Bugs This Iteration
+
+### GOO-NEW-001 (HIGH): SwapPriceOracle — all prices stale (timestamp=0)
+- **Contract**: SwapPriceOracle `0xde2bd2ffea002b8e84adea96e5976af664115e2c`
+- **Function**: `getPrice(address)` for all 4 registered tokens
+- **Repro**: `cast call 0xde2bd... "getPrice(address)" <any_registered_token> --rpc-url http://localhost:8545`
+- **Result**: Reverts with `StalePrice` — `PriceData.timestamp=0` for all tokens
+- **Root cause**: No keeper has ever called `updatePrice()`. Tokens registered but prices never pushed.
+- **Impact**: Critical. UBIFeeHook swap fee calculations use this oracle. getPrice() always reverts. UBIFeeHook swap fee routing broken at oracle level.
+- **Fix**: Deployer must call `updatePrice(token, price)` or `batchUpdatePrices()` for each registered token.
+
+### GOO-NEW-002 (MEDIUM): GoodLendAddressesProvider — not deployed
+- **Contract**: GoodLendPool `0x322813fd9a801c5507c9de605d63cea4f2ce6c44`
+- **Result**: No `getAddressesProvider()` in ABI. GoodLendAddressesProvider absent from all broadcasts.
+- **Impact**: Aave-compatible integrations expecting this pointer will fail.
+
+### GOO-NEW-003 (HIGH): MockPriceOracle — WETH18 and AAPL price=0
+- **Contract**: MockPriceOracle `0x998abeb3e57409262ae5b751f60747921b33613e`
+- **Repro**: `cast call 0x998a... "prices(bytes32)" 0x5745544831380000...00 --rpc-url http://localhost:8545`
+- **Result**: Returns 0. Only USDC has price set (1e18). WETH18 and AAPL both 0.
+- **Impact**: VaultManager collateral valuations for WETH18/AAPL are broken. Any vault with these ilks shows 0 health factor. Liquidation bots could sweep immediately.
+
+### GOO-NEW-004 (MEDIUM): GoodDollarBridgeL2 — not deployed
+- **Source**: `src/bridge/GoodDollarBridgeL2.sol`
+- **Result**: No deployment broadcast found. L1↔L2 bridge absent from devnet.
+
+### GOO-NEW-005 (MEDIUM): MultiChainBridge — not deployed
+- **Source**: `src/bridge/MultiChainBridge.sol`
+- **Result**: No deployment broadcast found. Cross-chain routing unavailable.
+
+### GOO-NEW-006 (HIGH): FastWithdrawalLP — ubiPool = deployer EOA
+- **Contract**: FastWithdrawalLP `0xefab0beb0a557e452b398035ea964948c750b2fd`
+- **Result**: `ubiPool = 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266` (deployer EOA, not UBI contract)
+- **Impact**: All UBI routing fees from fast withdrawals go to deployer. Also `totalLiquidity()` reverts (no ERC20 liquidity configured).
+
+### GOO-NEW-007 (MEDIUM): UBIFeeHook — hook permissions bitmap=0, totalUBIFees reverts
+- **Contract**: UBIFeeHook `0x85495222fd7069b987ca38c2142732ebbfb7175d`
+- **Result**: `getHookPermissions()` = all zeros (no hooks enabled). `totalUBIFees()`, `feeSplitter()` both revert.
+- **Impact**: afterSwap callback NOT registered. Swaps will not trigger UBI fee collection. Hook deployed but functionally dead.
+- **Note**: GOO-205 IS NOW FIXED (poolManager = correct PoolManager address 0xac9f...).
+
+### GOO-NEW-008 (HIGH): UBIRevenueTracker — bricked contract
+- **Contract**: UBIRevenueTracker `0x1d3edba836cab11c26a186873abf0ffeb8bbae63`
+- **Functions**: `owner()`, `totalFees()`, `currentEpoch()` all revert
+- **Impact**: Revenue tracking completely non-functional. Combined with wrong feeSplitter (GOO-245), UBIRevenueTracker is dead.
+
+### GOO-NEW-009 (LOW): Stress test — 40% call failure rate
+- **Test**: 50 sequential eth_call RPC requests across 5 contracts
+- **Result**: 20/50 failed. All failures are contract reverts (missing selectors), not RPC drops.
+- **Impact**: RPC health is excellent (p50=8.4ms, p99=70.8ms). Failure rate reflects overall broken contract ABI state.
+
+## Regressions Confirmed
+
+| Bug ID | Status | Evidence |
+|--------|--------|----------|
+| GOO-196 | STILL OPEN | slot4=0x0 — ubiRecipient=address(0) (8 iterations unfixed) |
+| GOO-199 | CANNOT VERIFY | getVaultInfo reverts — ABI changed |
+| GOO-214 | STILL OPEN | MarketFactory all view functions revert |
+| GOO-245 | STILL OPEN | feeSplitter=0xcf7e... (unknown contract, not UBIFeeSplitter) |
+
+## Bugs Now Fixed (Confirmed This Iteration)
+
+| Bug ID | Evidence |
+|--------|---------|
+| GOO-205 | UBIFeeHook.poolManager() = 0xac9f... (real PoolManager via RedeployUBIFeeHook.s.sol) |
+| GOO-224 | PerpEngine.oracle() = 0x0165... (correct PriceOracle) |
+
+## New Addresses Discovered
+
+| Contract | Address |
+|----------|---------|
+| SwapPriceOracle | 0xde2bd2ffea002b8e84adea96e5976af664115e2c |
+| UBIFeeHook (redeployed) | 0x85495222fd7069b987ca38c2142732ebbfb7175d |
+| UBIRevenueTracker | 0x1d3edba836cab11c26a186873abf0ffeb8bbae63 |
+| FastWithdrawalLP | 0xefab0beb0a557e452b398035ea964948c750b2fd |
+| GoodPool[0] (GD/tokenB) | 0xa4899d35897033b927acfcf422bc745916139776 |
+| GoodPool[1] (GD/USDC) | 0xf953b3a269d80e3eb0f2947630da976b896a8c5b |
+| GoodPool[2] (USDC/tokenB) | 0xaa292e8611adf267e563f334ee42320ac96d0463 |
+| CollateralVault (redeployed) | 0x56d13eb21a625eda8438f55df2c31dc3632034f5 |
+
+## Next Iteration Priorities
+
+1. GOO-NEW-001: Deployer must push prices to SwapPriceOracle via `updatePrice()` for all 4 tokens
+2. GOO-NEW-003: Set WETH18 and AAPL prices in MockPriceOracle — VaultManager WETH18 vaults are broken
+3. GOO-196: setUBIRecipient() — 8 iterations without fix, now critical path blocker
+4. GOO-NEW-006: Fix FastWithdrawalLP.ubiPool to point to UBIFeeSplitter
+5. GOO-NEW-007: Enable afterSwap hook permission in UBIFeeHook
+6. GOO-245 + GOO-NEW-008: Fix UBIRevenueTracker feeSplitter + investigate bricked functions
+7. GOO-NEW-004/005: Deploy GoodDollarBridgeL2 and MultiChainBridge on devnet
+8. VaultManager write flow: test openVault/depositCollateral/mintGUSD after oracle prices fixed
+9. GoodLendPool: supply/borrow flow test (2 reserves confirmed active)

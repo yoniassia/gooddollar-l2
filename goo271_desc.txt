@@ -1,0 +1,13 @@
+Bug: PSM withdrawReserves solvency check is overly restrictive (regression from GOO-269)
+
+File: src/stable/PegStabilityModule.sol — withdrawReserves() line 143
+
+Problem: The check uses gusd.totalSupply() / SCALE as minUSDC. But gUSD has TWO minters: PSM (USDC-backed) and VaultManager (collateral-backed ETH/wBTC). When VaultManager has minted substantial gUSD, totalSupply >> PSM reserves, permanently blocking withdrawReserves.
+
+Example: VaultManager mints 1M gUSD via collateral. PSM has 100k USDC. minUSDC = 1.1M > 100k = always reverts.
+
+Fix: Add psmMintedGUSD state variable. Increment in swapUSDCForGUSD (by gusdEquivalent minus fee routed out). Decrement in swapGUSDForUSDC (by gusdAmount). Use psmMintedGUSD / SCALE instead of gusd.totalSupply() / SCALE.
+
+Also missing: zero tests for withdrawReserves anywhere in the test suite.
+
+Severity: HIGH — admin cannot deploy PSM reserves to yield strategies. Regression introduced by GOO-269 fix.

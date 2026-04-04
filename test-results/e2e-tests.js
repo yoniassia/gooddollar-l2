@@ -565,6 +565,229 @@ async function run() {
     logResult({ page: 'portfolio', check: 'page_loads_with_content', passed: false, detail: e.message });
   }
 
+  // ═══ TEST 21: Agent Leaderboard (GOO-243) ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/agents`, { waitUntil: 'networkidle', timeout: 30000 });
+
+    totalTests++;
+    const agentData = await page.evaluate(() => {
+      const text = document.body.innerText;
+      return {
+        hasAgentUI: /agent|leaderboard|register|rank|bot/i.test(text),
+        hasBrokenData: /NaN|TypeError|ReferenceError|\[object/.test(text),
+        bodyLen: text.trim().length,
+      };
+    });
+    logResult({ page: 'agents', check: 'leaderboard_loads', passed: agentData.hasAgentUI && !agentData.hasBrokenData, detail: agentData.hasAgentUI ? `UI visible (${agentData.bodyLen} chars)` : 'No content' });
+    if (agentData.hasAgentUI && !agentData.hasBrokenData) passed++; else failed++;
+
+    await page.close();
+  } catch (e) {
+    totalTests++; failed++;
+    logResult({ page: 'agents', check: 'leaderboard_loads', passed: false, detail: e.message });
+  }
+
+  // ═══ TEST 22: Agent Register Page (GOO-246) ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/agents/register`, { waitUntil: 'networkidle', timeout: 30000 });
+
+    totalTests++;
+    const regData = await page.evaluate(() => {
+      const text = document.body.innerText;
+      return {
+        hasRegisterUI: /register|bot address|strategy|name|agent/i.test(text),
+        hasBrokenData: /NaN|TypeError|ReferenceError|\[object/.test(text),
+        bodyLen: text.trim().length,
+      };
+    });
+    logResult({ page: 'agents/register', check: 'register_form_loads', passed: regData.hasRegisterUI && !regData.hasBrokenData, detail: regData.hasRegisterUI ? `Form visible (${regData.bodyLen} chars)` : 'No content' });
+    if (regData.hasRegisterUI && !regData.hasBrokenData) passed++; else failed++;
+
+    await page.close();
+  } catch (e) {
+    totalTests++; failed++;
+    logResult({ page: 'agents/register', check: 'register_form_loads', passed: false, detail: e.message });
+  }
+
+  // ═══ TEST 23: Yield Page ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/yield`, { waitUntil: 'networkidle', timeout: 30000 });
+
+    totalTests++;
+    const yieldData = await page.evaluate(() => {
+      const text = document.body.innerText;
+      return {
+        hasYieldUI: /yield|vault|APY|deposit|earn/i.test(text),
+        hasBrokenData: /NaN|TypeError|ReferenceError|\[object/.test(text),
+        bodyLen: text.trim().length,
+      };
+    });
+    logResult({ page: 'yield', check: 'page_loads_with_content', passed: yieldData.hasYieldUI && !yieldData.hasBrokenData, detail: yieldData.hasYieldUI ? `UI visible (${yieldData.bodyLen} chars)` : 'No content' });
+    if (yieldData.hasYieldUI && !yieldData.hasBrokenData) passed++; else failed++;
+
+    await page.close();
+  } catch (e) {
+    totalTests++; failed++;
+    logResult({ page: 'yield', check: 'page_loads_with_content', passed: false, detail: e.message });
+  }
+
+  // ═══ TEST 24: CSP hydration health — script-src allows inline (GOO-276) ═══
+  // Next.js App Router RSC payload is delivered via inline <script> tags.
+  // If script-src lacks 'unsafe-inline', React cannot hydrate and all hooks fail.
+  try {
+    const page = await context.newPage();
+    const inlineScriptViolations = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error' && msg.text().includes("script-src") && msg.text().includes("inline")) {
+        inlineScriptViolations.push(msg.text().slice(0, 80));
+      }
+    });
+    const rpcCalls = [];
+    page.on('request', req => {
+      if (req.url().includes('rpc.goodclaw.org')) rpcCalls.push(1);
+    });
+
+    await page.goto(`${FRONTEND_URL}/stocks`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.waitForTimeout(4000);
+
+    totalTests++;
+    const noInlineViolations = inlineScriptViolations.length === 0;
+    const madeRpcCalls = rpcCalls.length > 0;
+    const passed_test = noInlineViolations && madeRpcCalls;
+    const detail = !noInlineViolations
+      ? `${inlineScriptViolations.length} inline script CSP violations (GOO-276)`
+      : !madeRpcCalls
+        ? '0 RPC calls — hydration may be broken or RPC unreachable'
+        : `OK: ${rpcCalls.length} RPC calls, 0 violations`;
+    logResult({ page: 'infra', check: 'csp_hydration_and_rpc', passed: passed_test, detail });
+    if (passed_test) passed++; else failed++;
+
+    await page.close();
+  } catch (e) {
+    totalTests++; failed++;
+    logResult({ page: 'infra', check: 'csp_hydration_and_rpc', passed: false, detail: e.message });
+  }
+
+  // ═══ TEST 25: Perps Leaderboard ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/perps/leaderboard`, { waitUntil: 'networkidle', timeout: 30000 });
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      return { hasUI: /leaderboard|rank|trader|pnl|volume/i.test(t), hasBroken: /NaN|TypeError|\[object/.test(t), len: t.trim().length };
+    });
+    logResult({ page: 'perps/leaderboard', check: 'page_loads', passed: d.hasUI && !d.hasBroken, detail: d.hasUI ? `UI visible (${d.len} chars)` : 'No content' });
+    if (d.hasUI && !d.hasBroken) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'perps/leaderboard', check: 'page_loads', passed: false, detail: e.message }); }
+
+  // ═══ TEST 26: Perps Portfolio ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/perps/portfolio`, { waitUntil: 'networkidle', timeout: 30000 });
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      return { hasUI: /portfolio|position|margin|pnl|perp/i.test(t), hasBroken: /NaN|TypeError|\[object/.test(t), len: t.trim().length };
+    });
+    logResult({ page: 'perps/portfolio', check: 'page_loads', passed: d.hasUI && !d.hasBroken, detail: d.hasUI ? `UI visible (${d.len} chars)` : 'No content' });
+    if (d.hasUI && !d.hasBroken) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'perps/portfolio', check: 'page_loads', passed: false, detail: e.message }); }
+
+  // ═══ TEST 27: Governance Analytics ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/governance/analytics`, { waitUntil: 'networkidle', timeout: 30000 });
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      return { hasUI: /analytics|governance|voting|proposal|participation/i.test(t), hasBroken: /NaN|TypeError|\[object/.test(t), len: t.trim().length };
+    });
+    logResult({ page: 'governance/analytics', check: 'page_loads', passed: d.hasUI && !d.hasBroken, detail: d.hasUI ? `UI visible (${d.len} chars)` : 'No content' });
+    if (d.hasUI && !d.hasBroken) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'governance/analytics', check: 'page_loads', passed: false, detail: e.message }); }
+
+  // ═══ TEST 28: Stocks Portfolio ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/stocks/portfolio`, { waitUntil: 'networkidle', timeout: 30000 });
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      return { hasUI: /portfolio|holding|position|stock|synthetic/i.test(t), hasBroken: /NaN|TypeError|\[object/.test(t), len: t.trim().length };
+    });
+    logResult({ page: 'stocks/portfolio', check: 'page_loads', passed: d.hasUI && !d.hasBroken, detail: d.hasUI ? `UI visible (${d.len} chars)` : 'No content' });
+    if (d.hasUI && !d.hasBroken) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'stocks/portfolio', check: 'page_loads', passed: false, detail: e.message }); }
+
+  // ═══ TEST 29: Predict Create Market ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/predict/create`, { waitUntil: 'networkidle', timeout: 30000 });
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      return { hasUI: /create|question|market|outcome|resolution/i.test(t), hasBroken: /NaN|TypeError|\[object/.test(t), len: t.trim().length };
+    });
+    logResult({ page: 'predict/create', check: 'page_loads', passed: d.hasUI && !d.hasBroken, detail: d.hasUI ? `UI visible (${d.len} chars)` : 'No content' });
+    if (d.hasUI && !d.hasBroken) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'predict/create', check: 'page_loads', passed: false, detail: e.message }); }
+
+  // ═══ TEST 30: Stocks Detail page — AAPL ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/stocks/AAPL`, { waitUntil: 'networkidle', timeout: 30000 });
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      return { hasUI: /AAPL|Apple|stock|price|synthetic/i.test(t), hasBroken: /NaN|TypeError|\[object/.test(t), is404: /page not found|404/i.test(t), len: t.trim().length };
+    });
+    const ok = d.hasUI && !d.hasBroken && !d.is404;
+    logResult({ page: 'stocks/AAPL', check: 'detail_page_loads', passed: ok, detail: d.is404 ? 'Route 404' : d.hasUI ? `UI visible (${d.len} chars)` : 'No content' });
+    if (ok) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'stocks/AAPL', check: 'detail_page_loads', passed: false, detail: e.message }); }
+
+  // ═══ TEST 31: Predict Portfolio ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/predict/portfolio`, { waitUntil: 'networkidle', timeout: 30000 });
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      return { hasUI: /portfolio|position|prediction|market|bet/i.test(t), hasBroken: /NaN|TypeError|\[object/.test(t), is404: /page not found/i.test(t), len: t.trim().length };
+    });
+    const ok = d.hasUI && !d.hasBroken && !d.is404;
+    logResult({ page: 'predict/portfolio', check: 'page_loads', passed: ok, detail: d.is404 ? 'Route 404' : d.hasUI ? `UI visible (${d.len} chars)` : 'No content' });
+    if (ok) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'predict/portfolio', check: 'page_loads', passed: false, detail: e.message }); }
+
+  // ═══ TEST 32: Agent detail page — known tester address ═══
+  // Tester Alpha address from activity/page.tsx: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+  try {
+    const page = await context.newPage();
+    const testerAddr = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
+    await page.goto(`${FRONTEND_URL}/agents/${testerAddr}`, { waitUntil: 'networkidle', timeout: 30000 });
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      return { hasUI: /agent|strategy|activity|protocol|trade|registered/i.test(t), hasBroken: /NaN|TypeError|\[object/.test(t), is404: /page not found/i.test(t), len: t.trim().length };
+    });
+    const ok = d.hasUI && !d.hasBroken && !d.is404;
+    logResult({ page: 'agents/[address]', check: 'detail_page_loads', passed: ok, detail: d.is404 ? 'Route 404' : d.hasUI ? `UI visible (${d.len} chars)` : 'No content' });
+    if (ok) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'agents/[address]', check: 'detail_page_loads', passed: false, detail: e.message }); }
+
   await browser.close();
 
   // Summary

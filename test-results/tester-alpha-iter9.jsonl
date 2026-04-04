@@ -1,0 +1,37 @@
+{"id": "hook_001", "contract": "UBIFeeHook", "call": "admin()", "passed": true, "detail": "admin=0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"}
+{"id": "hook_002", "contract": "UBIFeeHook", "call": "ubiPool()", "passed": true, "detail": "ubiPool=0x6533158b042775e2fdfef3ca1a782efdbb8eb9b1 valid=True"}
+{"id": "hook_003", "contract": "UBIFeeHook", "call": "ubiFeeSplitter()", "passed": false, "detail": "splitter=0x0"}
+{"id": "fwlp_001", "contract": "FastWithdrawalLP", "call": "admin()", "passed": true, "detail": "admin=0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"}
+{"id": "fwlp_002", "contract": "FastWithdrawalLP", "call": "ubiPool()", "passed": true, "detail": "ubiPool=0xc0bf43a4ca27e0976195e6661b099742f10507e5 (not_deployer_eoa=True)"}
+{"id": "fwlp_003", "contract": "FastWithdrawalLP", "call": "token()", "passed": false, "detail": "token=0x0"}
+{"id": "fwlp_004", "contract": "FastWithdrawalLP", "call": "totalSupply()", "passed": false, "detail": "totalSupply=0"}
+{"id": "psm_001", "contract": "PSM", "call": "admin()", "passed": true, "detail": "admin=0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"}
+{"id": "psm_002", "contract": "PSM", "call": "totalSupply() [gUSD]", "passed": false, "detail": "totalSupply=0 gUSD"}
+{"id": "psm_003", "contract": "PSM", "call": "psmMintedGUSD()", "passed": false, "detail": "psmMintedGUSD=0"}
+{"id": "psm_004", "contract": "PSM", "call": "usdcReserve()", "passed": false, "detail": "usdcReserve=0"}
+{"id": "splitter_001", "contract": "UBIFeeSplitter", "call": "claimableBalance()", "passed": true, "detail": "claimableBalance=0"}
+{"id": "splitter_002", "contract": "UBIFeeSplitter", "call": "ubiRecipient()", "passed": true, "detail": "ubiRecipient=0x73c68f1f41e4890d06ba3e71b9e9dfa555f1fb46 is_UBIClaimV2=True"}
+{"id": "splitter_003", "contract": "UBIFeeSplitter", "call": "admin()", "passed": true, "detail": "admin=0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"}
+{"id": "claim_001", "contract": "UBIClaimV2", "call": "feeSplitter()", "passed": true, "detail": "feeSplitter=0xc0bf43a4ca27e0976195e6661b099742f10507e5 is_new=True"}
+{"id": "claim_002", "contract": "UBIClaimV2", "call": "admin()", "passed": true, "detail": "admin=0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"}
+{"id": "claim_003", "contract": "UBIClaimV2", "call": "currentEpoch()", "passed": true, "detail": "epoch=20547"}
+{"id": "urt_001", "contract": "UBIRevenueTracker", "call": "feeSplitter()", "passed": true, "detail": "feeSplitter=0xc0bf43a4ca27e0976195e6661b099742f10507e5 is_new=True"}
+{"id": "urt_002", "contract": "UBIRevenueTracker", "call": "admin()", "passed": true, "detail": "admin=0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"}
+{"id": "urt_003", "contract": "UBIRevenueTracker", "call": "protocolCount()", "passed": true, "detail": "protocolCount=7"}
+{"id": "urt_004", "contract": "UBIRevenueTracker", "call": "totalFeesTracked()", "passed": true, "detail": "total=13100 G$"}
+{"id": "urt_005", "contract": "UBIRevenueTracker", "call": "snapshotCount()", "passed": true, "detail": "snapshots=1"}
+{"id": "lifi_001", "contract": "LiFi", "call": "whitelistedTokens(USDC)", "passed": true, "detail": "USDC_whitelisted=True"}
+{"id": "lifi_002", "contract": "LiFi", "call": "whitelistedTokens(WETH)", "passed": true, "detail": "WETH_whitelisted=True"}
+{"id": "lifi_003", "contract": "LiFi", "call": "ubiFeeSplitter()", "passed": true, "detail": "splitter=0xc0bf43a4ca27e0976195e6661b099742f10507e5"}
+{"id": "lifi_004", "contract": "LiFi", "call": "ubiFeeRateBps()", "passed": true, "detail": "bps=10 (0.10%)"}
+{"id": "vf_001", "contract": "VaultFactory", "call": "ubiFee()", "passed": true, "detail": "ubiFee=0xc0bf43a4ca27e0976195e6661b099742f10507e5"}
+{"id": "vf_002", "contract": "VaultFactory", "call": "admin()", "passed": true, "detail": "admin=0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"}
+{"id": "vf_003", "contract": "VaultFactory", "call": "vaultCount()", "passed": true, "detail": "vaults=0"}
+{"id": "lend_001", "contract": "GoodLendPool", "call": "getReservesCount()", "passed": true, "detail": "reservesCount=2"}
+{"id": "lend_002", "contract": "GoodLendPool", "call": "getUserAccountData(deployer)", "passed": true, "detail": "result_len=194 bytes"}
+{"id": "lend_003", "contract": "GoodLendPool", "call": "admin()", "passed": true, "detail": "admin=0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"}
+{"id": "gdt_001", "contract": "GoodDollarToken", "call": "totalVerifiedHumans()", "passed": true, "detail": "verified=1"}
+{"id": "gdt_002", "contract": "GoodDollarToken", "call": "ubiPool()", "passed": true, "detail": "ubiPool=0x0000000000000000000000000000000000000000"}
+{"id": "gdt_003", "contract": "GoodDollarToken", "call": "dailyUBIAmount()", "passed": true, "detail": "daily=1 G$"}
+{"id": "vm_001", "contract": "VaultManager", "call": "admin()", "passed": true, "detail": "admin=0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"}
+{"id": "vm_002", "contract": "VaultManager", "call": "totalVaults()", "passed": false, "detail": "totalVaults=0"}

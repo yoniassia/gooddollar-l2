@@ -1,0 +1,32 @@
+{
+  "transactions": [
+    {
+      "hash": null,
+      "transactionType": "CALL",
+      "contractName": null,
+      "contractAddress": "0x85495222fd7069b987ca38c2142732ebbfb7175d",
+      "function": "setUBIPool(address)",
+      "arguments": [
+        "0x6533158b042775e2FdFeF3cA1a782EFDbB8EB9b1"
+      ],
+      "transaction": {
+        "from": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+        "to": "0x85495222fd7069b987ca38c2142732ebbfb7175d",
+        "gas": "0xacf4",
+        "value": "0x0",
+        "input": "0x4f3f998f0000000000000000000000006533158b042775e2fdfef3ca1a782efdbb8eb9b1",
+        "nonce": "0x1de",
+        "chainId": "0xa455"
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    }
+  ],
+  "receipts": [],
+  "libraries": [],
+  "pending": [],
+  "returns": {},
+  "timestamp": 1775303141835,
+  "chain": 42069,
+  "commit": "efeb0f8"
+}

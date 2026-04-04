@@ -1,1 +1,1 @@
-test_new_depositor_gets_fewer_shares|test_shares_appreciate_with_profit
+test_burn_happy|test_burn_proportional|test_mint_revert_insufficientLiquidityMinted
