@@ -27,13 +27,17 @@ contract gUSD {
     mapping(address => bool) public isBurner;
 
     // ============ Reentrancy ============
+    // Uses 1=unlocked / 2=locked (not 0/1) so the slot is always non-zero.
+    // Avoids the cold zero→non-zero SSTORE (20k gas) at function entry that
+    // caused eth_estimateGas to underestimate by ~57k gas when drip() calls
+    // gusd.mint() for the first time in a mintGUSD tx (GOO-348, same class as GOO-325).
 
-    uint256 private _locked;
+    uint256 private _locked = 1;
     modifier nonReentrant() {
-        require(_locked == 0, "Reentrant");
-        _locked = 1;
+        require(_locked == 1, "Reentrant");
+        _locked = 2;
         _;
-        _locked = 0;
+        _locked = 1;
     }
 
     // ============ Events ============
