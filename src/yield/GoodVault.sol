@@ -29,7 +29,7 @@ interface IStrategy {
 }
 
 interface IUBIFeeSplitter {
-    function splitFeeToken(address token, uint256 amount, address dApp) external;
+    function splitFeeToken(uint256 totalFee, address dAppRecipient, address token) external;
 }
 
 contract GoodVault {
@@ -248,7 +248,7 @@ contract GoodVault {
 
                 // Route to UBI
                 asset.approve(address(ubiFee), totalFees);
-                ubiFee.splitFeeToken(address(asset), totalFees, address(this));
+                ubiFee.splitFeeToken(totalFees, address(this), address(asset));
                 totalUBIFunded += totalFees;
             }
 

@@ -48,9 +48,9 @@ contract MockERC20 {
 
 contract MockUBIFeeSplitter {
     uint256 public totalFees;
-    function splitFeeToken(address token, uint256 amount, address) external {
-        MockERC20(token).transferFrom(msg.sender, address(this), amount);
-        totalFees += amount;
+    function splitFeeToken(uint256 totalFee, address, address token) external {
+        MockERC20(token).transferFrom(msg.sender, address(this), totalFee);
+        totalFees += totalFee;
     }
 }
 
