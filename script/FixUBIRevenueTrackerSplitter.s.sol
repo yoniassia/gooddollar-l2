@@ -29,7 +29,7 @@ contract FixUBIRevenueTrackerSplitter is Script {
 
         address before = address(tracker.feeSplitter());
         console.log("feeSplitter before:", before);
-        require(before != FEE_SPLITTER, "already correct — nothing to do");
+        require(before != FEE_SPLITTER, "already correct - nothing to do");
 
         tracker.setFeeSplitter(FEE_SPLITTER);
 
