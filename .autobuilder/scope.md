@@ -133,7 +133,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Deploy script + 29 tests passing
 - [x] Frontend: /governance page with lock/unlock/delegate/proposals UI (GOO-219)
 - [ ] Governance analytics (voting activity, proposal history charts)
-- [ ] Timelock contract (separate from DAO for multi-sig execution)
+- [x] Timelock contract (separate from DAO for multi-sig execution) — GoodTimelock.sol: role-based proposers/executors, batch ops, predecessor chains, 1-day delay, 14-day grace, verified on Blockscout (GOO-220)
 
 ## Principles
 1. **Fork the best, adapt for UBI** — Don't reinvent. Clone proven codebases, add UBI fee routing.

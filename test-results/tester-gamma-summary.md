@@ -432,3 +432,112 @@ All 5 sequential write operations completed successfully. Node stable under writ
 4. **CARRY-FORWARD (GOO-198)**: Set `UBIFeeSplitter.ubiRecipient` via admin call. 5,051 GDT in fees cannot be queried or claimed.
 5. **CARRY-FORWARD (GOO-205)**: Configure UBIFeeHook.poolManager with real Uniswap V4 PoolManager address (currently sentinel 0x1).
 
+---
+
+# Tester Gamma - Iteration 4 Test Results
+
+Date: 2026-04-04T12:00:00+00:00
+Wallet: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
+Chain: GoodDollar L2 Devnet (Chain ID 42069, RPC http://localhost:8545)
+
+**Total Tests: 25 | Passed: 21 | Failed: 4**
+
+## Test Results
+
+| # | Contract | Function | Status | Gas | Notes |
+|---|----------|----------|--------|-----|-------|
+| 1 | FastWithdrawalLP | `feeBps()` | PASS | — | feeBps=10 (0.1%) |
+| 2 | FastWithdrawalLP | `admin()` | PASS | — | admin=deployer (0xf39F...) |
+| 3 | FastWithdrawalLP | `ubiPool()` | PASS | — | ubiPool=deployer (not real pool — expected in devnet) |
+| 4 | FastWithdrawalLP | `totalETHLiquidity()` | PASS | — | 0 (empty pool before our deposit) |
+| 5 | FastWithdrawalLP | `UBI_FEE_SHARE()` | PASS | — | 3333 bps = 33.33% of fees to UBI |
+| 6 | gUSD | `name()/symbol()/decimals()/totalSupply()` | PASS | — | "GoodDollar USD" / gUSD / 18 / 105000e18 (pre-mint); grew to 110100e18 after |
+| 7 | VaultManager | `admin()/oracle()/registry()/paused()` | PASS | — | All addresses correct, paused=false |
+| 8 | CollateralRegistry | `ilkCount()/ilkList()` | PASS | — | 3 ilks: ETH(MCR=150%,liq=130%), GD(MCR=200%,liq=150%), USDC(MCR=101%,liq=101%) |
+| 9 | StabilityPool | `totalDeposits()/admin()/gusd()` | PASS | — | totalDeposits=2000e18 pre-deposit, gusd matches correctly |
+| 10 | PegStabilityModule | `feeBPS()/swapCap()/totalUSDCReserves()` | PASS | — | feeBPS=10, swapCap=0 (unlimited by design — confirmed in source), reserves=100000e6 |
+| 11 | MockWETH18 | `mint(address,uint256)` | PASS | 33,981 | Minted 10 WETH18; total balance 15 WETH18 |
+| 12 | MockUSDC6 | `mint(address,uint256)` | PASS | 33,945 | Minted 1000 USDC6; balance=2000e6 |
+| 13 | VaultManager | `openVault(bytes32)` | PASS | 194,671 | Opened ETH ilk vault successfully |
+| 14 | VaultManager | `depositCollateral(bytes32,uint256)` | PASS | 246,070 | Deposited 5 WETH18; vault.collateral=5e18 |
+| 15 | VaultManager | `mintGUSD(bytes32,uint256)` | PASS | 242,586 | Minted 5000 gUSD; healthFactor=1.333 (133%, safe above 100% min) |
+| 16 | StabilityPool | `deposit(uint256)` | PASS | 93,160 | Deposited 1000 gUSD; totalDeposits 2000→3000 gUSD |
+| 17 | PegStabilityModule | `swapUSDCForGUSD(uint256)` | PASS | 189,824 | Swapped 100 USDC6 → ~99.9 gUSD (0.1% fee deducted) |
+| 18 | FastWithdrawalLP | `depositLiquidity(address,uint256)` | PASS | 101,656 | Deposited 200 USDC6; lpBalance=200e6, totalLiquidity=200e6 |
+| 19 | MarginVault | `deposit(uint256)` | PASS | 69,153 | Deposited 1000 GDT; mv_balance=1000e18 |
+| 20 | PerpEngine | `openPosition(0,1e18,true,100e18)` | PASS | 283,267 | Opened long ETH (market 0) @ $2500 entry; margin=100 GDT; marginRatio=100%; fee=1e15 GDT |
+| 21 | CollateralVault | `depositCollateral(bytes32,uint256)` [GOO-199] | **FAIL** | — | Regression confirmed: bytes32 overload does not exist — always reverts |
+| 22 | CollateralVault | `depositCollateral(string,uint256)` [18-dec] | PASS | 61,320 | Correct ABI: ('AAPL', 1e18) succeeds. USDC-scale (500M) deposits as dust (5e-10 GDT) — decimal hazard |
+| 23 | PriceOracle | `getPrice(string)` x20 stress | PASS | — | avg=4.5ms, min=4.12ms, max=5.91ms. Zero failures, no degradation |
+| 24 | PriceOracle | `getPrice(bytes32)` [wrong sig] | **FAIL** | — | NEW BUG GOO-223: `getPrice(bytes32)` reverts; correct is `getPriceByKey(bytes32)`. Silent ABI footgun |
+| 25 | PerpEngine markets 2-5 | `getPriceByKey(bytes32)` | **FAIL** | — | NEW BUG GOO-224: Markets 2-5 (SOL/BNB/MATIC/ARB) have oracle keys not registered in PriceOracle. closePosition/liquidate will revert. |
+
+## Gas Profile
+
+| Operation | Gas Used |
+|-----------|----------|
+| MockWETH18.mint | 33,981 |
+| MockUSDC6.mint | 33,945 |
+| VaultManager.openVault | 194,671 |
+| VaultManager.depositCollateral | 246,070 |
+| VaultManager.mintGUSD | 242,586 |
+| StabilityPool.deposit | 93,160 |
+| PegStabilityModule.swapUSDCForGUSD | 189,824 |
+| FastWithdrawalLP.depositLiquidity | 101,656 |
+| MarginVault.deposit | 69,153 |
+| PerpEngine.openPosition | 283,267 |
+| CollateralVault.depositCollateral | 61,320 |
+
+**Heaviest operation**: PerpEngine.openPosition (283,267) — includes funding settlement + fee routing.
+**Lightest write**: MockUSDC6.mint (33,945) — simple ERC20 mint.
+
+## Stress Test Results
+
+**20x PriceOracle.getPrice("AAPL"):**
+- avg: 4.5ms | min: 4.12ms | max: 5.91ms
+- 0 failures, consistent sub-6ms response across all calls
+- Conclusion: Oracle read performance is excellent; no degradation under rapid sequential load.
+
+## Bug Status
+
+| Bug ID | Status | Notes |
+|--------|--------|-------|
+| GOO-198 (UBIFeeSplitter ubiRecipient=0) | **STILL OPEN** | Not retested in iter4 |
+| GOO-199 (CollateralVault decimal mismatch) | **PARTIALLY RESOLVED** | Root cause identified: contract uses `(string,uint256)` ABI, not `(bytes32,uint256)`. Correct 18-dec call succeeds. USDC-scale callers still deposit dust — no contract-level protection. |
+| GOO-204 (GoodLendPool uint256_max HF) | **STILL OPEN** | Not retested in iter4 |
+| GOO-205 (UBIFeeHook poolManager=0x1) | **STILL OPEN** | Not retested in iter4 |
+| GOO-213 (GoodLendPool unbounded borrow) | **STILL OPEN** | Cascades from GOO-204 |
+| GOO-214 (ConditionalTokens orphaned address) | **STILL OPEN** | Not retested in iter4 |
+| **GOO-223** (PriceOracle ABI footgun) | **NEW** | `getPrice(bytes32)` does not exist; users must call `getPriceByKey(bytes32)` or `getPrice(string)`. Any code calling wrong overload silently reverts. |
+| **GOO-224** (PerpEngine markets 2-5 oracle gap) | **NEW** | Markets 2-5 (SOL/BNB/MATIC/ARB) registered in PerpEngine but oracle keys not registered in PriceOracle. `closePosition` and `liquidate` for these markets will revert. Positions opened in these markets cannot be closed. |
+
+## New Findings (Iteration 4)
+
+### GoodStable System — First Full Integration Test
+- **VaultManager flow complete**: openVault → depositCollateral (5 WETH18) → mintGUSD (5000 gUSD) → healthFactor=1.333 (correct at 150% MCR, ETH=$2000)
+- **StabilityPool**: Operational; accepting gUSD deposits. Balance after our deposit: 3000 gUSD total.
+- **PegStabilityModule**: Swap USDC→gUSD functional. swapCap=0 is intentional (unlimited in devnet — verified in source at line 53).
+- **CollateralRegistry**: 3 ilks registered (ETH, GD, USDC) with correct MCR and liquidation parameters.
+
+### FastWithdrawalLP — First Full Test
+- All view functions readable. depositLiquidity(USDC6, 200e6) succeeded.
+- ubiPool is set to deployer address — not yet connected to real UBI pool.
+
+### PerpEngine — Complete Flow (GOO-218 deliverable)
+- Opened long ETH position (market 0) with 100 GDT margin and 1 unit size.
+- entryPrice=250e9 ($2500 in 8-dec), oracle confirmed at getPriceByKey time.
+- marginRatio=1,000,000 bps (100%) — fully collateralized.
+- Trade fee=1e15 GDT (0.1% of size) deducted correctly from MarginVault.
+- Markets 2-5 have **no oracle data** — dangerous for any user opening positions there.
+
+### GOO-224 Detail
+`PerpEngine.createMarket(oracleKey, maxLeverage)` registers market in engine, but the corresponding oracle key must also be registered in PriceOracle via `setManualPrice`. Markets 0 (ETH, key registered) and 1 (BTC/ETH at 6000e9) have prices. Markets 2 (SOL), 3 (?), 4 (?), 5 (ARB) revert on `getPriceByKey`. Any trader opening a position in these markets will be unable to close it.
+
+## Recommendations (Iteration 4)
+
+1. **CRITICAL (GOO-224)**: Register oracle prices for PerpEngine markets 2-5 (SOL/BNB/MATIC/ARB) immediately. Call `PriceOracle.setManualPrice(ticker, price, true)` for each. Until fixed, `closePosition` and `liquidate` revert — funds locked.
+2. **HIGH (GOO-223)**: Add documentation or a wrapper function clarifying `getPriceByKey(bytes32)` vs `getPrice(string)`. Consider adding a `getPrice(bytes32)` alias that delegates to `getPriceByKey` to prevent integration errors.
+3. **MEDIUM (GOO-199)**: Add input validation or decimal scaling in `CollateralVault.depositCollateral` to reject amounts below a minimum threshold (e.g., revert if `amount < 1e9`). USDC-scale callers currently deposit dust with no error.
+4. **LOW**: FastWithdrawalLP `ubiPool` should be updated from deployer address to the real UBIFeeSplitter (0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512) before mainnet.
+5. **CARRY-FORWARD**: GOO-198, GOO-204, GOO-205, GOO-213, GOO-214 remain open from prior iterations.
+

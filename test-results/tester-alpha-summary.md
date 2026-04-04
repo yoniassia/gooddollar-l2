@@ -1,46 +1,79 @@
 # Tester Alpha — Test Summary
 
 ## Stats
-- **Total tests run (lifetime):** 21
-- **Iteration 1 results:** 21 pass / 0 fail
-- **Pass rate:** 100%
-- **Last run:** 2026-04-03T22:11:15.233392+00:00
+- **Total tests run (lifetime):** 137
+- **Iteration 1:** 21 pass / 0 fail
+- **Iteration 2:** 20 pass / 0 fail
+- **Iteration 3:** 18 pass / 0 fail
+- **Last run:** 2026-04-04T00:17:47.318622+00:00
 
 ## Contracts Covered
-- GoodLendPool (supply, borrow, repay, withdraw, getUserAccountData)
-- MockWETH / MockUSDC (ERC-20 approve, balanceOf, mint)
-- LiFiBridgeAggregator (initiateSwap, initiateSwapETH, swapCount, getSwap)
-- UBIFeeSplitter (ETH fee receipt via receive())
+- GoodLendPool: supply, borrow, repay, withdraw, flashLoan, liquidate, mintToTreasury, getUserAccountData, getReservesCount, getBorrowIndex, setBorrowingEnabled
+- MockWETH/MockUSDC: balanceOf, approve, mint, transfer
+- LiFiBridgeAggregator: initiateSwap, initiateSwapETH, completeSwap, refundSwap, expireSwap, setKeeper, setUBIFeeRate, setUBIFeeSplitter, swapCount, getSwap
+- UBIFeeSplitter: ETH receive(), withdrawETH, claimableBalance, setFeeSplit
 
-## Functions Tested
+## Functions Tested (all iterations)
 - approve
 - borrow
+- borrow(disabled)
 - borrow(no collateral)
 - borrow(over cap)
+- borrow(re-enabled)
+- claimableBalance()
+- completeSwap
+- completeSwap(refunded)
+- expireSwap
+- flashLoan(EOA receiver)
+- getBorrowIndex
+- getReservesCount
 - getSwap
+- getSwap(expired)
 - getUserAccountData
 - initiateSwap
 - initiateSwap(0)
+- initiateSwap(60s deadline)
+- initiateSwap(expired deadline)
 - initiateSwap(non-whitelisted)
+- initiateSwap(zero)
 - initiateSwapETH
+- initiateSwapETH(new fee rate)
+- initiateSwapETH(new splitter)
+- keepers()
+- liquidate
+- liquidate(HF>1)
+- mintToTreasury([USDC,WETH])
 - receive()
+- refundSwap
 - repay
+- setBorrowingEnabled(USDC,false)
+- setBorrowingEnabled(USDC,true)
+- setFeeSplit
+- setFeeSplit()
+- setKeeper
+- setUBIFeeRate
+- setUBIFeeSplitter
 - supply
 - supply(0)
+- supply(zero)
 - swapCount
+- ubiFeeRateBps()
+- ubiFeeSplitter()
 - withdraw
+- withdrawETH
+- withdrawETH(verify)
 
 ## Functions NOT YET Tested
-- GoodLendPool: flashLoan, liquidate, mintToTreasury, initReserve, setOracle
-- LiFiBridgeAggregator: completeSwap, expireSwap, refundSwap, setKeeper
-- UBIFeeSplitter: withdrawETH, setFeeBeneficiary, distributeUBI
+- GoodLendPool: initReserve, setOracle, setAdmin, setTreasury, setReserveActive
+- LiFiBridgeAggregator: setSupportedChain, batchWhitelistTokens, setWhitelistedToken, getUserSwaps
+- UBIFeeSplitter: registerDApp, splitFee, splitFeeToken, releaseToUBI, setTreasury, setUBIRecipient
+- UBIFeeHook: afterSwap via V4 pool (requires full V4 pool setup)
 
-## Bugs Found This Iteration
-None.
+## Bugs Found
+- GOO-205: UBIFeeHook.poolManager=0x1 (FIXED via GOO-215 — new hook 0x325c8Df4 verified)
 
 ## Notes
-- MockUSDC has 6 decimals (not 18) — must use amounts * 10^6
-- MockWETH has 18 decimals
-- GoodLendPool borrow cap = 1,000,000 USDC
-- MockUSDC/WETH mint() has no access control — anyone can mint on devnet
-- New contracts: LiFi=0x1c9fd50d..., UBI=0x683d9cdd... (GOO-195 fix)
+- MockUSDC: 6 decimals; MockWETH: 18 decimals
+- Liquidation tested by oracle price manipulation (WETH $2000→$100→$2000)
+- expireSwap: requires deadline passed; use anvil_mine with time advancement
+- GOO-215 verified: new hook routes 0.001 ETH fee per 1 ETH swap (0.1% rate)
