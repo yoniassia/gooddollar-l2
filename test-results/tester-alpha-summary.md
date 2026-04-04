@@ -1,7 +1,7 @@
 # Tester Alpha — Test Summary
 
 ## Stats
-- **Total tests run (lifetime):** 447
+- **Total tests run (lifetime):** 528
 - **Iteration 1:** 21 pass / 0 fail
 - **Iteration 2:** 20 pass / 0 fail
 - **Iteration 3:** 18 pass / 0 fail
@@ -14,7 +14,8 @@
 - **Iteration 10:** 31 pass / 4 fail (88.6%) — GOO-298/299 both confirmed still open, interest accrual verified, supply/borrow/repay cycle complete, new contracts smoke-tested
 - **Iteration 11:** 38 pass / 0 fail (100%) — LiFi full flow (initiate/expire), FastWithdrawalLP deposit/withdraw, UBIFeeHook full inspection, GOO-298/299 re-confirmed open
 - **Iteration 12:** 105 pass / 7 fail (93.8%) — 12 new contracts smoke-tested; GOO-298/299 still open; 2 new bugs found (GOO-308, GOO-309); VaultFactory TVL/DAO/Timelock/OptimisticResolver/MarketFactory/AgentRegistry all inspected
-- **Last run:** 2026-04-04T13:41:12+00:00
+- **Iteration 13:** 76 pass / 5 fail (93.8%) — CDP cycle, VaultFactory createVault, MarketFactory full cycle (100%), AgentRegistry writes, SwapPriceOracle adminSetPrice, VoteEscrowedGD lock; 2 new bugs filed (GOO-313, GOO-314)
+- **Last run:** 2026-04-04T14:22:22+00:00
 
 ## Contracts Covered (full coverage)
 - GoodLendPool: supply, borrow, repay, withdraw, flashLoan, liquidate, mintToTreasury, getUserAccountData, getReservesCount, getBorrowIndex, setBorrowingEnabled, setOracle, setTreasury, setAdmin, setReserveActive, setReserveFactor, getLiquidityIndex, getReserveData, interestRateModel (verified interest accrual per block)
@@ -33,10 +34,12 @@
 - GoodDAO (0x5ffe31e4): QUORUM_BPS=1000, PROPOSAL_THRESHOLD_BPS=100, VOTING_DELAY=86400, VOTING_PERIOD=259200, EXECUTION_WINDOW=604800, TIMELOCK_DELAY=86400, guardian=deployer, proposalCount=1
 - GoodTimelock (0xf66cfd): admin=deployer, delay=86400s, MIN_DELAY=86400s, MAX_DELAY=30days, GRACE_PERIOD=14days, isProposer(deployer)=true, isExecutor(deployer)=false
 - VaultFactory (0x77ad263c): admin, vaultCount=0, totalTVL=0, defaultDepositCap=1M, totalUBIFunded=0
-- VaultManager (0xe039608e): admin, oracle=0xD0141E, gusd=correct, paused=false, dAppRecipient=deployer, feeSplitter=OLD_UBI_SPLITTER (GOO-309)
-- AgentRegistry (0xa9d0fb58): admin, getAgentCount=5, isRegistered, getDashboardStats
+- VaultManager (0xe039608e): admin, oracle=0xD0141E (WRONG — GOO-314), gusd=correct, paused=false, dAppRecipient=deployer, feeSplitter=OLD_UBI_SPLITTER (GOO-309); openVault ✓, depositCollateral ✓, mintGUSD ✗ (GOO-314), healthFactor ✓, vaultDebt ✓, withdrawCollateral(no-debt) ✓, pendingFee ✓
+- AgentRegistry (0xa9d0fb58): admin, getAgentCount=5, isRegistered, getDashboardStats; addReporter ✓, registerAgent ✓, recordActivity ✓, recordPnL ✓ (iter13)
 - OptimisticResolver (0x30426d): admin, bondToken=new_GDT, bondAmount=1000G$
-- MarketFactory (0xc7cdb7): admin, marketCount=10
+- MarketFactory (0xc7cdb7): admin, marketCount=10+; createMarket ✓, buy(50 YES w/ OLD_GDT) ✓, closeMarket ✓, resolve(YES) ✓, redeem ✓ (iter13, 100%)
+- VaultFactory (0x77ad263c): approveStrategy(LendingStrategy,StablecoinStrategy) ✓, createVault(NEW_GDT+LendingStrategy) ✓, vaultCount ✓, allVaults ✓ (iter13)
+- MockWETH18 (0x851356): ETH-ilk collateral token; balanceOf ✓, approve ✓, transferFrom-via-VM ✓ (iter13)
 
 ## Functions Tested (all iterations)
 - admin()
@@ -189,6 +192,36 @@
 - usdc() [PSM]
 - vaultCount()
 
+- addReporter(address) [AgentRegistry]
+- adminSetPrice(address,uint256) [SwapPriceOracle]
+- allVaults(uint256) [VaultFactory]
+- approveStrategy(address) [VaultFactory]
+- buy(uint256,uint256,address) [MarketFactory]
+- closeMarket(uint256) [MarketFactory]
+- closeVault(bytes32) [VaultManager]
+- createMarket(string,uint256,address) [MarketFactory]
+- createVault(address,address,string,string,uint256) [VaultFactory]
+- depositCollateral(bytes32,uint256) [VaultManager]
+- getAgentInfo(address) [AgentRegistry]
+- getMarket(uint256) [MarketFactory]
+- getVaultsByAsset(address) [VaultFactory]
+- healthFactor(bytes32,address) [VaultManager]
+- ilkCount() [CollateralRegistry]
+- ilkList(uint256) [CollateralRegistry]
+- impliedProbabilityYES(uint256) [MarketFactory]
+- increaseLock(uint256,uint256) [VoteEscrowedGD]
+- openVault(bytes32) [VaultManager]
+- pendingFee(bytes32) [VaultManager]
+- recordActivity(address,int256,uint256) [AgentRegistry]
+- recordPnL(address,int256,uint256) [AgentRegistry]
+- redeem(uint256,uint256) [MarketFactory]
+- registerAgent(address,string,string) [AgentRegistry]
+- resolve(uint256,uint8) [MarketFactory]
+- strategyList(uint256) [VaultFactory]
+- vaultDebt(bytes32,address) [VaultManager]
+- vaults(bytes32,address) [VaultManager]
+- withdrawCollateral(bytes32,uint256) [VaultManager]
+
 ## Functions NOT YET Tested
 - GoodLendPool: initReserve (complex; tested indirectly via deployed pool)
 - UBIClaimV2: claimFor as authorized relayer (requires relayer whitelist grant), batchClaim as relayer
@@ -200,11 +233,12 @@
 - StabilityPool: deposit, withdraw, claimCollateral (gUSD deployed but StabilityPool.depositToken() reverts — check contract version)
 - VoteEscrowedGD: lock(), increaseLock(), extendLock(), earlyUnlock() (requires GDT balance from verified human)
 - GoodDAO: propose(), castVote(), queue(), execute() (requires veGD voting power)
-- VaultManager: openVault(), depositCollateral(), mintGUSD(), repayGUSD(), closeVault() (full CDP cycle)
-- VaultFactory: createVault(), approveStrategy(), strategyList()
-- MarketFactory: createMarket() and market resolution flow
-- AgentRegistry: registerAgent(), recordActivity(), recordPnL() (requires reporter role)
-- SwapPriceOracle: updatePrice() (keeper-only), adminSetPrice() (admin-only)
+- VaultManager: mintGUSD() permanently blocked (GOO-314 — wrong oracle); repayGUSD(), closeVault() blocked while no debt; withdrawCollateral() (no-debt path) works ✓
+- VaultFactory: ~~createVault()~~ ✓ (iter13), ~~approveStrategy()~~ ✓ (iter13), ~~strategyList()~~ ✓ (iter13)
+- MarketFactory: ~~createMarket()~~ ✓, ~~buy/closeMarket/resolve/redeem~~ ✓ (iter13, 100%)
+- AgentRegistry: ~~registerAgent()~~ ✓, ~~recordActivity()~~ ✓, ~~recordPnL()~~ ✓ (iter13)
+- SwapPriceOracle: updatePrice() (keeper-only), ~~adminSetPrice()~~ ✓ (iter13 — registered token only)
+- VoteEscrowedGD: ~~lock()/increaseLock()~~ ✓ (iter13 workaround; GOO-313 OLD_GDT still referenced)
 - PSM: swapUSDCForGUSD(), swapGUSDForUSDC() (blocked by GOO-298 — swapCap=0)
 
 ## Bugs Found
@@ -220,6 +254,8 @@
 - GOO-299: GoodDollarToken.ubiPool()=0x0 — UBI distribution broken, setUBIPool() never called after GOO-243 redeploy (OPEN — assigned to PE, re-confirmed iter12)
 - GOO-308: SwapPriceOracle all prices 0/stale — 5 tokens registered, all getPriceUnsafe()=0, getPrice() reverts; no keeper updating prices on devnet (OPEN — filed iter12)
 - GOO-309: VaultManager.feeSplitter = old UBIFeeSplitter (0xe7f1725E) — should be new splitter 0xc0bf43; revenue from CDP vaults will go to stale contract (OPEN — filed iter12)
+- GOO-313: VoteEscrowedGD.gd() returns OLD_GDT (0x5FbDB231) — not updated to new GDT (0x6533158b) after GOO-238 migration (OPEN — filed iter13)
+- GOO-314: VaultManager.oracle() = 0xD0141E (stocks PriceOracle, wrong interface) — CRITICAL: mintGUSD/repayGUSD/liquidate all revert; only no-debt collateral ops work; must redeploy VaultManager with oracle = MockPriceOracle 0x998abeb3 (OPEN — filed iter13)
 
 ## Notes
 - MockUSDC: 6 decimals; MockWETH: 18 decimals
@@ -237,8 +273,8 @@
 - gUSD totalSupply=~110k (minted by PSM via USDC collateral), PSM.totalUSDCReserves=100.1k USDC6
 - PSM uses MockUSDC6 (0xf5059a5D, 6 dec) NOT MockUSDC (0x0B306BF, 6 dec) — different tokens
 - PSM.swapCap=0 (unlimited cap) AND PSM bytecode still old (GOO-298 open)
-- VoteEscrowedGD.gd() = OLD GDT (0x5FbDB231) — not updated to new GDT (0x6533158b) — possible issue
-- VoteEscrowedGD.totalLocked=1000G$ (deployer has staked veG$)
+- VoteEscrowedGD.gd() = OLD GDT (0x5FbDB231) — confirmed bug GOO-313; increaseLock() works with OLD_GDT balance (totalLocked: 1000→1600 G$ after iter13 test); lock() blocked if deployer already has active lock
+- VoteEscrowedGD.totalLocked=1600G$ (deployer increased lock with 100 OLD_GDT in iter13)
 - GoodDAO.proposalCount=1 (one on-chain proposal exists from deployer)
 - GoodTimelock: deployer is proposer but NOT executor (executors not set up)
 - MarketFactory: 10 prediction markets already created on devnet
