@@ -1,18 +1,20 @@
 # Tester Alpha — Test Summary
 
 ## Stats
-- **Total tests run (lifetime):** 170
+- **Total tests run (lifetime):** 189
 - **Iteration 1:** 21 pass / 0 fail
 - **Iteration 2:** 20 pass / 0 fail
 - **Iteration 3:** 18 pass / 0 fail
 - **Iteration 4:** 33 pass / 0 fail
-- **Last run:** 2026-04-04T02:07:01.191345+00:00
+- **Iteration 5:** 13 pass / 6 fail
+- **Last run:** 2026-04-04T04:05:03.191110+00:00
 
-## Contracts Covered
-- GoodLendPool: supply, borrow, repay, withdraw, flashLoan, liquidate, mintToTreasury, getUserAccountData, getReservesCount, getBorrowIndex, setBorrowingEnabled, setOracle, setTreasury, setAdmin, setReserveActive
+## Contracts Covered (full coverage)
+- GoodLendPool: supply, borrow, repay, withdraw, flashLoan, liquidate, mintToTreasury, getUserAccountData, getReservesCount, getBorrowIndex, setBorrowingEnabled, setOracle, setTreasury, setAdmin, setReserveActive, setReserveFactor
 - MockWETH/MockUSDC: balanceOf, approve, mint, transfer
 - LiFiBridgeAggregator: initiateSwap, initiateSwapETH, completeSwap, refundSwap, expireSwap, setKeeper, setUBIFeeRate, setUBIFeeSplitter, setSupportedChain, setWhitelistedToken, batchWhitelistTokens, getUserSwaps, swapCount, getSwap
-- UBIFeeSplitter: ETH receive(), withdrawETH, claimableBalance, setFeeSplit, setTreasury, setUBIRecipient, registerDApp, splitFeeToken, releaseToUBI
+- UBIFeeSplitter: ETH receive(), withdrawETH, claimableBalance, setFeeSplit, setTreasury, setUBIRecipient, registerDApp, splitFee, splitFeeToken, releaseToUBI, totalFeesCollected, totalUBIFunded
+- GoodDollarToken: fundUBIPool, ubiPool, dailyUBIAmount, totalVerifiedHumans, setMinter, mint
 
 ## Functions Tested (all iterations)
 - admin()
@@ -28,8 +30,10 @@
 - completeSwap
 - completeSwap(refunded)
 - dAppCount()
+- dailyUBIAmount()
 - expireSwap
 - flashLoan(EOA receiver)
+- fundUBIPool(100 G$)
 - getBorrowIndex
 - getReservesCount
 - getSwap
@@ -49,7 +53,11 @@
 - keepers()
 - liquidate
 - liquidate(HF>1)
+- mint after revoke
+- mint verify
+- mint(FRESH3, 50 G$) by FRESH2
 - mintToTreasury([USDC,WETH])
+- minters(FRESH2)
 - oracle()
 - protocolTreasury()
 - receive()
@@ -66,9 +74,13 @@
 - setFeeSplit
 - setFeeSplit()
 - setKeeper
+- setMinter(FRESH2, false)
+- setMinter(FRESH2, true)
 - setOracle
 - setReserveActive(USDC,false)
 - setReserveActive(USDC,true)
+- setReserveFactor(USDC, 0%)
+- setReserveFactor(USDC, 10%)
 - setSupportedChain(add)
 - setSupportedChain(remove)
 - setTreasury
@@ -77,6 +89,9 @@
 - setUBIRecipient
 - setWhitelistedToken(add)
 - setWhitelistedToken(remove)
+- splitFee dApp share
+- splitFee(0)
+- splitFee(500 G$)
 - splitFeeToken verify
 - splitFeeToken(USDC)
 - supply
@@ -85,9 +100,14 @@
 - supply(zero)
 - supportedChains()
 - swapCount
+- totalFeesCollected()
+- totalUBIFunded()
+- totalVerifiedHumans()
 - treasury()
 - ubiFeeRateBps()
 - ubiFeeSplitter()
+- ubiPool after fundUBIPool
+- ubiPool()
 - ubiRecipient()
 - whitelistedTokens()
 - whitelistedTokens(after remove)
@@ -96,16 +116,19 @@
 - withdrawETH(verify)
 
 ## Functions NOT YET Tested
-- GoodLendPool: initReserve (complex constructor-level setup; tested indirectly via deployed pool)
-- LiFiBridgeAggregator: no major untested paths
-- UBIFeeSplitter: splitFee (requires goodDollar.fundUBIPool — needs G$ minter role for splitter)
-- UBIFeeHook: afterSwap via V4 pool (requires full V4 pool liquidity setup)
+- GoodLendPool: initReserve (complex; tested indirectly via deployed pool)
+- UBIClaimV2: claim, claimFor, batchClaim, supplementPool — contract NOT deployed (GOO-234, assigned to PE)
+- UBIFeeHook: afterSwap via V4 pool (requires V4 pool liquidity setup)
+- GoodDollarToken: claimUBI, verifyHuman, batchVerifyHumans (identity oracle dependent)
+- GoodSwap.sol: Uniswap V2 fork — not deployed (GOO-235, assigned to PE)
 
 ## Bugs Found
 - GOO-205: UBIFeeHook.poolManager=0x1 (FIXED via GOO-215 — new hook 0x325c8Df4 verified)
+- GOO-234: UBIClaimV2 not deployed, no GDT minter set (assigned to Protocol Engineer)
+- GOO-235: GoodSwap.sol (V2 fork) not deployed — may be intentional (assigned to Protocol Engineer)
 
 ## Notes
 - MockUSDC: 6 decimals; MockWETH: 18 decimals
+- splitFee(G$): fundUBIPool is permissionless — works without UBIClaimV2
 - Liquidation tested by oracle price manipulation (WETH $2000→$100→$2000)
-- splitFee (G$ path) not tested — requires UBIFeeSplitter to be a GoodDollar minter to call fundUBIPool
-- expireSwap: requires deadline passed; use anvil_mine with time advancement
+- UBIClaimV2 smoke test deferred until GOO-234 resolved

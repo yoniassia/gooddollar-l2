@@ -473,6 +473,98 @@ async function run() {
     logResult({ page: 'stocks', check: 'empty_oracle_graceful', passed: false, detail: e.message });
   }
 
+  // ═══ TEST 17: Activity Page ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/activity`, { waitUntil: 'networkidle', timeout: 30000 });
+
+    totalTests++;
+    const activityData = await page.evaluate(() => {
+      const text = document.body.innerText;
+      return {
+        hasActivityUI: /activity|transactions|blocks|tester|latest/i.test(text),
+        hasBrokenData: /NaN|TypeError|ReferenceError|\[object/.test(text),
+        bodyLen: text.trim().length,
+      };
+    });
+    logResult({ page: 'activity', check: 'page_loads_with_content', passed: activityData.hasActivityUI && !activityData.hasBrokenData, detail: activityData.hasActivityUI ? `UI visible (${activityData.bodyLen} chars)` : 'No content' });
+    if (activityData.hasActivityUI && !activityData.hasBrokenData) passed++; else failed++;
+
+    await page.close();
+  } catch (e) {
+    totalTests++; failed++;
+    logResult({ page: 'activity', check: 'page_loads_with_content', passed: false, detail: e.message });
+  }
+
+  // ═══ TEST 18: Governance Page ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/governance`, { waitUntil: 'networkidle', timeout: 30000 });
+
+    totalTests++;
+    const govData = await page.evaluate(() => {
+      const text = document.body.innerText;
+      return {
+        hasGovUI: /governance|proposal|voting|lock|veG|delegate/i.test(text),
+        hasBrokenData: /NaN|TypeError|ReferenceError|\[object/.test(text),
+        bodyLen: text.trim().length,
+      };
+    });
+    logResult({ page: 'governance', check: 'page_loads_with_content', passed: govData.hasGovUI && !govData.hasBrokenData, detail: govData.hasGovUI ? `UI visible (${govData.bodyLen} chars)` : 'No content' });
+    if (govData.hasGovUI && !govData.hasBrokenData) passed++; else failed++;
+
+    await page.close();
+  } catch (e) {
+    totalTests++; failed++;
+    logResult({ page: 'governance', check: 'page_loads_with_content', passed: false, detail: e.message });
+  }
+
+  // ═══ TEST 19: UBI Impact Dashboard (GOO-227) ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/ubi-impact`, { waitUntil: 'networkidle', timeout: 30000 });
+
+    totalTests++;
+    const ubiData = await page.evaluate(() => {
+      const text = document.body.innerText;
+      return {
+        hasUBIUI: /ubi|universal basic income|protocol|fee|funded/i.test(text),
+        hasBrokenData: /NaN|TypeError|ReferenceError|\[object/.test(text),
+        bodyLen: text.trim().length,
+      };
+    });
+    logResult({ page: 'ubi-impact', check: 'page_loads_with_content', passed: ubiData.hasUBIUI && !ubiData.hasBrokenData, detail: ubiData.hasUBIUI ? `UI visible (${ubiData.bodyLen} chars)` : 'No content' });
+    if (ubiData.hasUBIUI && !ubiData.hasBrokenData) passed++; else failed++;
+
+    await page.close();
+  } catch (e) {
+    totalTests++; failed++;
+    logResult({ page: 'ubi-impact', check: 'page_loads_with_content', passed: false, detail: e.message });
+  }
+
+  // ═══ TEST 20: Portfolio Page ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/portfolio`, { waitUntil: 'networkidle', timeout: 30000 });
+
+    totalTests++;
+    const portfolioData = await page.evaluate(() => {
+      const text = document.body.innerText;
+      return {
+        hasPortfolioUI: /portfolio|positions|holdings|balance|assets/i.test(text),
+        hasBrokenData: /NaN|TypeError|ReferenceError|\[object/.test(text),
+        bodyLen: text.trim().length,
+      };
+    });
+    logResult({ page: 'portfolio', check: 'page_loads_with_content', passed: portfolioData.hasPortfolioUI && !portfolioData.hasBrokenData, detail: portfolioData.hasPortfolioUI ? `UI visible (${portfolioData.bodyLen} chars)` : 'No content' });
+    if (portfolioData.hasPortfolioUI && !portfolioData.hasBrokenData) passed++; else failed++;
+
+    await page.close();
+  } catch (e) {
+    totalTests++; failed++;
+    logResult({ page: 'portfolio', check: 'page_loads_with_content', passed: false, detail: e.message });
+  }
+
   await browser.close();
 
   // Summary

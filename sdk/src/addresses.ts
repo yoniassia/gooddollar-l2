@@ -31,6 +31,9 @@ export const ADDRESSES = {
 
   // UBI Analytics
   UBIRevenueTracker: '0x1D3EDBa836caB11C26A186873abf0fFeB8bbaE63',
+
+  // Yield Vaults
+  VaultFactory: '0x0b27a79cb9C0B38eE06Ca3d94DAA68e0Ed17F953',
 } as const
 
 export type ContractName = keyof typeof ADDRESSES

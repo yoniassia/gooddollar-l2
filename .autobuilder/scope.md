@@ -158,6 +158,21 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Backend: revenue-tracker keeper — periodic on-chain fee reporting from each protocol
 - [x] SDK: `sdk.ubi.getDashboard()` + `sdk.ubi.getProtocolBreakdown()` convenience methods
 
+### 12. GoodYield — Auto-Compounding Vaults (PRIORITY: HIGH — NEW)
+**Status:** Core contracts deployed on devnet, VaultFactory verified, 27 tests passing
+**Next:**
+- [x] ERC-4626 GoodVault with pluggable strategies + UBI performance fees
+- [x] LendingStrategy (deposits into GoodLend for supply yield)
+- [x] StablecoinStrategy (deposits into StabilityPool for liquidation gains)
+- [x] VaultFactory with strategy whitelist + TVL tracking
+- [x] 27 comprehensive tests (deposit, withdraw, harvest, fees, migration, emergency, factory)
+- [x] Deploy VaultFactory on devnet + verify on Blockscout
+- [ ] Frontend: /yield page with vault browser, deposit/withdraw, APY display
+- [ ] SDK: yield module with vault discovery + deposit/withdraw helpers
+- [ ] Harvest keeper (auto-compound on schedule)
+- [ ] Deploy initial vaults: ETH-Lending, gUSD-Stability, G$-Lending
+**Research:** Study Yearn V3 (https://github.com/yearn/yearn-vaults-v3), ERC-4626 standard
+
 ## Principles
 1. **Fork the best, adapt for UBI** — Don't reinvent. Clone proven codebases, add UBI fee routing.
 2. **External liquidity first** — Connect to existing protocols before building our own liquidity.

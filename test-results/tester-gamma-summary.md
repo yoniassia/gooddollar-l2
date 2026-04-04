@@ -620,3 +620,91 @@ None. All 22 tests passed.
 - UBIClaimV2 not in official deployment scripts
 - GoodSwap.sol not deployed on devnet
 
+---
+
+# Tester Gamma - Iteration 6 Test Results
+
+Date: 2026-04-04T18:00:00+00:00
+Wallet: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
+Chain: GoodDollar L2 Devnet (Chain ID 42069, RPC http://localhost:8545)
+
+**Total Tests: 21 | Passed: 17 | Failed/Blocked: 4**
+**Cumulative JSONL entries: 198**
+
+## Contract Addresses Discovered This Iteration
+
+| Contract | Address |
+|----------|---------|
+| GoodDAO | 0x5ffe31e4676d3466268e28a75e51d1efa4298620 |
+| VoteEscrowedGD | 0x4eab29997d332a666c3c366217ab177cf9a7c436 |
+| GoodTimelock | 0xf66cfdf074d2ffd6a4037be3a669ed04380aef2b |
+| MarketFactory (predict, new) | 0xc7cdb7a2e5dda1b7a0e792fe1ef08ed20a6f56d4 |
+| PerpPriceOracle (new, unconnected) | 0x286b8decd5ed79c962b2d8f4346cd97ff0e2c352 |
+
+## Test Results
+
+| # | Contract | Function | Status | Gas | Notes |
+|---|----------|----------|--------|-----|-------|
+| 1 | GoodDAO | View functions | PASS | 0 | proposalCount=0, VOTING_DELAY=1d, QUORUM=10%, THRESHOLD=1% |
+| 2 | VoteEscrowedGD | Initial state | PASS | 0 | totalLocked=0, totalVotingPower=0, bootstrapping mode |
+| 3 | GoodTimelock | View functions | PASS | 0 | delay=1d, MIN=1d, MAX=30d, GRACE=14d |
+| 4 | VoteEscrowedGD | lock(1000 G$, 7d) | PASS | 216,339 | totalVotingPower=4.79e18. Min lock honored. |
+| 5 | GoodDAO | propose(...) | PASS | 401,362 | Proposal 1 created. Bootstrapping threshold bypass confirmed. |
+| 6 | GoodDAO | state(1), proposals(1) | PASS | 0 | State=Pending. Lifecycle correct. startTime+1d. |
+| 7 | OptimisticResolver | Deploy check | FAIL | 0 | NOT DEPLOYED on devnet. Source exists, no broadcast. |
+| 8 | MarketFactory | markets(0..9) | PASS | 0 | 10 markets seeded. All Open with liquidity. |
+| 9 | UBIFeeSplitter | claimableBalance() | FAIL | 0 | GOO-198 CONFIRMED STILL OPEN: reverts. |
+| 10 | GoodLendPool | repay+borrow+repay | PASS | 444,458 | FIRST COMPLETE CYCLE. HF healthy throughout. |
+| 11 | GoodLendPool | Reserve state | PASS | 0 | 2 reserves. Interest accruing. Oracle $1.00/USDC. |
+| 12 | PerpEngine | markets(0..5) | PASS | 0 | 6 markets. ETH/BTC/SOL/BNB/MATIC/ARB. |
+| 13 | PriceOracle | getPrice+getPriceByKey | PASS | 0 | GOO-223 RESOLVED: both overloads work. |
+| 14 | PerpEngine | openPosition(market 2 SOL) | PASS | 0 | GOO-224 CONFIRMED: reverts, funds NOT locked. |
+| 15 | PerpEngine | openPosition(market 0 ETH) | PASS | 283,267 | Long 100G$, 10x, entry=$2500. |
+| 16 | PerpEngine | closePosition(0) | PASS | 77,972 | PnL=0, position cleared. |
+| 17 | PerpEngine | liquidate healthy (neg) | PASS | 0 | PositionHealthy revert at 50x (200bps). Guard works. |
+| 18 | PerpEngine | liquidate no position (neg) | PASS | 0 | NoOpenPosition revert. Guard works. |
+| 19 | PerpEngine | liquidate real | BLOCKED | 0 | No oracle write access. No underwater positions. |
+| 20 | ValidatorStaking | getUnbondingRequest | PASS | 0 | 6d 21h remaining. NOT READY (unbondAt=1775873431). |
+| 21 | Multi | Stress 10 mixed TXs | PASS | 301,460 | 10/10. GDT.transfer=27634, USDC.mint=33916. Avg=30146. |
+
+## Key Findings
+
+### Governance Stack — First Tests Ever
+
+All three governance contracts deployed and functional. VoteEscrowedGD correctly implements 4-year max lock with linear voting power decay. GoodDAO proposal lifecycle verified: lock G$ -> totalVotingPower > 0 -> propose -> state=Pending. GoodTimelock has correct role separation (test wallet is not proposer/executor).
+
+### GoodLendPool — First Complete Borrow/Repay Cycle Confirmed
+
+Full borrow/repay lifecycle tested and confirmed working. healthFactor consistently healthy (8.92e27 with debt, MAX_UINT with zero debt). getUserAccountData returns 3 values (not 6 as Aave): healthFactor, totalCollateralUSD, totalDebtUSD.
+
+### GOO-223 RESOLVED
+
+Both `getPrice(string)` and `getPriceByKey(bytes32)` confirmed working on oracle 0x0165878A. PerpEngine markets 0 and 1 (ETH/BTC) fully functional.
+
+### GOO-224 Root Cause Identified
+
+Incomplete oracle migration. PerpPriceOracle (0x286b8de) was deployed with keeper infrastructure but never wired to PerpEngine. Old oracle has no prices for SOL/BNB/MATIC/ARB keys. Revert happens before state change — funds are NOT locked (closes prior concern).
+
+### OptimisticResolver — Never Deployed
+
+OptimisticResolver.sol is undeployed dead code on devnet. Predict markets use admin EOA resolution only.
+
+## Bug Status Summary
+
+| Bug | Status | Notes |
+|-----|--------|-------|
+| GOO-198 UBIFeeSplitter.claimableBalance() revert | STILL OPEN | 6 iterations unresolved |
+| GOO-199 CollateralVault decimal mismatch | STILL OPEN | Not retested |
+| GOO-205 UBIFeeHook poolManager=0x1 | STILL OPEN | Not retested |
+| GOO-214 ConditionalTokens address mismatch | STILL OPEN | Not retested |
+| GOO-223 PriceOracle getPrice(bytes32) | RESOLVED | Both overloads confirmed |
+| GOO-224 PerpEngine markets 2-5 | CONFIRMED OPEN | Revert before state change, no fund lock |
+
+## Open Items for Iteration 7
+
+1. ValidatorStaking.completeUnstake() ready ~2026-04-11 (6d 21h remaining)
+2. PerpEngine real liquidation (needs deployer oracle write access)
+3. GOO-224 fix: register SOL/BNB/MATIC/ARB in oracle or complete PerpPriceOracle migration
+4. GoodDAO castVote on proposal 1 (voting opens after 2026-04-05 18:00 UTC)
+5. OptimisticResolver deploy and test
+6. GOO-198 fix: setUBIRecipient() from deployer key

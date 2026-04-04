@@ -264,3 +264,32 @@
 {"timestamp":"2026-04-04T02:09:13.826Z","page":"lend","check":"page_loads_with_content","passed":true,"detail":"Has disclaimer"}
 {"timestamp":"2026-04-04T02:09:14.384Z","page":"stable","check":"page_loads_with_content","passed":true,"detail":"Stable UI visible"}
 {"timestamp":"2026-04-04T02:09:14.947Z","page":"stocks","check":"empty_oracle_graceful","passed":true,"detail":"Empty state handled"}
+{"timestamp":"2026-04-04T04:02:21.141Z","page":"home","check":"page_loads","passed":true,"detail":"GoodDollar — DeFi That Funds UBI"}
+{"timestamp":"2026-04-04T04:02:21.154Z","page":"home","check":"no_errors","passed":true}
+{"timestamp":"2026-04-04T04:02:21.158Z","page":"home","check":"swap_ui_present","passed":true,"detail":"Found"}
+{"timestamp":"2026-04-04T04:02:21.740Z","page":"stocks","check":"no_mock_data","passed":true}
+{"timestamp":"2026-04-04T04:02:21.740Z","page":"stocks","check":"has_content","passed":true,"detail":"457 chars"}
+{"timestamp":"2026-04-04T04:02:22.298Z","page":"predict","check":"has_market_data","passed":true,"detail":"Markets visible"}
+{"timestamp":"2026-04-04T04:02:22.859Z","page":"perps","check":"no_broken_prices","passed":true,"detail":"Prices look real"}
+{"timestamp":"2026-04-04T04:02:24.693Z","page":"explorer","check":"page_loads","passed":true,"detail":"GoodDollar L2 blockchain explorer - View GoodDollar L2 stats | Blockscout"}
+{"timestamp":"2026-04-04T04:02:24.695Z","page":"explorer","check":"shows_blocks","passed":true}
+{"timestamp":"2026-04-04T04:02:28.087Z","page":"explorer/address","check":"no_error_banner","passed":true,"detail":"Clean"}
+{"timestamp":"2026-04-04T04:02:28.088Z","page":"explorer/address","check":"transactions_visible","passed":false,"detail":"Only address hash (GOO-193/194 pending)"}
+{"timestamp":"2026-04-04T04:02:28.666Z","page":"mobile","check":"no_horizontal_scroll","passed":false}
+{"timestamp":"2026-04-04T04:02:29.240Z","page":"bridge","check":"page_loads","passed":true,"detail":"GoodDollar — DeFi That Funds UBI"}
+{"timestamp":"2026-04-04T04:02:29.241Z","page":"bridge","check":"has_bridge_content","passed":true,"detail":"Bridge UI visible"}
+{"timestamp":"2026-04-04T04:02:29.806Z","page":"pool","check":"page_loads","passed":true,"detail":"GoodDollar — DeFi That Funds UBI"}
+{"timestamp":"2026-04-04T04:02:29.808Z","page":"pool","check":"has_pool_content","passed":true,"detail":"Pool UI visible"}
+{"timestamp":"2026-04-04T04:02:30.398Z","page":"no_wallet","check":"no_runtime_errors","passed":true,"detail":"Clean"}
+{"timestamp":"2026-04-04T04:02:30.412Z","page":"no_wallet","check":"connect_wallet_present","passed":true,"detail":"Button found"}
+{"timestamp":"2026-04-04T04:02:32.986Z","page":"perps_content","check":"ui_renders","passed":true,"detail":"bodyLen=165"}
+{"timestamp":"2026-04-04T04:02:33.561Z","page":"nav","check":"nav_links_present","passed":true,"detail":"Found: /stocks,/predict,/perps,/bridge"}
+{"timestamp":"2026-04-04T04:02:34.655Z","page":"infra","check":"js_and_css_load","passed":false,"detail":"7 chunks 404"}
+{"timestamp":"2026-04-04T04:02:36.727Z","page":"explore","check":"token_list_loads","passed":true,"detail":"Prices visible"}
+{"timestamp":"2026-04-04T04:02:37.295Z","page":"lend","check":"page_loads_with_content","passed":true,"detail":"Has disclaimer"}
+{"timestamp":"2026-04-04T04:02:37.865Z","page":"stable","check":"page_loads_with_content","passed":true,"detail":"Stable UI visible"}
+{"timestamp":"2026-04-04T04:02:38.431Z","page":"stocks","check":"empty_oracle_graceful","passed":true,"detail":"Empty state handled"}
+{"timestamp":"2026-04-04T04:02:39.253Z","page":"activity","check":"page_loads_with_content","passed":true,"detail":"UI visible (183 chars)"}
+{"timestamp":"2026-04-04T04:02:39.859Z","page":"governance","check":"page_loads_with_content","passed":true,"detail":"UI visible (370 chars)"}
+{"timestamp":"2026-04-04T04:02:40.443Z","page":"ubi-impact","check":"page_loads_with_content","passed":false,"detail":"No content"}
+{"timestamp":"2026-04-04T04:02:41.062Z","page":"portfolio","check":"page_loads_with_content","passed":true,"detail":"UI visible (355 chars)"}

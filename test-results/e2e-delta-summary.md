@@ -15,13 +15,15 @@
 | 9 | 2026-04-04T00:05Z | 25 | 23 | 2 | 92.0% | GOO-209+202 fixed |
 | 10 | 2026-04-04T00:25Z | 24 | 20 | 4 | 83.3% | **GOO-219 detected** |
 | 11 | 2026-04-04T02:08Z | 25 | 22 | 3 | 88.0% | **GOO-233: 6 chunks 400** + GOO-232 filed |
+| 12 | 2026-04-04T04:01Z | 29 | 25 | 4 | 86.2% | +4 new tests; **GOO-236: /ubi-impact 404** |
 
-## Current Failures (Run 11)
+## Current Failures (Run 12)
 
 | Page | Check | Status | Root Cause | Ticket |
 |------|-------|--------|------------|--------|
 | infra | js_and_css_load | 🚨 HIGH | 6 App Router chunks returning 400 (incomplete deploy) | [GOO-233](/GOO/issues/GOO-233) |
 | mobile | no_horizontal_scroll | 🚨 HIGH | JS broken → RainbowKit missing → Tailwind also suspect | [GOO-233](/GOO/issues/GOO-233) |
+| ubi-impact | page_loads_with_content | 🚨 HIGH | Route not in current deployment (GOO-227 missing from build) | [GOO-236](/GOO/issues/GOO-236) |
 | explorer/address | transactions_visible | Known bug | Blockscout infra issue | [GOO-193](/GOO/issues/GOO-193) |
 
 ## 🚨 NEW: GOO-219 — Tailwind Utility CSS Missing
@@ -57,6 +59,7 @@ Deployed CSS files on goodswap.goodclaw.org:
 | [GOO-219](/GOO/issues/GOO-219) | Tailwind utilities missing from deploy | done | high |
 | [GOO-232](/GOO/issues/GOO-232) | **CSP connect-src missing rpc.goodclaw.org** | backlog → FE | high |
 | [GOO-233](/GOO/issues/GOO-233) | **6 App Router chunks 400 (incomplete deploy)** | backlog → FE | high |
+| [GOO-236](/GOO/issues/GOO-236) | **/ubi-impact route 404 (GOO-227 missing from build)** | backlog → FE | medium |
 
 ## All Bugs History
 
@@ -74,6 +77,7 @@ Deployed CSS files on goodswap.goodclaw.org:
 | [GOO-219](/GOO/issues/GOO-219) | Tailwind utilities missing | done |
 | [GOO-232](/GOO/issues/GOO-232) | **CSP connect-src missing rpc.goodclaw.org** | backlog |
 | [GOO-233](/GOO/issues/GOO-233) | **6 App Router chunks 400 (incomplete deploy)** | backlog |
+| [GOO-236](/GOO/issues/GOO-236) | **/ubi-impact route 404 (GOO-227 missing from build)** | backlog |
 
 ## 🚨 NEW: GOO-232 — CSP connect-src Missing rpc.goodclaw.org
 
@@ -109,7 +113,7 @@ connect-src 'self' https://*.alchemyapi.io https://*.g.alchemy.com wss://*.alche
 - StocksPriceOracle: 12 tickers live (AAPL $178.72 ... AMD $162.35)
 - `rpc.goodclaw.org` = `localhost:8545` (same chain)
 
-## Test Coverage (24 tests)
+## Test Coverage (29 tests)
 
 | Category | Tests | Passing | Notes |
 |----------|-------|---------|-------|
@@ -124,7 +128,11 @@ connect-src 'self' https://*.alchemyapi.io https://*.g.alchemy.com wss://*.alche
 | Lend | 1 | 1 | Disclaimer added |
 | Stable | 1 | 1 | |
 | No-wallet state | 2 | 2 | |
-| Explorer home | 1 | 0 | Timeout (transient) |
+| Activity | 1 | 1 | Loads (RPC calls blocked by CSP GOO-232) |
+| Governance | 1 | 1 | Loads (on-chain data blocked by CSP GOO-232) |
+| UBI Impact | 1 | 0 | Route 404 — GOO-236 (not in current deploy) |
+| Portfolio | 1 | 1 | Loads |
+| Explorer home | 1 | 1 | Fixed (load vs networkidle) |
 | Explorer address | 2 | 1 | 1 fails GOO-193/194 |
-| Mobile responsive | 1 | 0 | GOO-219 |
-| Infra (JS+CSS) | 1 | 0 | GOO-219 |
+| Mobile responsive | 1 | 0 | GOO-233 (chunks 400) |
+| Infra (JS+CSS) | 1 | 0 | GOO-233 (chunks 400) |
