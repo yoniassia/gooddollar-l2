@@ -56,6 +56,9 @@ contract PegStabilityModule {
     // Stats
     uint256 public totalUSDCReserves;
     uint256 public totalFeesCollected;
+    /// @dev Tracks gUSD minted by this PSM only (excludes VaultManager-minted gUSD).
+    ///      Used for solvency check in withdrawReserves.
+    uint256 public psmMintedGUSD;
 
     // ============ Reentrancy ============
 
@@ -139,8 +142,10 @@ contract PegStabilityModule {
     function withdrawReserves(address to, uint256 usdcAmount) external onlyAdmin {
         require(to != address(0), "PSM: zero address");
         require(usdcAmount <= totalUSDCReserves, "PSM: exceeds reserves");
-        // Enforce minimum backing: remaining reserves must cover all outstanding gUSD
-        uint256 minUSDC = gusd.totalSupply() / SCALE;
+        // Enforce minimum backing: remaining reserves must cover PSM-originated gUSD only.
+        // Using psmMintedGUSD (not gusd.totalSupply()) because VaultManager also mints gUSD
+        // backed by collateral — those are not the PSM's obligation.
+        uint256 minUSDC = psmMintedGUSD / SCALE;
         require(totalUSDCReserves - usdcAmount >= minUSDC, "PSM: undercollateralized");
         totalUSDCReserves -= usdcAmount;
         require(usdc.transfer(to, usdcAmount), "PSM: transfer failed");
@@ -180,6 +185,8 @@ contract PegStabilityModule {
 
         // Mint gUSD to user
         gusd.mint(msg.sender, gusdOut);
+        // Track PSM-originated gUSD: user portion enters circulation backed by USDC
+        psmMintedGUSD += gusdOut;
 
         // Mint fee gUSD and route through UBIFeeSplitter
         if (fee > 0) {
@@ -187,6 +194,9 @@ contract PegStabilityModule {
             gusd.approve(address(feeSplitter), fee);
             feeSplitter.splitFeeToken(fee, address(this), address(gusd));
             totalFeesCollected += fee;
+            // Fee gUSD is minted and immediately distributed — track only the
+            // dApp share that returns to PSM, but for simplicity we do NOT add
+            // fee to psmMintedGUSD since it is never redeemable via this PSM.
         }
 
         emit SwapUSDCForGUSD(msg.sender, usdcAmount, gusdOut, fee);
@@ -218,6 +228,10 @@ contract PegStabilityModule {
 
         // Burn the net gUSD (backing the USDC we're releasing)
         gusd.burn(netGUSD);
+        // Reduce PSM-minted tracker by the user-portion that was minted (gusdOut from the
+        // original swap). We use netGUSD as a conservative proxy: the burned gUSD returns
+        // the USDC backing. Fee portion is capped separately; clamp to zero to avoid underflow.
+        psmMintedGUSD = psmMintedGUSD >= netGUSD ? psmMintedGUSD - netGUSD : 0;
 
         // Route fee through UBIFeeSplitter
         if (fee > 0) {

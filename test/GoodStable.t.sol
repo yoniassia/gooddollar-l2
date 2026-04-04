@@ -502,6 +502,79 @@ contract GoodStableTest is Test {
         assertGt(feeSplitter.totalReceived(), feesBefore, "fee splitter received fees");
     }
 
+    function test_PSM_WithdrawReserves_Normal() public {
+        // Alice deposits 2000 USDC; psmMintedGUSD tracks her minted gUSD
+        vm.startPrank(alice);
+        usdc.approve(address(psm), 2000e6);
+        psm.swapUSDCForGUSD(2000e6);
+        vm.stopPrank();
+
+        // Alice redeems 1000 gUSD back for USDC, reducing psmMintedGUSD
+        uint256 gusdIn = 1000e18;
+        vm.startPrank(alice);
+        gusd.approve(address(psm), gusdIn);
+        psm.swapGUSDForUSDC(gusdIn);
+        vm.stopPrank();
+
+        // At this point ~999 USDC went back to alice; PSM holds ~1001 USDC
+        // psmMintedGUSD ≈ 999e18 (alice's remaining gUSD from first swap minus fee)
+        // Admin should be able to withdraw any USDC above minUSDC = psmMintedGUSD / SCALE
+        uint256 reserves = psm.totalUSDCReserves();
+        uint256 minUSDC = psm.psmMintedGUSD() / 1e12;
+        uint256 surplus = reserves > minUSDC ? reserves - minUSDC : 0;
+
+        if (surplus > 0) {
+            vm.prank(admin);
+            psm.withdrawReserves(treasury, surplus);
+            assertEq(psm.totalUSDCReserves(), minUSDC, "reserves should equal minUSDC after withdrawal");
+        }
+    }
+
+    function test_PSM_WithdrawReserves_RevertsWhenUndercollateralized() public {
+        vm.startPrank(alice);
+        usdc.approve(address(psm), 1000e6);
+        psm.swapUSDCForGUSD(1000e6);
+        vm.stopPrank();
+
+        // psmMintedGUSD ≈ 999e18 (user's gUSD), minUSDC = 999
+        // totalUSDCReserves = 1000 — surplus is only ~1 USDC
+        // Attempting to withdraw 500 USDC should revert (would undercollateralize)
+        vm.prank(admin);
+        vm.expectRevert("PSM: undercollateralized");
+        psm.withdrawReserves(treasury, 500e6);
+    }
+
+    function test_PSM_WithdrawReserves_NotBlockedByVaultManagerGUSD() public {
+        // VaultManager mints a large amount of collateral-backed gUSD
+        // (simulate by directly calling mint as admin/minter after authorizing)
+        vm.startPrank(admin);
+        gusd.setMinter(admin, true);
+        gusd.mint(bob, 1_000_000e18); // 1M gUSD minted by "VaultManager" (simulated)
+        vm.stopPrank();
+
+        // PSM has modest reserves
+        vm.startPrank(alice);
+        usdc.approve(address(psm), 1000e6);
+        psm.swapUSDCForGUSD(1000e6);
+        vm.stopPrank();
+
+        // gusd.totalSupply() is now ~1,001,000e18 but psmMintedGUSD ≈ 999e18
+        // Old (buggy) check: minUSDC = totalSupply / SCALE = 1,001,000 → always reverts
+        // New (correct) check: minUSDC = psmMintedGUSD / SCALE ≈ 999 → withdrawal possible
+
+        uint256 reserves = psm.totalUSDCReserves();
+        uint256 minUSDC  = psm.psmMintedGUSD() / 1e12;
+        uint256 surplus  = reserves > minUSDC ? reserves - minUSDC : 0;
+
+        // Should NOT revert — VaultManager gUSD does not block PSM withdrawal
+        if (surplus > 0) {
+            vm.prank(admin);
+            psm.withdrawReserves(treasury, surplus);
+        }
+        // Confirm totalSupply is much larger than PSM reserves (test premise)
+        assertGt(gusd.totalSupply() / 1e12, psm.totalUSDCReserves(), "totalSupply >> PSM reserves");
+    }
+
     // ============================================================
     // Section 5: Stability Pool — deposit / withdraw / claim
     // ============================================================
