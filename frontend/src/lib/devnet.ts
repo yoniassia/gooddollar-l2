@@ -111,6 +111,11 @@ export const CONTRACTS = {
   // ── GoodYield — VaultFactory (chain 42069), deployed 2026-04-04 (GOO-240) ──
   VaultFactory:          '0x0b27a79cb9c0b38ee06ca3d94daa68e0ed17f953' as `0x${string}`,
 
+  // ── GoodYield Initial Vaults — deployed 2026-04-04 (GOO-242) ──
+  ETHLendingVault:       '0xa6AB86f760ae5D6fbF06056a7887b816610A4668' as `0x${string}`,
+  GUSDStabilityVault:    '0x6BdBEc8Be23eB0F4A1aeF4B4dDf85bdfF0BdbF97' as `0x${string}`,
+  GDLendingVault:        '0xAD438cEf9a586FcCF01a521bce9465e500a4259E' as `0x${string}`,
+
   // ── QA TestRegistry — deployed (chain 42069), 2026-04-03 ─────────────────
   TestRegistry:          '0x12bcb546bc60ff39f1adfc7ce4605d5bd6a6a876' as `0x${string}`,
 } as const

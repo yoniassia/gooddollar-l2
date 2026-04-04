@@ -34,6 +34,11 @@ export const ADDRESSES = {
 
   // Yield Vaults
   VaultFactory: '0x0b27a79cb9C0B38eE06Ca3d94DAA68e0Ed17F953',
+
+  // GoodYield Initial Vaults (GOO-242)
+  ETHLendingVault: '0xa6AB86f760ae5D6fbF06056a7887b816610A4668',
+  GUSDStabilityVault: '0x6BdBEc8Be23eB0F4A1aeF4B4dDf85bdfF0BdbF97',
+  GDLendingVault: '0xAD438cEf9a586FcCF01a521bce9465e500a4259E',
 } as const
 
 export type ContractName = keyof typeof ADDRESSES

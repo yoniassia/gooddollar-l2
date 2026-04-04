@@ -169,8 +169,8 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Deploy VaultFactory on devnet + verify on Blockscout
 - [x] Frontend: /yield page with vault browser, deposit/withdraw, APY display
 - [x] SDK: yield module with vault discovery + deposit/withdraw helpers
-- [ ] Harvest keeper (auto-compound on schedule)
-- [ ] Deploy initial vaults: ETH-Lending, gUSD-Stability, G$-Lending
+- [x] Harvest keeper (auto-compound on schedule) — backend/harvest-keeper with discovery, decision engine, execution + 18 tests (GOO-242)
+- [x] Deploy initial vaults: ETH-Lending, gUSD-Stability, G$-Lending — DeployInitialVaults.s.sol + 22 Solidity tests (GOO-242)
 **Research:** Study Yearn V3 (https://github.com/yearn/yearn-vaults-v3), ERC-4626 standard
 
 ## Principles
