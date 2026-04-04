@@ -2,15 +2,7 @@ import {
   createPublicClient,
   createWalletClient,
   http,
-  type PublicClient,
-  type WalletClient,
-  type Transport,
-  type Chain,
-  type Account,
   type Address,
-  parseEther,
-  formatEther,
-  formatUnits,
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { ADDRESSES, CHAIN_CONFIG } from './addresses'
@@ -26,7 +18,7 @@ import {
 } from './abis'
 
 /** GoodDollar L2 chain definition for viem */
-export const gooddollarL2: Chain = {
+export const gooddollarL2 = {
   id: CHAIN_CONFIG.id,
   name: CHAIN_CONFIG.name,
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
@@ -36,7 +28,7 @@ export const gooddollarL2: Chain = {
   blockExplorers: {
     default: { name: 'Blockscout', url: CHAIN_CONFIG.explorerUrl },
   },
-}
+} as const
 
 export interface GoodDollarSDKConfig {
   /** RPC URL (default: http://localhost:8545) */
@@ -51,12 +43,15 @@ export interface GoodDollarSDKConfig {
  * Usage:
  *   const sdk = new GoodDollarSDK({ privateKey: '0x...' })
  *   const balance = await sdk.getBalance('GoodDollarToken')
- *   await sdk.perps.openLong(0, parseEther('1'))
+ *   await sdk.perps.openLong(0n, parseEther('1'))
  */
 export class GoodDollarSDK {
-  public readonly publicClient: PublicClient
-  public readonly walletClient: WalletClient | null
-  public readonly account: Account | null
+  /** viem public client for read operations */
+  public readonly publicClient: any
+  /** viem wallet client for write operations (null in read-only mode) */
+  public readonly walletClient: any
+  /** Account derived from private key (null in read-only mode) */
+  public readonly account: any
 
   public readonly swap: SwapModule
   public readonly perps: PerpsModule
@@ -69,12 +64,15 @@ export class GoodDollarSDK {
     const rpcUrl = config.rpcUrl ?? CHAIN_CONFIG.rpcUrl
     const transport = http(rpcUrl)
 
-    this.publicClient = createPublicClient({ chain: gooddollarL2, transport })
+    this.publicClient = createPublicClient({
+      chain: gooddollarL2 as any,
+      transport,
+    })
 
     if (config.privateKey) {
       this.account = privateKeyToAccount(config.privateKey)
       this.walletClient = createWalletClient({
-        chain: gooddollarL2,
+        chain: gooddollarL2 as any,
         transport,
         account: this.account,
       })
@@ -110,7 +108,7 @@ export class GoodDollarSDK {
       abi: ERC20ABI,
       functionName: 'balanceOf',
       args: [address ?? this.address],
-    }) as Promise<bigint>
+    })
   }
 
   /** Get balance of a known token by name */
@@ -121,13 +119,12 @@ export class GoodDollarSDK {
   /** Approve token spending */
   async approve(token: Address, spender: Address, amount: bigint): Promise<`0x${string}`> {
     if (!this.walletClient || !this.account) throw new Error('Write operations need a private key')
-    const hash = await this.walletClient.writeContract({
+    return this.walletClient.writeContract({
       address: token,
       abi: ERC20ABI,
       functionName: 'approve',
       args: [spender, amount],
     })
-    return hash
   }
 
   /** Wait for transaction confirmation */
@@ -141,7 +138,6 @@ export class GoodDollarSDK {
 class PerpsModule {
   constructor(private sdk: GoodDollarSDK) {}
 
-  /** Deposit margin into MarginVault */
   async depositMargin(amount: bigint): Promise<`0x${string}`> {
     if (!this.sdk.walletClient) throw new Error('Read-only')
     return this.sdk.walletClient.writeContract({
@@ -152,7 +148,6 @@ class PerpsModule {
     })
   }
 
-  /** Open a long position */
   async openLong(marketId: bigint, size: bigint, minPrice = 0n): Promise<`0x${string}`> {
     if (!this.sdk.walletClient) throw new Error('Read-only')
     return this.sdk.walletClient.writeContract({
@@ -163,7 +158,6 @@ class PerpsModule {
     })
   }
 
-  /** Open a short position */
   async openShort(marketId: bigint, size: bigint, maxPrice = BigInt(2) ** BigInt(128)): Promise<`0x${string}`> {
     if (!this.sdk.walletClient) throw new Error('Read-only')
     return this.sdk.walletClient.writeContract({
@@ -174,7 +168,6 @@ class PerpsModule {
     })
   }
 
-  /** Close a position */
   async closePosition(marketId: bigint): Promise<`0x${string}`> {
     if (!this.sdk.walletClient) throw new Error('Read-only')
     return this.sdk.walletClient.writeContract({
@@ -185,7 +178,6 @@ class PerpsModule {
     })
   }
 
-  /** Get position details */
   async getPosition(marketId: bigint, user?: Address) {
     const result = await this.sdk.publicClient.readContract({
       address: ADDRESSES.PerpEngine as Address,
@@ -197,40 +189,36 @@ class PerpsModule {
     return { size, entryPrice, isLong, collateral }
   }
 
-  /** Get unrealized PnL */
   async getUnrealizedPnL(marketId: bigint, user?: Address): Promise<bigint> {
     return this.sdk.publicClient.readContract({
       address: ADDRESSES.PerpEngine as Address,
       abi: PerpEngineABI,
       functionName: 'unrealizedPnL',
       args: [user ?? this.sdk.address, marketId],
-    }) as Promise<bigint>
+    })
   }
 
-  /** Get market count */
   async getMarketCount(): Promise<bigint> {
     return this.sdk.publicClient.readContract({
       address: ADDRESSES.PerpEngine as Address,
       abi: PerpEngineABI,
       functionName: 'marketCount',
-    }) as Promise<bigint>
+    })
   }
 
-  /** Get margin balance */
   async getMarginBalance(user?: Address): Promise<bigint> {
     return this.sdk.publicClient.readContract({
       address: ADDRESSES.MarginVault as Address,
       abi: MarginVaultABI,
       functionName: 'balances',
       args: [user ?? this.sdk.address],
-    }) as Promise<bigint>
+    })
   }
 }
 
 class PredictModule {
   constructor(private sdk: GoodDollarSDK) {}
 
-  /** Buy YES or NO tokens */
   async buy(marketId: bigint, isYES: boolean, amount: bigint): Promise<`0x${string}`> {
     if (!this.sdk.walletClient) throw new Error('Read-only')
     return this.sdk.walletClient.writeContract({
@@ -241,7 +229,6 @@ class PredictModule {
     })
   }
 
-  /** Redeem tokens after resolution */
   async redeem(marketId: bigint, amount: bigint): Promise<`0x${string}`> {
     if (!this.sdk.walletClient) throw new Error('Read-only')
     return this.sdk.walletClient.writeContract({
@@ -252,7 +239,6 @@ class PredictModule {
     })
   }
 
-  /** Create a prediction market */
   async createMarket(question: string, endTime: bigint, resolver: Address): Promise<`0x${string}`> {
     if (!this.sdk.walletClient) throw new Error('Read-only')
     return this.sdk.walletClient.writeContract({
@@ -263,7 +249,6 @@ class PredictModule {
     })
   }
 
-  /** Get market details */
   async getMarket(marketId: bigint) {
     const result = await this.sdk.publicClient.readContract({
       address: ADDRESSES.MarketFactory as Address,
@@ -275,30 +260,27 @@ class PredictModule {
     return { question, endTime, status, totalYES, totalNO, collateral }
   }
 
-  /** Get total market count */
   async getMarketCount(): Promise<bigint> {
     return this.sdk.publicClient.readContract({
       address: ADDRESSES.MarketFactory as Address,
       abi: MarketFactoryABI,
       functionName: 'marketCount',
-    }) as Promise<bigint>
+    })
   }
 
-  /** Get implied YES probability (basis points) */
   async getYesProbability(marketId: bigint): Promise<bigint> {
     return this.sdk.publicClient.readContract({
       address: ADDRESSES.MarketFactory as Address,
       abi: MarketFactoryABI,
       functionName: 'impliedProbabilityYES',
       args: [marketId],
-    }) as Promise<bigint>
+    })
   }
 }
 
 class LendModule {
   constructor(private sdk: GoodDollarSDK) {}
 
-  /** Supply an asset to the lending pool */
   async supply(asset: Address, amount: bigint): Promise<`0x${string}`> {
     if (!this.sdk.walletClient) throw new Error('Read-only')
     return this.sdk.walletClient.writeContract({
@@ -309,7 +291,6 @@ class LendModule {
     })
   }
 
-  /** Withdraw from lending pool */
   async withdraw(asset: Address, amount: bigint): Promise<`0x${string}`> {
     if (!this.sdk.walletClient) throw new Error('Read-only')
     return this.sdk.walletClient.writeContract({
@@ -320,7 +301,6 @@ class LendModule {
     })
   }
 
-  /** Borrow from lending pool */
   async borrow(asset: Address, amount: bigint): Promise<`0x${string}`> {
     if (!this.sdk.walletClient) throw new Error('Read-only')
     return this.sdk.walletClient.writeContract({
@@ -331,7 +311,6 @@ class LendModule {
     })
   }
 
-  /** Repay a loan */
   async repay(asset: Address, amount: bigint): Promise<`0x${string}`> {
     if (!this.sdk.walletClient) throw new Error('Read-only')
     return this.sdk.walletClient.writeContract({
@@ -342,7 +321,6 @@ class LendModule {
     })
   }
 
-  /** Get user's lending account data */
   async getAccountData(user?: Address) {
     const result = await this.sdk.publicClient.readContract({
       address: ADDRESSES.GoodLendPool as Address,
@@ -354,7 +332,6 @@ class LendModule {
     return { healthFactor, totalCollateralUSD, totalDebtUSD }
   }
 
-  /** Get reserve data for an asset */
   async getReserveData(asset: Address) {
     const result = await this.sdk.publicClient.readContract({
       address: ADDRESSES.GoodLendPool as Address,
@@ -370,7 +347,6 @@ class LendModule {
 class StocksModule {
   constructor(private sdk: GoodDollarSDK) {}
 
-  /** Mint synthetic stock (deposit collateral + mint) */
   async mint(ticker: string, collateralAmount: bigint, syntheticAmount: bigint): Promise<`0x${string}`> {
     if (!this.sdk.walletClient) throw new Error('Read-only')
     return this.sdk.walletClient.writeContract({
@@ -381,7 +357,6 @@ class StocksModule {
     })
   }
 
-  /** Burn synthetic stock and reclaim collateral */
   async burn(ticker: string, amount: bigint): Promise<`0x${string}`> {
     if (!this.sdk.walletClient) throw new Error('Read-only')
     return this.sdk.walletClient.writeContract({
@@ -392,7 +367,6 @@ class StocksModule {
     })
   }
 
-  /** Get position for a synthetic stock */
   async getPosition(ticker: string, user?: Address) {
     const result = await this.sdk.publicClient.readContract({
       address: ADDRESSES.CollateralVault as Address,
@@ -404,68 +378,62 @@ class StocksModule {
     return { collateral: userCollateral, debt: userDebt, ratio }
   }
 
-  /** List all available synthetic tickers */
   async listTickers(): Promise<string[]> {
     return this.sdk.publicClient.readContract({
       address: ADDRESSES.SyntheticAssetFactory as Address,
       abi: SyntheticAssetFactoryABI,
       functionName: 'allTickers',
-    }) as Promise<string[]>
+    })
   }
 
-  /** Get token address for a ticker */
   async getTokenAddress(ticker: string): Promise<Address> {
     return this.sdk.publicClient.readContract({
       address: ADDRESSES.SyntheticAssetFactory as Address,
       abi: SyntheticAssetFactoryABI,
       functionName: 'getAsset',
       args: [ticker],
-    }) as Promise<Address>
+    })
   }
 }
 
 class SwapModule {
   constructor(private sdk: GoodDollarSDK) {}
 
-  /** Get UBI fee for a swap amount */
   async getUBIFee(amount: bigint): Promise<bigint> {
     return this.sdk.publicClient.readContract({
       address: ADDRESSES.UBIFeeHook as Address,
       abi: UBIFeeHookABI,
       functionName: 'calculateUBIFee',
       args: [amount],
-    }) as Promise<bigint>
+    })
   }
 
-  /** Get total swaps processed */
   async getTotalSwaps(): Promise<bigint> {
     return this.sdk.publicClient.readContract({
       address: ADDRESSES.UBIFeeHook as Address,
       abi: UBIFeeHookABI,
       functionName: 'totalSwapsProcessed',
-    }) as Promise<bigint>
+    })
   }
 }
 
 class UBIModule {
   constructor(private sdk: GoodDollarSDK) {}
 
-  /** Get total UBI fees collected for a token */
   async getTotalFees(token: Address): Promise<bigint> {
     return this.sdk.publicClient.readContract({
       address: ADDRESSES.UBIFeeHook as Address,
       abi: UBIFeeHookABI,
       functionName: 'totalUBIFees',
       args: [token],
-    }) as Promise<bigint>
+    })
   }
 
-  /** Get total swaps processed through UBI hook */
   async getTotalSwaps(): Promise<bigint> {
     return this.sdk.publicClient.readContract({
       address: ADDRESSES.UBIFeeHook as Address,
       abi: UBIFeeHookABI,
       functionName: 'totalSwapsProcessed',
-    }) as Promise<bigint>
+    })
   }
 }

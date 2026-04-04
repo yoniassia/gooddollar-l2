@@ -11,11 +11,14 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "jest --no-cache",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm test"
   },
   "dependencies": {
     "viem": "^2.21.0"
@@ -26,6 +29,22 @@
     "ts-jest": "^29.2.0",
     "typescript": "^5.6.0"
   },
-  "keywords": ["gooddollar", "l2", "agent", "sdk", "defi", "ubi"],
-  "license": "MIT"
+  "keywords": [
+    "gooddollar",
+    "l2",
+    "agent",
+    "sdk",
+    "defi",
+    "ubi"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yoniassia/gooddollar-l2.git",
+    "directory": "sdk"
+  },
+  "homepage": "https://github.com/yoniassia/gooddollar-l2/tree/main/sdk#readme",
+  "engines": {
+    "node": ">=18"
+  }
 }
