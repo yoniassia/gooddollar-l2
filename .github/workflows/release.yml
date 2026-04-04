@@ -1,0 +1,35 @@
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # Trigger deploy when a release is created
+  trigger-deploy:
+    name: Trigger Deploy
+    needs: [release-please]
+    if: ${{ needs.release-please.outputs.release_created }}
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}
+      version: ${{ needs.release-please.outputs.version }}
