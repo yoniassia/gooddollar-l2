@@ -219,6 +219,11 @@ contract UBIRevenueTracker {
         admin = newAdmin;
     }
 
+    function setFeeSplitter(address _feeSplitter) external onlyAdmin {
+        require(_feeSplitter != address(0), "zero address");
+        feeSplitter = IUBIFeeSplitterStats(_feeSplitter);
+    }
+
     // ============ Internal ============
 
     function _activeCount() internal view returns (uint256 count) {
