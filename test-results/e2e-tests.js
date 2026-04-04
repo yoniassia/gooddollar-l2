@@ -849,7 +849,31 @@ async function run() {
     await page.close();
   } catch (e) { totalTests++; failed++; logResult({ page: 'activity', check: 'live_block_data', passed: false, detail: e.message }); }
 
-  // ═══ TEST 36: 404 / not-found page renders correctly ═══
+  // ═══ TEST 36: Perps trading UI renders (BLOCKED: GOO-276) ═══
+  // The perps page is pure 'use client'. GOO-276 blocks React hydration, so the
+  // entire trading UI (prices, chart, order form, pairs) is invisible.
+  // Will auto-pass once unsafe-inline is in script-src.
+  try {
+    const page = await context.newPage();
+    const rpcCalls = [];
+    page.on('request', req => { if (req.url().includes('rpc.goodclaw.org')) rpcCalls.push(1); });
+    await page.goto(`${FRONTEND_URL}/perps`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.waitForTimeout(3000);
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      const hasPairs = /BTC|ETH|SOL|LINK/i.test(t);
+      const hasMarkPrice = /mark\s*price|\$[\d,]+\.\d{2}/i.test(t);
+      const hasOrderForm = /long|short|leverage/i.test(t);
+      return { hasPairs, hasMarkPrice, hasOrderForm, bodyLen: t.trim().length };
+    });
+    const hasUI = rpcCalls.length > 0 && d.hasPairs && (d.hasMarkPrice || d.hasOrderForm);
+    logResult({ page: 'perps', check: 'trading_ui_renders', passed: hasUI, detail: rpcCalls.length === 0 ? `No RPC — GOO-276 blocks full trading UI (bodyLen=${d.bodyLen})` : `pairs=${d.hasPairs} price=${d.hasMarkPrice} form=${d.hasOrderForm}` });
+    if (hasUI) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'perps', check: 'trading_ui_renders', passed: false, detail: e.message }); }
+
+  // ═══ TEST 37: 404 / not-found page renders correctly ═══
   try {
     const page = await context.newPage();
     await page.goto(`${FRONTEND_URL}/this-page-does-not-exist-xyz123`, { waitUntil: 'load', timeout: 30000 });
@@ -880,7 +904,27 @@ async function run() {
     await page.close();
   } catch (e) { totalTests++; failed++; logResult({ page: 'swap', check: 'redirects_to_home', passed: false, detail: e.message }); }
 
-  // ═══ TEST 38: Homepage meta tags present (SEO / share previews) ═══
+  // ═══ TEST 38: Lend page shows market table with APY values ═══
+  // Lend page uses mock fallback data — should show market table even without on-chain reads.
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/lend`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.waitForTimeout(1000);
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      const apyMatches = t.match(/\d+\.\d+%/g) || [];
+      const hasMarketTable = /WETH|WBTC|USDC/i.test(t);
+      const hasBroken = /NaN|undefined|TypeError|\[object/.test(t);
+      return { apyCount: apyMatches.length, hasMarketTable, hasBroken, sampleAPY: apyMatches.slice(0, 2) };
+    });
+    const ok = d.hasMarketTable && d.apyCount >= 2 && !d.hasBroken;
+    logResult({ page: 'lend', check: 'market_table_with_apys', passed: ok, detail: ok ? `${d.apyCount} APY values, markets present (${d.sampleAPY.join(', ')})` : `Missing: table=${d.hasMarketTable} apys=${d.apyCount} broken=${d.hasBroken}` });
+    if (ok) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'lend', check: 'market_table_with_apys', passed: false, detail: e.message }); }
+
+  // ═══ TEST 40: Homepage meta tags present (SEO / share previews) ═══
   try {
     const page = await context.newPage();
     await page.goto(FRONTEND_URL, { waitUntil: 'load', timeout: 30000 });
