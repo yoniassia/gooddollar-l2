@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useAgentDashboard, useTopAgents } from '@/lib/useAgentLeaderboard'
 
 function StatCard({ label, value, icon }: { label: string; value: string | number; icon: string }) {
@@ -76,7 +77,7 @@ export default function AgentsPage() {
                 {agents.map((agent) => (
                   <tr
                     key={agent.address}
-                    className={`border-b border-gray-700/10 hover:bg-white/[0.03] transition-colors ${
+                    className={`border-b border-gray-700/10 hover:bg-white/[0.03] transition-colors cursor-pointer ${
                       agent.rank <= 3 ? 'bg-goodgreen/[0.02]' : ''
                     }`}
                   >
@@ -84,17 +85,17 @@ export default function AgentsPage() {
                       <RankBadge rank={agent.rank} />
                     </td>
                     <td className="py-3 px-3">
-                      <div className="flex items-center gap-2">
+                      <Link href={`/agents/${agent.address}`} className="flex items-center gap-2 group">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-goodgreen/30 to-blue-500/30 flex items-center justify-center text-xs font-bold text-white">
                           {agent.name.charAt(0)}
                         </div>
                         <div>
-                          <div className="font-semibold text-white">{agent.name}</div>
+                          <div className="font-semibold text-white group-hover:text-goodgreen transition-colors">{agent.name}</div>
                           <div className="text-[10px] text-gray-500 font-mono">
                             {agent.address.slice(0, 6)}…{agent.address.slice(-4)}
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     </td>
                     <td className="py-3 px-3 text-right">
                       <span className="text-goodgreen font-semibold">{agent.ubiContribution}</span>
