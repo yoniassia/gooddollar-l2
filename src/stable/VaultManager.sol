@@ -322,7 +322,9 @@ contract VaultManager {
      * @param ilk    Collateral type key
      * @param amount gUSD to repay (18 decimals). Use type(uint256).max to repay all.
      */
-    function repayGUSD(bytes32 ilk, uint256 amount) external nonReentrant whenNotPaused {
+    // Note: repayGUSD intentionally omits whenNotPaused — users must always be able to
+    // reduce their debt even during an emergency pause (prevents debt traps).
+    function repayGUSD(bytes32 ilk, uint256 amount) external nonReentrant {
         drip(ilk);
 
         Vault storage vault = vaults[ilk][msg.sender];

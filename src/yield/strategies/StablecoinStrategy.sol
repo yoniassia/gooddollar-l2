@@ -100,13 +100,17 @@ contract StablecoinStrategy {
     function harvest() external onlyVault returns (uint256 profit, uint256 loss) {
         uint256 currentBal = stabilityPool.getDepositorBalance(address(this));
 
-        // Claim liquidation gains (ETH)
+        // Claim liquidation gains (ETH/WETH).
+        // Read actual balance delta after claim instead of the pre-query estimate to
+        // avoid reverts or underpayment when getDepositorGain() and claimGains() diverge.
         uint256 ethGain = stabilityPool.getDepositorGain(address(this));
         if (ethGain > 0) {
+            uint256 balBefore = gainToken != address(0) ? IERC20(gainToken).balanceOf(address(this)) : 0;
             stabilityPool.claimGains();
-            // ETH gains sent to vault for separate handling
             if (gainToken != address(0)) {
-                IERC20(gainToken).transfer(vault, ethGain);
+                uint256 actualGain = IERC20(gainToken).balanceOf(address(this)) - balBefore;
+                if (actualGain > 0) IERC20(gainToken).transfer(vault, actualGain);
+                ethGain = actualGain;
             }
             emit GainsClaimed(ethGain);
         }
