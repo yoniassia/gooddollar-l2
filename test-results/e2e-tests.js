@@ -332,15 +332,19 @@ async function run() {
     logResult({ page: 'nav', check: 'nav_links', passed: false, detail: e.message });
   }
 
-  // ═══ TEST 13: JS Bundle Loads (critical infrastructure check) ═══
-  // GOO-209: goodswap.goodclaw.org JS chunks return 404 — detects stale deployment
+  // ═══ TEST 13: JS Bundle + CSS Utilities loads (infrastructure health check) ═══
+  // GOO-209: JS chunks 404 (fixed), GOO-219: Tailwind utility CSS missing from deploy
   try {
     const page = await context.newPage();
     const failedChunks = [];
+    const cssFiles = [];
     page.on('response', res => {
       const url = res.url();
       if (url.includes('/_next/static/chunks/') && res.status() !== 200) {
         failedChunks.push(`${res.status()} ${url.split('/').pop().split('?')[0]}`);
+      }
+      if (url.includes('/_next/static/css/') && res.status() === 200) {
+        cssFiles.push(url.split('/').pop().split('?')[0]);
       }
     });
 
@@ -348,22 +352,28 @@ async function run() {
     await page.waitForTimeout(1000);
 
     totalTests++;
-    const jsWorking = await page.evaluate(() => {
-      // If JS ran, React should have set data-reactroot or similar
-      const body = document.body;
-      // wagmi/rainbowkit injects style tags when it initializes
-      const hasReact = body.querySelectorAll('[data-rk]').length > 0 ||
-                       body.querySelectorAll('[class*="rk-"]').length > 0 ||
-                       document.querySelectorAll('script[type="application/json"]').length > 0;
-      return hasReact;
+    const infraCheck = await page.evaluate(() => {
+      const hasRainbowKit = document.body.querySelectorAll('[data-rk]').length > 0;
+      // Check if Tailwind utility classes are working (hidden class = display:none)
+      const testEl = document.createElement('div');
+      testEl.className = 'hidden';
+      testEl.style.cssText = 'position:absolute;top:-9999px';
+      document.body.appendChild(testEl);
+      const tailwindWorking = window.getComputedStyle(testEl).display === 'none';
+      document.body.removeChild(testEl);
+      return { hasRainbowKit, tailwindWorking };
     });
-    logResult({ page: 'js_bundle', check: 'client_js_loads', passed: jsWorking && failedChunks.length === 0, detail: failedChunks.length > 0 ? `${failedChunks.length} chunks 404 (GOO-209)` : 'JS OK' });
-    if (jsWorking && failedChunks.length === 0) passed++; else failed++;
+
+    const jsOk = infraCheck.hasRainbowKit && failedChunks.length === 0;
+    const cssOk = infraCheck.tailwindWorking;
+    const detail = !jsOk ? `${failedChunks.length} chunks 404` : !cssOk ? 'Tailwind utilities missing (GOO-219)' : 'JS+CSS OK';
+    logResult({ page: 'infra', check: 'js_and_css_load', passed: jsOk && cssOk, detail });
+    if (jsOk && cssOk) passed++; else failed++;
 
     await page.close();
   } catch (e) {
     totalTests++; failed++;
-    logResult({ page: 'js_bundle', check: 'client_js_loads', passed: false, detail: e.message });
+    logResult({ page: 'infra', check: 'js_and_css_load', passed: false, detail: e.message });
   }
 
   // ═══ TEST 14: Explore Page ═══
