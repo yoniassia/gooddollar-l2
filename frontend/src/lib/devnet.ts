@@ -36,6 +36,7 @@ export const CONTRACTS = {
   GoodDollarToken:       rawAddresses.contracts.GoodDollarToken as `0x${string}`,
   UBIClaimV2:            rawAddresses.contracts.UBIClaimV2 as `0x${string}`,
   UBIFeeSplitter:        rawAddresses.contracts.UBIFeeSplitter as `0x${string}`,
+  LiFiBridgeAggregator:  rawAddresses.contracts.LiFiBridgeAggregator as `0x${string}`,
   ValidatorStaking:      rawAddresses.contracts.ValidatorStaking as `0x${string}`,
   UBIFeeHook:            rawAddresses.contracts.UBIFeeHook as `0x${string}`,
   MarketFactory:         '0xc7cDb7A2E5dDa1B7A0E792Fe1ef08ED20A6F56D4' as `0x${string}`,
