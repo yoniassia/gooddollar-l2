@@ -147,6 +147,17 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Agent examples (trading bot, arbitrage) — examples/trading-bot.ts + examples/arbitrage-agent.ts
 - [x] Multi-agent orchestration helpers — AgentSwarm, SignalBus, PortfolioAggregator, Strategies + 26 tests (GOO-224)
 
+### 11. UBI Impact Dashboard (PRIORITY: HIGH — NEW)
+**Status:** Contract deployed + verified, SDK module added, 21 tests passing
+**Next:**
+- [x] UBIRevenueTracker contract — per-protocol fee accounting, daily snapshots, dashboard aggregator
+- [x] Deploy with 7 protocols registered + seeded stats (GOO-226)
+- [x] Verify on Blockscout
+- [x] SDK: UBIRevenueTrackerABI + address exported
+- [ ] Frontend: /ubi-impact page — per-protocol fee breakdown, UBI flow visualization, historical charts
+- [ ] Backend: revenue-tracker keeper — periodic on-chain fee reporting from each protocol
+- [ ] SDK: `sdk.ubi.getDashboard()` + `sdk.ubi.getProtocolBreakdown()` convenience methods
+
 ## Principles
 1. **Fork the best, adapt for UBI** — Don't reinvent. Clone proven codebases, add UBI fee routing.
 2. **External liquidity first** — Connect to existing protocols before building our own liquidity.

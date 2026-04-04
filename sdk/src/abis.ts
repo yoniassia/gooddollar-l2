@@ -60,6 +60,35 @@ export const MarginVaultABI = [
   { inputs: [{ name: 'user', type: 'address' }], name: 'balances', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
 ] as const
 
+export const UBIRevenueTrackerABI = [
+  { inputs: [], name: 'getDashboardData', outputs: [
+    { name: '_totalFees', type: 'uint256' }, { name: '_totalUBI', type: 'uint256' },
+    { name: '_totalTx', type: 'uint256' }, { name: '_protocolCount', type: 'uint256' },
+    { name: '_activeProtocols', type: 'uint256' }, { name: '_splitterFees', type: 'uint256' },
+    { name: '_splitterUBI', type: 'uint256' }, { name: '_snapshotCount', type: 'uint256' },
+  ], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'getAllProtocols', outputs: [{ name: 'result', type: 'tuple[]', components: [
+    { name: 'name', type: 'string' }, { name: 'category', type: 'string' },
+    { name: 'feeSource', type: 'address' }, { name: 'totalFees', type: 'uint256' },
+    { name: 'ubiContribution', type: 'uint256' }, { name: 'txCount', type: 'uint256' },
+    { name: 'lastUpdateBlock', type: 'uint256' }, { name: 'active', type: 'bool' },
+  ] }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'count', type: 'uint256' }], name: 'getSnapshots', outputs: [{ name: 'result', type: 'tuple[]', components: [
+    { name: 'timestamp', type: 'uint256' }, { name: 'totalUBI', type: 'uint256' },
+    { name: 'totalFees', type: 'uint256' }, { name: 'protocolCount', type: 'uint256' },
+  ] }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'id', type: 'uint256' }], name: 'getProtocol', outputs: [{ name: '', type: 'tuple', components: [
+    { name: 'name', type: 'string' }, { name: 'category', type: 'string' },
+    { name: 'feeSource', type: 'address' }, { name: 'totalFees', type: 'uint256' },
+    { name: 'ubiContribution', type: 'uint256' }, { name: 'txCount', type: 'uint256' },
+    { name: 'lastUpdateBlock', type: 'uint256' }, { name: 'active', type: 'bool' },
+  ] }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'totalUBITracked', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'totalFeesTracked', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'totalTxTracked', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'protocolCount', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+] as const
+
 export const UBIFeeHookABI = [
   { inputs: [{ name: 'amount', type: 'uint256' }], name: 'calculateUBIFee', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
   { inputs: [], name: 'totalSwapsProcessed', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },

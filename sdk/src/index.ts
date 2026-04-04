@@ -35,6 +35,7 @@ export {
   SyntheticAssetFactoryABI,
   MarginVaultABI,
   UBIFeeHookABI,
+  UBIRevenueTrackerABI,
 } from './abis'
 export {
   AgentSwarm,

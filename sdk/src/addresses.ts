@@ -28,6 +28,9 @@ export const ADDRESSES = {
 
   // Lending
   GoodLendPool: '0x322813Fd9A801c5507C9de605D63ceA4f2Ce6C44',
+
+  // UBI Analytics
+  UBIRevenueTracker: '0x1D3EDBa836caB11C26A186873abf0fFeB8bbaE63',
 } as const
 
 export type ContractName = keyof typeof ADDRESSES
