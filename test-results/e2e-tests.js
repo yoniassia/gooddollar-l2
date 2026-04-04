@@ -849,6 +849,54 @@ async function run() {
     await page.close();
   } catch (e) { totalTests++; failed++; logResult({ page: 'activity', check: 'live_block_data', passed: false, detail: e.message }); }
 
+  // ═══ TEST 36: 404 / not-found page renders correctly ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/this-page-does-not-exist-xyz123`, { waitUntil: 'load', timeout: 30000 });
+    await page.waitForTimeout(1000);
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      return { has404: /404/.test(t), hasMsg: /page not found/i.test(t), hasBackLink: /back/i.test(t) };
+    });
+    const ok = d.has404 && d.hasMsg;
+    logResult({ page: 'infra', check: 'not_found_page', passed: ok, detail: ok ? '404 page renders with correct copy' : `Missing: ${!d.has404 ? '404 text' : ''}${!d.hasMsg ? ' error message' : ''}` });
+    if (ok) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'infra', check: 'not_found_page', passed: false, detail: e.message }); }
+
+  // ═══ TEST 37: /swap redirects to home (alias route) — BLOCKED: GOO-276 ═══
+  // Next.js redirect() delivers target via RSC payload (inline script); GOO-276 blocks this.
+  // Will pass once unsafe-inline is in script-src CSP.
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/swap`, { waitUntil: 'load', timeout: 30000 });
+    await page.waitForTimeout(2000);
+    totalTests++;
+    const finalUrl = page.url();
+    const isHome = finalUrl === FRONTEND_URL + '/' || finalUrl === FRONTEND_URL;
+    logResult({ page: 'swap', check: 'redirects_to_home', passed: isHome, detail: isHome ? `Redirected → ${finalUrl}` : `Stayed at /swap — GOO-276 blocks RSC redirect payload` });
+    if (isHome) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'swap', check: 'redirects_to_home', passed: false, detail: e.message }); }
+
+  // ═══ TEST 38: Homepage meta tags present (SEO / share previews) ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(FRONTEND_URL, { waitUntil: 'load', timeout: 30000 });
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const ogTitle = document.querySelector('meta[property="og:title"]')?.content || '';
+      const ogDesc = document.querySelector('meta[property="og:description"]')?.content || '';
+      const desc = document.querySelector('meta[name="description"]')?.content || '';
+      return { ogTitle, ogDesc, desc, hasTitle: ogTitle.length > 0, hasDesc: desc.length > 0 || ogDesc.length > 0 };
+    });
+    const ok = d.hasTitle && d.hasDesc;
+    logResult({ page: 'infra', check: 'meta_tags_present', passed: ok, detail: ok ? `og:title="${d.ogTitle.slice(0,40)}"` : `Missing: ${!d.hasTitle ? 'og:title' : ''}${!d.hasDesc ? ' description' : ''}` });
+    if (ok) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'infra', check: 'meta_tags_present', passed: false, detail: e.message }); }
+
   await browser.close();
 
   // Summary

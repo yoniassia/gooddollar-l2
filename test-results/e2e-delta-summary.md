@@ -24,14 +24,17 @@
 | 18 | 2026-04-04T08:00Z | 44 | 40 | 4 | 90.9% | +2 canary tests (stocks live prices, activity block#) |
 | 19 | 2026-04-04T09:00Z | 44 | 40 | 4 | 90.9% | No change — GOO-276 still unfixed |
 | 20 | 2026-04-04T10:00Z | 44 | 40 | 4 | 90.9% | No change — GOO-276 still unfixed |
+| 21 | 2026-04-04T14:30Z | 47 | 41 | 6 | 87.2% | +3 tests (404 page, swap redirect, meta tags); GOO-357 filed |
 
-## Current Failures (Run 20)
+## Current Failures (Run 21)
 
 | Page | Check | Status | Root Cause | Ticket |
 |------|-------|--------|------------|--------|
 | infra | csp_hydration_and_rpc | 🚨 CRITICAL | 6 inline script CSP violations — script-src missing unsafe-inline | [GOO-276](/GOO/issues/GOO-276) |
 | stocks | live_prices_from_oracle | 🔴 CANARY | 0 RPC calls — will pass once GOO-276 fixed | [GOO-276](/GOO/issues/GOO-276) |
 | activity | live_block_data | 🔴 CANARY | Block #0 — will pass once GOO-276 fixed | [GOO-276](/GOO/issues/GOO-276) |
+| swap | redirects_to_home | 🔴 CANARY | RSC redirect payload blocked by GOO-276 CSP | [GOO-276](/GOO/issues/GOO-276) |
+| infra | meta_tags_present | 🟡 MEDIUM | og:title missing from layout.tsx metadata export | [GOO-357](/GOO/issues/GOO-357) |
 | explorer/address | transactions_visible | Known bug | Blockscout infra issue | [GOO-193](/GOO/issues/GOO-193) |
 
 > **Note:** Canary tests are intentional regression guards. They will auto-pass once GOO-276 (script-src CSP fix) is deployed. Pass rate will return to ~97% at that point.
