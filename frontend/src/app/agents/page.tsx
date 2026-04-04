@@ -123,6 +123,12 @@ export default function AgentsPage() {
           your own trading agent. Every trade generates fees that fund universal basic income.
         </p>
         <div className="flex justify-center gap-3">
+          <Link
+            href="/agents/register"
+            className="px-4 py-2 bg-goodgreen text-black rounded-lg text-sm font-semibold hover:bg-goodgreen/90 transition-colors shadow-lg shadow-goodgreen/20"
+          >
+            🤖 Register Your Agent
+          </Link>
           <a
             href="https://github.com/yoniassia/gooddollar-l2"
             target="_blank"
