@@ -20,13 +20,21 @@
 | 14 | 2026-04-04T05:20Z | 33 | 31 | 2 | 93.9% | GOO-232+233 fixed; **GOO-276** filed; +1 hydration test |
 | 15 | 2026-04-04T06:00Z | 39 | 37 | 2 | 94.9% | +6 sub-page tests; all pass |
 | 16 | 2026-04-04T06:20Z | 41 | 39 | 2 | 95.1% | +2 tests (predict/portfolio, agents/[address]) |
+| 17 | 2026-04-04T07:00Z | 42 | 40 | 2 | 95.2% | +1 test (explore/ETH); full route coverage achieved |
+| 18 | 2026-04-04T08:00Z | 44 | 40 | 4 | 90.9% | +2 canary tests (stocks live prices, activity block#) |
+| 19 | 2026-04-04T09:00Z | 44 | 40 | 4 | 90.9% | No change — GOO-276 still unfixed |
+| 20 | 2026-04-04T10:00Z | 44 | 40 | 4 | 90.9% | No change — GOO-276 still unfixed |
 
-## Current Failures (Run 14)
+## Current Failures (Run 20)
 
 | Page | Check | Status | Root Cause | Ticket |
 |------|-------|--------|------------|--------|
 | infra | csp_hydration_and_rpc | 🚨 CRITICAL | 6 inline script CSP violations — script-src missing unsafe-inline | [GOO-276](/GOO/issues/GOO-276) |
+| stocks | live_prices_from_oracle | 🔴 CANARY | 0 RPC calls — will pass once GOO-276 fixed | [GOO-276](/GOO/issues/GOO-276) |
+| activity | live_block_data | 🔴 CANARY | Block #0 — will pass once GOO-276 fixed | [GOO-276](/GOO/issues/GOO-276) |
 | explorer/address | transactions_visible | Known bug | Blockscout infra issue | [GOO-193](/GOO/issues/GOO-193) |
+
+> **Note:** Canary tests are intentional regression guards. They will auto-pass once GOO-276 (script-src CSP fix) is deployed. Pass rate will return to ~97% at that point.
 
 **GOO-236 resolved** (ubi-impact now deploys correctly).  
 **GOO-232 resolved** (rpc.goodclaw.org now in connect-src).  
@@ -122,7 +130,7 @@ connect-src 'self' https://*.alchemyapi.io https://*.g.alchemy.com wss://*.alche
 - StocksPriceOracle: 12 tickers live (AAPL $178.72 ... AMD $162.35)
 - `rpc.goodclaw.org` = `localhost:8545` (same chain)
 
-## Test Coverage (41 tests)
+## Test Coverage (44 tests — full route coverage + 2 canary tests)
 
 | Category | Tests | Passing | Notes |
 |----------|-------|---------|-------|
@@ -157,3 +165,6 @@ connect-src 'self' https://*.alchemyapi.io https://*.g.alchemy.com wss://*.alche
 | Stocks Detail (AAPL) | 1 | 1 | Dynamic route works |
 | Predict Portfolio | 1 | 1 | |
 | Agent Detail ([address]) | 1 | 1 | Dynamic route works |
+| Explore Token Detail (ETH) | 1 | 1 | Dynamic route works |
+| Stocks (live prices canary) | 1 | 0 | CANARY: will pass once GOO-276 fixed |
+| Activity (live block# canary) | 1 | 0 | CANARY: will pass once GOO-276 fixed |
