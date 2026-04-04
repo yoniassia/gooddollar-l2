@@ -16,6 +16,8 @@ import {
   MarginVaultABI,
   UBIFeeHookABI,
   UBIRevenueTrackerABI,
+  VaultFactoryABI,
+  GoodVaultABI,
 } from './abis'
 
 /** GoodDollar L2 chain definition for viem */
@@ -60,6 +62,7 @@ export class GoodDollarSDK {
   public readonly lend: LendModule
   public readonly stocks: StocksModule
   public readonly ubi: UBIModule
+  public readonly yield: YieldModule
 
   constructor(config: GoodDollarSDKConfig = {}) {
     const rpcUrl = config.rpcUrl ?? CHAIN_CONFIG.rpcUrl
@@ -89,6 +92,7 @@ export class GoodDollarSDK {
     this.lend = new LendModule(this)
     this.stocks = new StocksModule(this)
     this.ubi = new UBIModule(this)
+    this.yield = new YieldModule(this)
   }
 
   /** Get the agent's address */
@@ -489,5 +493,128 @@ class UBIModule {
       lastUpdateBlock: p.lastUpdateBlock,
       active: p.active,
     }))
+  }
+}
+
+class YieldModule {
+  constructor(private sdk: GoodDollarSDK) {}
+
+  /** Get the number of vaults deployed via VaultFactory */
+  async getVaultCount(): Promise<bigint> {
+    return this.sdk.publicClient.readContract({
+      address: ADDRESSES.VaultFactory as Address,
+      abi: VaultFactoryABI,
+      functionName: 'vaultCount',
+    })
+  }
+
+  /** Get vault address by index */
+  async getVaultAddress(index: bigint): Promise<Address> {
+    return this.sdk.publicClient.readContract({
+      address: ADDRESSES.VaultFactory as Address,
+      abi: VaultFactoryABI,
+      functionName: 'allVaults',
+      args: [index],
+    })
+  }
+
+  /** Get total TVL across all vaults */
+  async getTotalTVL(): Promise<bigint> {
+    return this.sdk.publicClient.readContract({
+      address: ADDRESSES.VaultFactory as Address,
+      abi: VaultFactoryABI,
+      functionName: 'totalTVL',
+    })
+  }
+
+  /** Get total UBI funded by yield vaults */
+  async getTotalUBIFunded(): Promise<bigint> {
+    return this.sdk.publicClient.readContract({
+      address: ADDRESSES.VaultFactory as Address,
+      abi: VaultFactoryABI,
+      functionName: 'totalUBIFunded',
+    })
+  }
+
+  /** Read vault details */
+  async getVaultInfo(vault: Address) {
+    const [name, symbol, asset, totalAssets, totalSupply, depositCap, totalDebt, paused, strategy, perfFee, mgmtFee, totalGain, totalUBI] =
+      await Promise.all([
+        this.sdk.publicClient.readContract({ address: vault, abi: GoodVaultABI, functionName: 'name' }),
+        this.sdk.publicClient.readContract({ address: vault, abi: GoodVaultABI, functionName: 'symbol' }),
+        this.sdk.publicClient.readContract({ address: vault, abi: GoodVaultABI, functionName: 'asset' }),
+        this.sdk.publicClient.readContract({ address: vault, abi: GoodVaultABI, functionName: 'totalAssets' }),
+        this.sdk.publicClient.readContract({ address: vault, abi: GoodVaultABI, functionName: 'totalSupply' }),
+        this.sdk.publicClient.readContract({ address: vault, abi: GoodVaultABI, functionName: 'depositCap' }),
+        this.sdk.publicClient.readContract({ address: vault, abi: GoodVaultABI, functionName: 'totalDebt' }),
+        this.sdk.publicClient.readContract({ address: vault, abi: GoodVaultABI, functionName: 'paused' }),
+        this.sdk.publicClient.readContract({ address: vault, abi: GoodVaultABI, functionName: 'strategy' }),
+        this.sdk.publicClient.readContract({ address: vault, abi: GoodVaultABI, functionName: 'performanceFeeBPS' }),
+        this.sdk.publicClient.readContract({ address: vault, abi: GoodVaultABI, functionName: 'managementFeeBPS' }),
+        this.sdk.publicClient.readContract({ address: vault, abi: GoodVaultABI, functionName: 'totalGainSinceInception' }),
+        this.sdk.publicClient.readContract({ address: vault, abi: GoodVaultABI, functionName: 'totalUBIFunded' }),
+      ])
+    return { name, symbol, asset, totalAssets, totalSupply, depositCap, totalDebt, paused, strategy, perfFee, mgmtFee, totalGain, totalUBI }
+  }
+
+  /** Deposit assets into a vault. Requires prior ERC-20 approval. */
+  async deposit(vault: Address, assets: bigint): Promise<`0x${string}`> {
+    const account = this.sdk.walletClient.account!
+    const { request } = await this.sdk.publicClient.simulateContract({
+      account,
+      address: vault,
+      abi: GoodVaultABI,
+      functionName: 'deposit',
+      args: [assets, account.address],
+    })
+    return this.sdk.walletClient.writeContract(request as any)
+  }
+
+  /** Withdraw assets from a vault */
+  async withdraw(vault: Address, assets: bigint): Promise<`0x${string}`> {
+    const account = this.sdk.walletClient.account!
+    const { request } = await this.sdk.publicClient.simulateContract({
+      account,
+      address: vault,
+      abi: GoodVaultABI,
+      functionName: 'withdraw',
+      args: [assets, account.address, account.address],
+    })
+    return this.sdk.walletClient.writeContract(request as any)
+  }
+
+  /** Redeem shares from a vault */
+  async redeem(vault: Address, shares: bigint): Promise<`0x${string}`> {
+    const account = this.sdk.walletClient.account!
+    const { request } = await this.sdk.publicClient.simulateContract({
+      account,
+      address: vault,
+      abi: GoodVaultABI,
+      functionName: 'redeem',
+      args: [shares, account.address, account.address],
+    })
+    return this.sdk.walletClient.writeContract(request as any)
+  }
+
+  /** Trigger harvest (compounds yield, sends UBI fees) */
+  async harvest(vault: Address): Promise<`0x${string}`> {
+    const account = this.sdk.walletClient.account!
+    const { request } = await this.sdk.publicClient.simulateContract({
+      account,
+      address: vault,
+      abi: GoodVaultABI,
+      functionName: 'harvest',
+    })
+    return this.sdk.walletClient.writeContract(request as any)
+  }
+
+  /** Get all vault addresses */
+  async getAllVaults(): Promise<Address[]> {
+    const count = await this.getVaultCount()
+    const vaults: Address[] = []
+    for (let i = 0n; i < count; i++) {
+      vaults.push(await this.getVaultAddress(i))
+    }
+    return vaults
   }
 }

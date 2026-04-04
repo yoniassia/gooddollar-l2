@@ -36,6 +36,8 @@ export {
   MarginVaultABI,
   UBIFeeHookABI,
   UBIRevenueTrackerABI,
+  VaultFactoryABI,
+  GoodVaultABI,
 } from './abis'
 export {
   AgentSwarm,

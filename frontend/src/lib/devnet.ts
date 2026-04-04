@@ -108,6 +108,9 @@ export const CONTRACTS = {
   // ── UBI Analytics — deployed (chain 42069), 2026-04-03 (GOO-226) ──────────
   UBIRevenueTracker:     '0x1D3EDBa836caB11C26A186873abf0fFeB8bbaE63' as `0x${string}`,
 
+  // ── GoodYield — VaultFactory (chain 42069), deployed 2026-04-04 (GOO-240) ──
+  VaultFactory:          '0x0b27a79cb9c0b38ee06ca3d94daa68e0ed17f953' as `0x${string}`,
+
   // ── QA TestRegistry — deployed (chain 42069), 2026-04-03 ─────────────────
   TestRegistry:          '0x12bcb546bc60ff39f1adfc7ce4605d5bd6a6a876' as `0x${string}`,
 } as const
@@ -143,4 +146,6 @@ export {
   GoodDAOABI,
   TestRegistryABI,
   UBIRevenueTrackerABI,
+  VaultFactoryABI,
+  GoodVaultABI,
 } from './abi'
