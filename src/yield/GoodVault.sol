@@ -256,12 +256,12 @@ contract GoodVault {
             }
 
             // Sync retained yield into totalDebt so the management fee base stays
-            // accurate after compounding. Strategy holds (principal + profit - fees);
-            // we've subtracted the fee portion above, so add back what stayed in.
-            uint256 retainedYield = profit - totalFees;
-            if (retainedYield > 0) totalDebt += retainedYield;
+            // accurate after compounding. The fee withdrawal was already deducted via
+            // `totalDebt -= actualFees` above; the full profit accrued on top of
+            // principal, so the net increment is `profit` (not `profit - fees`).
+            if (profit > 0) totalDebt += profit;
 
-            totalGainSinceInception += retainedYield;
+            totalGainSinceInception += profit - totalFees;
         }
 
         if (loss > 0) {

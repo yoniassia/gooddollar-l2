@@ -227,6 +227,21 @@ contract GoodYieldTest is Test {
         assertTrue(vault.totalUBIFunded() >= 2 ether);
     }
 
+    function test_harvest_totalDebtSyncedAfterHarvest() public {
+        vm.prank(alice);
+        vault.deposit(100 ether, alice);
+
+        // 10 ETH yield; performance fee = 20% → 2 ETH taken out of strategy
+        strategy.setGrowth(10 ether);
+        vm.warp(block.timestamp + 1 hours);
+        vault.harvest();
+
+        // totalDebt must equal strategy.totalAssets() after harvest:
+        // principal (100) + profit (10) - fees withdrawn (~2 ETH + tiny mgmt fee)
+        // i.e. totalDebt and strategy.totalAssets() track the same balance.
+        assertEq(vault.totalDebt(), strategy.totalAssets());
+    }
+
     function test_harvestWithNoYield() public {
         vm.prank(alice);
         vault.deposit(100 ether, alice);
