@@ -132,7 +132,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] GoodDAO — propose/vote/queue/execute governance
 - [x] Deploy script + 29 tests passing
 - [x] Frontend: /governance page with lock/unlock/delegate/proposals UI (GOO-219)
-- [ ] Governance analytics (voting activity, proposal history charts)
+- [x] Governance analytics (voting activity, proposal history charts) — /governance/analytics page with 7 viz components + 16 tests (GOO-221)
 - [x] Timelock contract (separate from DAO for multi-sig execution) — GoodTimelock.sol: role-based proposers/executors, batch ops, predecessor chains, 1-day delay, 14-day grace, verified on Blockscout (GOO-220)
 
 ## Principles
