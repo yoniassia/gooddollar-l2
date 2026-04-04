@@ -184,7 +184,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] SDK: AgentRegistryABI + address exported
 - [x] Navigation: Header desktop + mobile menu links
 - [x] Agent detail page (/agents/[address]) with per-protocol breakdown
-- [ ] Integration with protocol contracts (auto-report activity from swaps/perps/etc.)
+- [x] Integration with protocol contracts (auto-report activity from swaps/perps/etc.) — activity-reporter keeper: polls 5 protocols, 28 tests (GOO-245)
 - [ ] Agent registration frontend (connect wallet → register your bot)
 
 ## Principles
