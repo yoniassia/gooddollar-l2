@@ -123,18 +123,16 @@ contract GoodVault {
         return idle + IStrategy(strategy).totalAssets();
     }
 
-    /// @notice Shares for a given deposit amount
+    /// @notice Shares for a given deposit amount.
+    ///         +1 virtual share/asset prevents first-deposit share-inflation attacks
+    ///         (EIP-4626 OpenZeppelin mitigation pattern).
     function convertToShares(uint256 assets) public view returns (uint256) {
-        uint256 supply = totalSupply;
-        if (supply == 0) return assets;
-        return (assets * supply) / totalAssets();
+        return (assets * (totalSupply + 1)) / (totalAssets() + 1);
     }
 
-    /// @notice Assets for a given number of shares
+    /// @notice Assets for a given number of shares.
     function convertToAssets(uint256 shares) public view returns (uint256) {
-        uint256 supply = totalSupply;
-        if (supply == 0) return shares;
-        return (shares * totalAssets()) / supply;
+        return (shares * (totalAssets() + 1)) / (totalSupply + 1);
     }
 
     function maxDeposit(address) external view returns (uint256) {
@@ -152,10 +150,8 @@ contract GoodVault {
     }
 
     function previewWithdraw(uint256 assets) external view returns (uint256) {
-        uint256 supply = totalSupply;
-        if (supply == 0) return assets;
-        uint256 ta = totalAssets();
-        return (assets * supply + ta - 1) / ta; // round up
+        uint256 ta = totalAssets() + 1;
+        return (assets * (totalSupply + 1) + ta - 1) / ta; // round up
     }
 
     function previewRedeem(uint256 shares) external view returns (uint256) {
@@ -184,7 +180,8 @@ contract GoodVault {
     function withdraw(uint256 assets, address receiver, address owner) external returns (uint256 shares) {
         if (assets == 0) revert ZeroAssets();
         uint256 supply = totalSupply;
-        shares = supply == 0 ? assets : (assets * supply + totalAssets() - 1) / totalAssets();
+        uint256 ta = totalAssets() + 1;
+        shares = (assets * (supply + 1) + ta - 1) / ta; // round up, virtual-offset safe
 
         if (msg.sender != owner) {
             uint256 allowed = allowance[owner][msg.sender];
