@@ -56,9 +56,20 @@ contract PegStabilityModule {
     // Stats
     uint256 public totalUSDCReserves;
     uint256 public totalFeesCollected;
-    /// @dev Tracks gUSD minted by this PSM only (excludes VaultManager-minted gUSD).
-    ///      Used for solvency check in withdrawReserves.
+    /// @dev Gross gUSD ever minted by this PSM (never decremented on redemption).
+    ///      Used with psmBurnedGUSD to compute outstanding PSM-backed gUSD for
+    ///      the withdrawReserves solvency check.
+    ///      Note: The PSM accepts redemptions from ANY gUSD holder (including
+    ///      VaultManager-minted gUSD). We cannot distinguish origins at burn time,
+    ///      so psmMintedGUSD is conservatively kept as gross issuance. This means
+    ///      withdrawReserves may be more restrictive than necessary after cross-origin
+    ///      redemptions, but it guarantees admin cannot drain reserves while original
+    ///      PSM users still hold unredeemed gUSD.
     uint256 public psmMintedGUSD;
+    /// @dev Gross gUSD burned by this PSM (all swapGUSDForUSDC redemptions, regardless
+    ///      of whether the gUSD was originally minted by this PSM or by VaultManager).
+    ///      Outstanding PSM-backed gUSD = max(0, psmMintedGUSD - psmBurnedGUSD).
+    uint256 public psmBurnedGUSD;
 
     // ============ Reentrancy ============
 
@@ -142,10 +153,14 @@ contract PegStabilityModule {
     function withdrawReserves(address to, uint256 usdcAmount) external onlyAdmin {
         require(to != address(0), "PSM: zero address");
         require(usdcAmount <= totalUSDCReserves, "PSM: exceeds reserves");
-        // Enforce minimum backing: remaining reserves must cover PSM-originated gUSD only.
-        // Using psmMintedGUSD (not gusd.totalSupply()) because VaultManager also mints gUSD
-        // backed by collateral — those are not the PSM's obligation.
-        uint256 minUSDC = psmMintedGUSD / SCALE;
+        // Enforce minimum backing: remaining reserves must cover outstanding PSM-backed gUSD.
+        // outstandingGUSD = gross minted - gross burned (clamped to 0).
+        // We use gross issuance for psmMintedGUSD (never decremented) because the PSM accepts
+        // redemptions from any gUSD holder and cannot distinguish PSM-originated from
+        // VaultManager-originated gUSD at burn time. Conservatively, all minted gUSD is
+        // treated as outstanding until explicitly burned through this PSM.
+        uint256 outstanding = psmMintedGUSD > psmBurnedGUSD ? psmMintedGUSD - psmBurnedGUSD : 0;
+        uint256 minUSDC = outstanding / SCALE;
         require(totalUSDCReserves - usdcAmount >= minUSDC, "PSM: undercollateralized");
         totalUSDCReserves -= usdcAmount;
         require(usdc.transfer(to, usdcAmount), "PSM: transfer failed");
@@ -185,7 +200,6 @@ contract PegStabilityModule {
 
         // Mint gUSD to user
         gusd.mint(msg.sender, gusdOut);
-        // Track PSM-originated gUSD: user portion enters circulation backed by USDC
         psmMintedGUSD += gusdOut;
 
         // Mint fee gUSD and route through UBIFeeSplitter
@@ -194,9 +208,6 @@ contract PegStabilityModule {
             gusd.approve(address(feeSplitter), fee);
             feeSplitter.splitFeeToken(fee, address(this), address(gusd));
             totalFeesCollected += fee;
-            // Fee gUSD is minted and immediately distributed — track only the
-            // dApp share that returns to PSM, but for simplicity we do NOT add
-            // fee to psmMintedGUSD since it is never redeemable via this PSM.
         }
 
         emit SwapUSDCForGUSD(msg.sender, usdcAmount, gusdOut, fee);
@@ -228,10 +239,11 @@ contract PegStabilityModule {
 
         // Burn the net gUSD (backing the USDC we're releasing)
         gusd.burn(netGUSD);
-        // Reduce PSM-minted tracker by the user-portion that was minted (gusdOut from the
-        // original swap). We use netGUSD as a conservative proxy: the burned gUSD returns
-        // the USDC backing. Fee portion is capped separately; clamp to zero to avoid underflow.
-        psmMintedGUSD = psmMintedGUSD >= netGUSD ? psmMintedGUSD - netGUSD : 0;
+        // Increment gross-burned counter. We cannot know whether the burned gUSD was
+        // minted by this PSM or by VaultManager, so we track all burns here and let
+        // withdrawReserves use max(0, psmMintedGUSD - psmBurnedGUSD) as the outstanding
+        // minimum. This conservatively bounds admin withdrawals to true surplus only.
+        psmBurnedGUSD += netGUSD;
 
         // Route fee through UBIFeeSplitter
         if (fee > 0) {

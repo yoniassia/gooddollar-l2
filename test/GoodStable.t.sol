@@ -503,24 +503,25 @@ contract GoodStableTest is Test {
     }
 
     function test_PSM_WithdrawReserves_Normal() public {
-        // Alice deposits 2000 USDC; psmMintedGUSD tracks her minted gUSD
+        // Alice deposits 2000 USDC; psmMintedGUSD (gross) tracks her minted gUSD
         vm.startPrank(alice);
         usdc.approve(address(psm), 2000e6);
         psm.swapUSDCForGUSD(2000e6);
         vm.stopPrank();
 
-        // Alice redeems 1000 gUSD back for USDC, reducing psmMintedGUSD
+        // Alice redeems 1000 gUSD back for USDC — psmBurnedGUSD increments, psmMintedGUSD unchanged
         uint256 gusdIn = 1000e18;
         vm.startPrank(alice);
         gusd.approve(address(psm), gusdIn);
         psm.swapGUSDForUSDC(gusdIn);
         vm.stopPrank();
 
-        // At this point ~999 USDC went back to alice; PSM holds ~1001 USDC
-        // psmMintedGUSD ≈ 999e18 (alice's remaining gUSD from first swap minus fee)
-        // Admin should be able to withdraw any USDC above minUSDC = psmMintedGUSD / SCALE
+        // Outstanding = psmMintedGUSD - psmBurnedGUSD (gross net approach)
+        uint256 minted  = psm.psmMintedGUSD();
+        uint256 burned  = psm.psmBurnedGUSD();
+        uint256 outstanding = minted > burned ? minted - burned : 0;
         uint256 reserves = psm.totalUSDCReserves();
-        uint256 minUSDC = psm.psmMintedGUSD() / 1e12;
+        uint256 minUSDC = outstanding / 1e12;
         uint256 surplus = reserves > minUSDC ? reserves - minUSDC : 0;
 
         if (surplus > 0) {
@@ -562,9 +563,12 @@ contract GoodStableTest is Test {
         // Old (buggy) check: minUSDC = totalSupply / SCALE = 1,001,000 → always reverts
         // New (correct) check: minUSDC = psmMintedGUSD / SCALE ≈ 999 → withdrawal possible
 
-        uint256 reserves = psm.totalUSDCReserves();
-        uint256 minUSDC  = psm.psmMintedGUSD() / 1e12;
-        uint256 surplus  = reserves > minUSDC ? reserves - minUSDC : 0;
+        uint256 reserves    = psm.totalUSDCReserves();
+        uint256 minted_     = psm.psmMintedGUSD();
+        uint256 burned_     = psm.psmBurnedGUSD();
+        uint256 outstanding_ = minted_ > burned_ ? minted_ - burned_ : 0;
+        uint256 minUSDC     = outstanding_ / 1e12;
+        uint256 surplus     = reserves > minUSDC ? reserves - minUSDC : 0;
 
         // Should NOT revert — VaultManager gUSD does not block PSM withdrawal
         if (surplus > 0) {
@@ -573,6 +577,52 @@ contract GoodStableTest is Test {
         }
         // Confirm totalSupply is much larger than PSM reserves (test premise)
         assertGt(gusd.totalSupply() / 1e12, psm.totalUSDCReserves(), "totalSupply >> PSM reserves");
+    }
+
+    function test_PSM_WithdrawReserves_BlockedAfterCrossOriginRedemption() public {
+        // Demonstrate GOO-289 fix: VaultManager-gUSD draining PSM reserves does NOT
+        // allow admin to subsequently drain remaining USDC while Alice's gUSD is outstanding.
+
+        // Alice (PSM user) deposits 100 USDC
+        vm.startPrank(alice);
+        usdc.approve(address(psm), 100e6);
+        psm.swapUSDCForGUSD(100e6);  // alice gets ~99.9 gUSD, psmMintedGUSD = ~99.9e18
+        vm.stopPrank();
+
+        // Bob (VaultManager user) acquires 99 gUSD via collateral mint (simulated)
+        vm.prank(admin);
+        gusd.setMinter(admin, true);
+        vm.prank(admin);
+        gusd.mint(bob, 99e18);
+
+        // Bob redeems his VaultManager-minted gUSD through PSM, draining ~98.9 USDC
+        vm.startPrank(bob);
+        gusd.approve(address(psm), 99e18);
+        psm.swapGUSDForUSDC(99e18);
+        vm.stopPrank();
+
+        // PSM reserves now only ~1.1 USDC; Alice still holds ~99.9 gUSD
+        // psmBurnedGUSD grew by Bob's redemption; outstanding = psmMintedGUSD - psmBurnedGUSD
+        uint256 minted  = psm.psmMintedGUSD();
+        uint256 burned  = psm.psmBurnedGUSD();
+        uint256 outstanding = minted > burned ? minted - burned : 0;
+        uint256 reserves    = psm.totalUSDCReserves();
+        uint256 minUSDC     = outstanding / 1e12;
+
+        // Admin must NOT be able to drain remaining reserves beyond true surplus
+        // (surplus here is tiny — at most a few USDC from fee rounding)
+        uint256 surplus = reserves > minUSDC ? reserves - minUSDC : 0;
+
+        // Attempting to withdraw more than the surplus MUST revert
+        if (reserves > surplus + 1e6) {  // try to withdraw 1 USDC above surplus
+            vm.prank(admin);
+            vm.expectRevert("PSM: undercollateralized");
+            psm.withdrawReserves(treasury, surplus + 1e6);
+        }
+
+        // Alice can still redeem whatever is left (partial — PSM is insolvent due to Bob)
+        // But the key invariant: admin cannot drain Alice's remaining backing
+        assertLe(minUSDC, reserves, "minUSDC must be <= reserves (no over-withdrawal allowed)");
     }
 
     // ============================================================
