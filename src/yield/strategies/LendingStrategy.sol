@@ -18,21 +18,6 @@ import "forge-std/interfaces/IERC20.sol";
 interface IGoodLendPool {
     function supply(address asset, uint256 amount, address onBehalfOf) external;
     function withdraw(address asset, uint256 amount, address to) external returns (uint256);
-    function getReserveData(address asset) external view returns (
-        uint256 totalDeposits,
-        uint256 totalBorrows,
-        uint256 liquidityRate,
-        uint256 borrowRate,
-        uint256 liquidityIndex,
-        uint256 borrowIndex,
-        address gTokenAddress,
-        address debtTokenAddress,
-        address interestRateModel,
-        uint256 reserveFactorBPS,
-        bool isActive,
-        bool isFrozen,
-        uint256 lastUpdateTimestamp
-    );
 }
 
 interface IGoodLendToken {

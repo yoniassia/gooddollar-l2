@@ -208,11 +208,25 @@ contract GoodLendPool {
     // ============ Core: Supply ============
 
     /**
-     * @notice Deposit underlying asset to earn interest.
+     * @notice Deposit underlying asset to earn interest (gTokens minted to caller).
      * @param asset   The reserve asset.
      * @param amount  Amount of underlying to supply.
      */
     function supply(address asset, uint256 amount) external nonReentrant {
+        _supply(asset, amount, msg.sender);
+    }
+
+    /**
+     * @notice Deposit underlying asset on behalf of another account (Aave V3-compatible).
+     * @param asset       The reserve asset.
+     * @param amount      Amount of underlying to supply.
+     * @param onBehalfOf  Address that receives the gTokens.
+     */
+    function supply(address asset, uint256 amount, address onBehalfOf) external nonReentrant {
+        _supply(asset, amount, onBehalfOf);
+    }
+
+    function _supply(address asset, uint256 amount, address onBehalfOf) internal {
         ReserveData storage reserve = reserves[asset];
         require(reserve.isActive, "GoodLendPool: reserve inactive");
         require(amount > 0, "GoodLendPool: zero amount");
@@ -225,43 +239,57 @@ contract GoodLendPool {
             require(totalDeposits + amount <= reserve.supplyCap * (10 ** reserve.decimals), "GoodLendPool: supply cap");
         }
 
-        // Transfer underlying from user
+        // Transfer underlying from caller
         if (!IERC20(asset).transferFrom(msg.sender, reserve.gToken, amount)) revert TransferFailed();
 
-        // Mint gTokens to user
-        IGoodLendToken(reserve.gToken).mint(msg.sender, amount, reserve.liquidityIndex);
+        // Mint gTokens to onBehalfOf
+        IGoodLendToken(reserve.gToken).mint(onBehalfOf, amount, reserve.liquidityIndex);
 
         // Update rates
         _updateRates(asset);
 
-        emit Supply(asset, msg.sender, amount);
+        emit Supply(asset, onBehalfOf, amount);
     }
 
     // ============ Core: Withdraw ============
 
     /**
-     * @notice Withdraw underlying asset by burning gTokens.
+     * @notice Withdraw underlying asset by burning gTokens (sent to caller).
      * @param asset   The reserve asset.
      * @param amount  Amount of underlying to withdraw (type(uint256).max for full balance).
      */
     function withdraw(address asset, uint256 amount) external nonReentrant returns (uint256) {
+        return _withdraw(asset, amount, msg.sender);
+    }
+
+    /**
+     * @notice Withdraw underlying asset to a specified recipient (Aave V3-compatible).
+     * @param asset   The reserve asset.
+     * @param amount  Amount to withdraw (type(uint256).max for full balance).
+     * @param to      Address that receives the underlying.
+     */
+    function withdraw(address asset, uint256 amount, address to) external nonReentrant returns (uint256) {
+        return _withdraw(asset, amount, to);
+    }
+
+    function _withdraw(address asset, uint256 amount, address to) internal returns (uint256) {
         ReserveData storage reserve = reserves[asset];
         require(reserve.isActive, "GoodLendPool: reserve inactive");
 
         _updateState(asset);
 
-        // Determine actual withdrawal amount
+        // Determine actual withdrawal amount (gTokens burned from msg.sender)
         uint256 userBalance = _gTokenBalance(asset, msg.sender, reserve.liquidityIndex);
         if (amount == type(uint256).max) {
             amount = userBalance;
         }
         require(amount > 0 && amount <= userBalance, "GoodLendPool: bad amount");
 
-        // Burn gTokens
+        // Burn gTokens from caller
         IGoodLendToken(reserve.gToken).burn(msg.sender, amount, reserve.liquidityIndex);
 
-        // Transfer underlying from gToken contract to user
-        if (!IERC20(asset).transferFrom(reserve.gToken, msg.sender, amount)) revert TransferFailed();
+        // Transfer underlying from gToken contract to recipient
+        if (!IERC20(asset).transferFrom(reserve.gToken, to, amount)) revert TransferFailed();
 
         // Check health factor after withdrawal
         (uint256 hf, , ) = _calculateHealthFactor(msg.sender);
@@ -270,7 +298,7 @@ contract GoodLendPool {
         // Update rates
         _updateRates(asset);
 
-        emit Withdraw(asset, msg.sender, amount);
+        emit Withdraw(asset, to, amount);
         return amount;
     }
 
