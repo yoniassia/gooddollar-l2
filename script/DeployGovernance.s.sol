@@ -16,8 +16,8 @@ import "../src/governance/GoodDAO.sol";
  */
 contract DeployGovernance is Script {
     function run() external {
-        // Hardcoded from op-stack/addresses.json
-        address gdToken = 0x5FbDB2315678afecb367f032d93F642f64180aa3;
+        // Addresses from op-stack/addresses.json (updated for GOO-238 GDT migration)
+        address gdToken = 0x6533158b042775e2FdFeF3cA1a782EFDbB8EB9b1;
         address ubiFeeSplitter = 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512;
         address deployer = msg.sender;
 
