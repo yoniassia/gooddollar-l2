@@ -363,24 +363,10 @@ contract CollateralVault {
         // No debt means nothing to liquidate -- prevents free collateral drain
         if (userDebt == 0) revert PositionHealthy(type(uint256).max, LIQUIDATION_RATIO);
 
-        uint256 stockPrice = oracle.getPriceByKey(oracleKeys[key]);
-        uint256 debtValueUSD8 = (userDebt * stockPrice) / 1e18;
-        uint256 collateralUSD8 = (userCollateral * 1e8) / 1e18;
-        uint256 ratio = (collateralUSD8 * BPS) / debtValueUSD8;
-        if (ratio >= LIQUIDATION_RATIO) {
-            revert PositionHealthy(ratio, LIQUIDATION_RATIO);
-        }
-
-        // Liquidator receives: debt value in G$ + 10% bonus
-        // This makes liquidations economically rational: liquidator breaks even on the
-        // synthetic tokens they burn and earns the bonus as profit.
-        uint256 debtValueG = (debtValueUSD8 * 1e18) / 1e8;
-        uint256 bonus = (debtValueG * LIQUIDATION_BONUS_BPS) / BPS;
-        uint256 liquidatorReward = debtValueG + bonus;
-        // Cap at available collateral (edge case: extreme oracle move between liquidation
-        // threshold and actual execution)
-        if (liquidatorReward > userCollateral) liquidatorReward = userCollateral;
-        uint256 remainingCollateral = userCollateral - liquidatorReward;
+        // Calculation extracted to helper to keep stack depth within EVM limit
+        // (forge coverage disables the optimizer, so every local variable counts).
+        (uint256 debtValueG, uint256 liquidatorReward, uint256 remainingCollateral) =
+            _calcLiquidationAmounts(userDebt, userCollateral, key);
 
         // CEI: clear state before external calls
         collateral[user][key] = 0;
@@ -401,10 +387,36 @@ contract CollateralVault {
             IUBIFeeSplitter(feeSplitter).splitFee(remainingCollateral, address(this));
         }
 
-        // Actual bonus paid out: amount above the raw debt value, zero-floored if the
-        // collateral cap reduced the reward below the full debt value.
         uint256 actualBonus = liquidatorReward > debtValueG ? liquidatorReward - debtValueG : 0;
         emit Liquidated(msg.sender, user, key, userDebt, liquidatorReward, actualBonus);
+    }
+
+    /**
+     * @dev Validate the position is unhealthy and compute liquidation amounts.
+     *      Extracted from `liquidate` to keep stack depth within EVM limit for forge coverage.
+     *
+     * @return debtValueG        Debt value in G$ (18 dec).
+     * @return liquidatorReward  G$ reward for the liquidator (debt value + 10% bonus, capped).
+     * @return remainingCollateral Leftover collateral routed to UBI fee splitter.
+     */
+    function _calcLiquidationAmounts(
+        uint256 userDebt,
+        uint256 userCollateral,
+        bytes32 key
+    ) internal view returns (uint256 debtValueG, uint256 liquidatorReward, uint256 remainingCollateral) {
+        uint256 stockPrice    = oracle.getPriceByKey(oracleKeys[key]);
+        uint256 debtValueUSD8 = (userDebt * stockPrice) / 1e18;
+        uint256 collUSD8      = (userCollateral * 1e8) / 1e18;
+        uint256 ratio         = (collUSD8 * BPS) / debtValueUSD8;
+        if (ratio >= LIQUIDATION_RATIO) revert PositionHealthy(ratio, LIQUIDATION_RATIO);
+
+        // Liquidator receives: debt value in G$ + 10% bonus
+        debtValueG = (debtValueUSD8 * 1e18) / 1e8;
+        uint256 bonus = (debtValueG * LIQUIDATION_BONUS_BPS) / BPS;
+        liquidatorReward = debtValueG + bonus;
+        // Cap at available collateral (edge case: extreme oracle move)
+        if (liquidatorReward > userCollateral) liquidatorReward = userCollateral;
+        remainingCollateral = userCollateral - liquidatorReward;
     }
 
     // ============ View ============
@@ -472,17 +484,42 @@ contract CollateralVault {
         bool canMint
     ) {
         bytes32 key = _key(ticker);
-        uint256 stockPrice = oracle.getPriceByKey(oracleKeys[key]);
-        uint256 positionValueUSD8 = (syntheticAmount * stockPrice) / 1e18;
-        uint256 requiredUSD8 = (positionValueUSD8 * MIN_COLLATERAL_RATIO) / BPS;
-        requiredCollateral = (requiredUSD8 * 1e18) / 1e8;
-        uint256 positionValueG = (positionValueUSD8 * 1e18) / 1e8;
-        fee = (positionValueG * TRADE_FEE_BPS) / BPS;
+        // Both helpers keep stack depth within EVM limit when optimizer is off
+        // (forge coverage). Every named return and local var occupies a slot.
+        (requiredCollateral, fee) = _calcMintRequiredAndFee(key, syntheticAmount);
+        (available, canMint) = _calcAvailable(user, key, additionalCollateral, requiredCollateral);
+    }
 
+    /**
+     * @dev Compute the available collateral and canMint flag.
+     *      Extracted from `getMintRequirements` to reduce stack depth for forge coverage.
+     */
+    function _calcAvailable(
+        address user,
+        bytes32 key,
+        uint256 additionalCollateral,
+        uint256 requiredCollateral
+    ) internal view returns (uint256 available, bool canMint) {
         uint256 userCollateral = collateral[user][key] + additionalCollateral;
         uint256 alreadyUsed = _collateralUsed(user, key);
         available = userCollateral > alreadyUsed ? userCollateral - alreadyUsed : 0;
         canMint = available >= requiredCollateral;
+    }
+
+    /**
+     * @dev Compute the required collateral and fee for a mint.
+     *      Extracted from `getMintRequirements` to reduce stack depth for forge coverage.
+     */
+    function _calcMintRequiredAndFee(
+        bytes32 key,
+        uint256 syntheticAmount
+    ) internal view returns (uint256 requiredCollateral, uint256 fee) {
+        uint256 stockPrice      = oracle.getPriceByKey(oracleKeys[key]);
+        uint256 positionValueUSD8 = (syntheticAmount * stockPrice) / 1e18;
+        uint256 requiredUSD8    = (positionValueUSD8 * MIN_COLLATERAL_RATIO) / BPS;
+        requiredCollateral      = (requiredUSD8 * 1e18) / 1e8;
+        uint256 positionValueG  = (positionValueUSD8 * 1e18) / 1e8;
+        fee                     = (positionValueG * TRADE_FEE_BPS) / BPS;
     }
 
     // ============ Internals ============
