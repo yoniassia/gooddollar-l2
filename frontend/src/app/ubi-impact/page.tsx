@@ -24,6 +24,7 @@ import {
   type ProtocolStats,
 } from '@/lib/useUBIImpact'
 import { InfoBanner } from '@/components/InfoBanner'
+import { CONTRACTS, DEVNET_EXPLORER_URL, DEVNET_CHAIN_ID } from '@/lib/devnet'
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
 
@@ -236,7 +237,7 @@ export default function UBIImpactPage() {
   const isLoading = dashLoading || protLoading
 
   return (
-    <div className="w-full max-w-5xl space-y-8">
+    <div className="w-full max-w-5xl mx-auto px-4 space-y-8">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white">🌍 UBI Impact Dashboard</h1>
@@ -345,9 +346,9 @@ export default function UBIImpactPage() {
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
         <h3 className="text-sm font-semibold text-zinc-400 mb-2">📝 Contract Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-zinc-500 font-mono">
-          <div>UBIRevenueTracker: <a href="https://explorer.goodclaw.org/address/0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">0x021D...99d</a></div>
-          <div>UBIFeeSplitter: <a href="https://explorer.goodclaw.org/address/0xC0BF43A4Ca27e0976195E6661b099742f10507e5" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">0xC0BF...e5</a></div>
-          <div>Chain: GoodDollar L2 (ID 42069)</div>
+          <div>UBIRevenueTracker: <a href={`${DEVNET_EXPLORER_URL}/address/${CONTRACTS.UBIRevenueTracker}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{CONTRACTS.UBIRevenueTracker.slice(0, 6)}...{CONTRACTS.UBIRevenueTracker.slice(-3)}</a></div>
+          <div>UBIFeeSplitter: <a href={`${DEVNET_EXPLORER_URL}/address/${CONTRACTS.UBIFeeSplitter}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{CONTRACTS.UBIFeeSplitter.slice(0, 6)}...{CONTRACTS.UBIFeeSplitter.slice(-3)}</a></div>
+          <div>Chain: GoodDollar L2 (ID {DEVNET_CHAIN_ID})</div>
           <div>Data: Refreshes every 15s</div>
         </div>
       </div>

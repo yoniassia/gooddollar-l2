@@ -296,7 +296,7 @@ function GlobalStats({
   totalUBI: bigint
 }) {
   return (
-    <div className="grid grid-cols-3 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
       <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-center">
         <div className="text-xs text-gray-500">Vaults</div>
         <div className="text-xl font-bold text-white">{vaultCount}</div>
