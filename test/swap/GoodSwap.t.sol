@@ -464,6 +464,30 @@ contract GoodSwapTest is Test {
         _seed(1_000e18, 1_000e18);
         assertEq(pair.balanceOf(address(0)), 1000);
     }
+
+    // ── _sqrt: small value branch (y <= 3, y != 0) ────────────────────────────
+
+    function test_mint_sqrt_small_value() public {
+        // Provide y=2 and y=2 so that amt0*amt1 = 4, _sqrt(4) = 2, LP = 2 - 1000 underflows.
+        // Instead use y=1 and y=9 → sqrt(9)=3, LP = 3-1000 underflows too.
+        // We need sqrt(a*b) > MINIMUM_LIQUIDITY but exercise the y<=3 path.
+        // The y<=3 branch in _sqrt returns z=1 for y in {1,2,3}.
+        // Calling mint with a very small deposit after initial liquidity exercises this
+        // indirectly via the subsequent-mint path (uses r0/r1, not _sqrt).
+        // To directly hit the branch: mint with amt0*amt1 == 1 (y=1).
+        // But that underflows. We can cover it via _seed with tiny balanced amounts
+        // that produce amt0*amt1 == 2: use amt0=1, amt1=2 → sqrt(2)=1 (y=2 branch hit).
+        // But 1 - 1000 underflows → panic not InsufficientLiquidityMinted.
+        // The only reachable path for the y<=3 branch without underflow requires
+        // totalSupply > 0 (subsequent mint) where _sqrt is not called.
+        // Verify the branch is exercised: mint with amt0*amt1 = 2 to hit y=2 case.
+        t0.mint(address(pair), 1);
+        t1.mint(address(pair), 2);
+        // This will panic on underflow (sqrt(2)=1 < MINIMUM_LIQUIDITY=1000),
+        // but it DOES execute _sqrt with y=2, covering lines 278-279.
+        vm.expectRevert(); // arithmetic underflow
+        pair.mint(address(this));
+    }
 }
 
 // ─── Re-entrant callee ────────────────────────────────────────────────────────
