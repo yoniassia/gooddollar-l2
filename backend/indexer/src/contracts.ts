@@ -23,7 +23,7 @@ export const CORE_CONTRACTS: ContractDef[] = [
   },
   {
     name: "UBIFeeSplitter",
-    address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    address: "0xC0BF43A4Ca27e0976195E6661b099742f10507e5",
     protocol: "core",
     events: [
       "event FeeReceived(address indexed token, uint256 amount)",

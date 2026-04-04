@@ -23,7 +23,7 @@ const DEPLOYER = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 // Contract addresses from op-stack/addresses.json
 const CONTRACTS: [string, string][] = [
   ["GoodDollarToken", "0x5FbDB2315678afecb367f032d93F642f64180aa3"],
-  ["UBIFeeSplitter", "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"],
+  ["UBIFeeSplitter", "0xC0BF43A4Ca27e0976195E6661b099742f10507e5"],
   ["PerpEngine", "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"],
   ["MarginVault", "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"],
   ["MarketFactory", "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318"],
