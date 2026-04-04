@@ -34,6 +34,7 @@ export const DEVNET_EXPLORER_URL: string = rawAddresses.explorer_url
 export const CONTRACTS = {
   // ── Core (from op-stack/addresses.json) ──────────────────────────────────
   GoodDollarToken:       rawAddresses.contracts.GoodDollarToken as `0x${string}`,
+  UBIClaimV2:            rawAddresses.contracts.UBIClaimV2 as `0x${string}`,
   UBIFeeSplitter:        rawAddresses.contracts.UBIFeeSplitter as `0x${string}`,
   ValidatorStaking:      rawAddresses.contracts.ValidatorStaking as `0x${string}`,
   UBIFeeHook:            rawAddresses.contracts.UBIFeeHook as `0x${string}`,
