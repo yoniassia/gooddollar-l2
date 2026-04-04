@@ -17,6 +17,9 @@ import "forge-std/interfaces/IERC20.sol";
  *   - Partial fills are supported
  *
  * Fee: 0.05% keeper incentive on fill (paid from output tokens)
+ *
+ * Security: follows Checks-Effects-Interactions and guards fillOrder with a
+ * reentrancy lock to prevent a malicious router from re-entering and replaying fills.
  */
 contract LimitOrderBook {
     // ─── Types ────────────────────────────────────────────────────────────────
@@ -85,12 +88,25 @@ contract LimitOrderBook {
     error OrderExpiredErr();
     error TooManyOrders();
     error InvalidFee();
+    error TransferFailed();
+    error Reentrancy();
+    error LengthMismatch();
+
+    /// @dev Reentrancy lock. 1 = unlocked, 2 = locked.
+    uint256 private _lock = 1;
 
     // ─── Modifiers ────────────────────────────────────────────────────────────
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
         _;
+    }
+
+    modifier nonReentrant() {
+        if (_lock != 1) revert Reentrancy();
+        _lock = 2;
+        _;
+        _lock = 1;
     }
 
     // ─── Constructor ──────────────────────────────────────────────────────────
@@ -126,7 +142,7 @@ contract LimitOrderBook {
         if (userOrders[msg.sender].length >= MAX_ORDERS_PER_USER) revert TooManyOrders();
 
         // Escrow tokenIn
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        if (!IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn)) revert TransferFailed();
 
         orderId = nextOrderId++;
         orders[orderId] = Order({
@@ -158,7 +174,7 @@ contract LimitOrderBook {
         // Refund remaining escrowed amount
         uint256 remaining = order.amountIn - order.amountFilled;
         if (remaining > 0) {
-            IERC20(order.tokenIn).transfer(msg.sender, remaining);
+            if (!IERC20(order.tokenIn).transfer(msg.sender, remaining)) revert TransferFailed();
         }
 
         emit OrderCancelled(orderId);
@@ -173,8 +189,10 @@ contract LimitOrderBook {
      *
      * @dev The keeper earns 0.05% of the output tokens as incentive.
      *      Price check: actual output / fillAmount must meet targetPrice.
+     *      nonReentrant guard + CEI ordering: state is updated before any external call
+     *      to prevent a malicious router from re-entering and replaying the fill.
      */
-    function fillOrder(uint256 orderId, uint256 fillAmount) external {
+    function fillOrder(uint256 orderId, uint256 fillAmount) external nonReentrant {
         Order storage order = orders[orderId];
         if (order.status != OrderStatus.Active) revert OrderNotActive();
 
@@ -183,7 +201,7 @@ contract LimitOrderBook {
             order.status = OrderStatus.Expired;
             uint256 refund = order.amountIn - order.amountFilled;
             if (refund > 0) {
-                IERC20(order.tokenIn).transfer(order.owner, refund);
+                if (!IERC20(order.tokenIn).transfer(order.owner, refund)) revert TransferFailed();
             }
             emit OrderExpired(orderId);
             return; // Don't revert — state changes must persist
@@ -193,8 +211,16 @@ contract LimitOrderBook {
         if (fillAmount > remaining) fillAmount = remaining;
         if (fillAmount == 0) revert ZeroAmount();
 
-        // Execute swap via router
-        IERC20(order.tokenIn).approve(router, fillAmount);
+        // ── Effects (before any external call) ──────────────────────────────
+        order.amountFilled += fillAmount;
+        if (order.amountFilled >= order.amountIn) {
+            order.status = OrderStatus.Filled;
+        }
+
+        // ── Interactions ─────────────────────────────────────────────────────
+
+        // Approve router for exactly this fill
+        if (!IERC20(order.tokenIn).approve(router, fillAmount)) revert TransferFailed();
 
         address[] memory path = new address[](2);
         path[0] = order.tokenIn;
@@ -223,19 +249,13 @@ contract LimitOrderBook {
         uint256 effectivePrice = (amountOut * 1e18) / fillAmount;
         if (effectivePrice < order.targetPrice) revert PriceNotMet();
 
-        // Update fill state
-        order.amountFilled += fillAmount;
-        if (order.amountFilled >= order.amountIn) {
-            order.status = OrderStatus.Filled;
-        }
-
         // Split: keeper gets incentive, rest to order owner
         uint256 keeperReward = (amountOut * keeperFeeBps) / 10_000;
         uint256 ownerAmount = amountOut - keeperReward;
 
-        IERC20(order.tokenOut).transfer(order.owner, ownerAmount);
+        if (!IERC20(order.tokenOut).transfer(order.owner, ownerAmount)) revert TransferFailed();
         if (keeperReward > 0) {
-            IERC20(order.tokenOut).transfer(msg.sender, keeperReward);
+            if (!IERC20(order.tokenOut).transfer(msg.sender, keeperReward)) revert TransferFailed();
         }
 
         emit OrderFilled(orderId, msg.sender, fillAmount, ownerAmount, keeperReward);
@@ -247,7 +267,7 @@ contract LimitOrderBook {
      * @param fillAmounts Array of fill amounts (same length as orderIds)
      */
     function batchFill(uint256[] calldata orderIds, uint256[] calldata fillAmounts) external {
-        require(orderIds.length == fillAmounts.length, "length mismatch");
+        if (orderIds.length != fillAmounts.length) revert LengthMismatch();
         for (uint256 i = 0; i < orderIds.length; i++) {
             // Use try/catch so one failed fill doesn't revert the batch
             try this.fillOrder(orderIds[i], fillAmounts[i]) {} catch {}
