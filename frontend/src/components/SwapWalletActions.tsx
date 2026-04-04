@@ -30,6 +30,8 @@ type SwapButtonProps = {
   onChainAmountOutMin?: bigint
   /** True when the selected pair is supported by GoodSwapRouter on devnet */
   pairOnChain?: boolean
+  /** Called when user clicks swap with no amount entered — triggers input shake */
+  onInvalidSubmit?: () => void
 }
 
 type SwapWalletActionsProps = BalanceProps | SwapButtonProps
@@ -54,6 +56,7 @@ export function SwapWalletActions(props: SwapWalletActionsProps) {
       ubiFee={props.ubiFee}
       onChainAmountOutMin={props.onChainAmountOutMin}
       pairOnChain={props.pairOnChain}
+      onInvalidSubmit={props.onInvalidSubmit}
     />
   )
 }
@@ -73,6 +76,7 @@ function SwapButton({
   ubiFee = '',
   onChainAmountOutMin,
   pairOnChain = false,
+  onInvalidSubmit,
 }: {
   inputToken: Token
   outputToken: Token
@@ -88,6 +92,7 @@ function SwapButton({
   ubiFee?: string
   onChainAmountOutMin?: bigint
   pairOnChain?: boolean
+  onInvalidSubmit?: () => void
 }) {
   const [showReview, setShowReview] = useState(false)
   const { swap, phase, error, reset, isConnected } = useSwapExecute()
@@ -150,7 +155,7 @@ function SwapButton({
       {!hasAmount ? (
         <>
           <button
-            disabled
+            onClick={onInvalidSubmit}
             className="w-full py-4 rounded-xl font-semibold text-base bg-dark-50 text-gray-400 cursor-not-allowed"
           >
             Enter an Amount

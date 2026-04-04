@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { motion } from 'framer-motion'
 import { TokenSelector } from './TokenSelector'
 import { TOKENS, type Token } from '@/lib/tokens'
 import { UBIBreakdown } from './UBIBreakdown'
@@ -14,6 +15,7 @@ import { useSwapSettings } from '@/lib/useSwapSettings'
 import { SwapWalletActions } from './SwapWalletActions'
 import { usePriceFeeds, getPrice } from '@/lib/usePriceFeeds'
 import { useSwapQuote } from '@/lib/useOnChainSwap'
+import { AnimatedNumber } from './ui/animated-number'
 
 function getLiveRate(prices: Record<string, number>, from: string, to: string): number {
   if (from === to) return 1
@@ -134,6 +136,8 @@ export function SwapCard() {
     return `${size}px`
   }, [inputAmount])
 
+  const [inputShake, setInputShake] = useState(0)
+
   const [flipRotation, setFlipRotation] = useState(0)
 
   const handleFlip = useCallback(() => {
@@ -166,7 +170,12 @@ export function SwapCard() {
         </div>
 
         {/* Input */}
-        <div className="mx-4 p-4 rounded-xl bg-dark/80 border border-gray-700/20">
+        <motion.div
+          className="mx-4 p-4 rounded-xl bg-dark/80 border border-gray-700/20"
+          animate={inputShake ? { x: [0, 8, -8, 6, -6, 0] } : {}}
+          transition={{ duration: 0.35, ease: 'easeInOut' }}
+          key={inputShake}
+        >
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-gray-400">You pay</span>
             <SwapWalletActions
@@ -195,7 +204,7 @@ export function SwapCard() {
           {inputUsd && (
             <p className="text-xs text-gray-500 mt-1.5" data-testid="input-usd">{inputUsd}</p>
           )}
-        </div>
+        </motion.div>
 
         {/* Flip */}
         <div className="flex justify-center -my-3 relative z-10">
@@ -227,7 +236,10 @@ export function SwapCard() {
               style={{ fontSize: outputAmount.length > 10 ? 'clamp(1.125rem, 5vw, 1.875rem)' : undefined }}
             >
               <span className="text-white sm:hidden">{compactOutputAmount || <span className="text-gray-600">0</span>}</span>
-              <span className="text-white hidden sm:inline">{outputAmount || <span className="text-gray-600">0</span>}</span>
+              {rawOutputAmount
+                ? <AnimatedNumber value={rawOutputAmount} decimals={outputToken.symbol === 'USDC' ? 2 : 6} className="text-white hidden sm:inline" />
+                : <span className="text-gray-600 hidden sm:inline">0</span>
+              }
             </span>
             <TokenSelector
               selected={outputToken}
@@ -294,6 +306,7 @@ export function SwapCard() {
               ? onChainAmountOutWei * BigInt(Math.floor((1 - slippage / 100) * 10000)) / BigInt(10000)
               : onChainAmountOutWei}
             pairOnChain={pairOnChain}
+            onInvalidSubmit={() => setInputShake(p => p + 1)}
           />
         </div>
       </div>

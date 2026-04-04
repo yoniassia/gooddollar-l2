@@ -27,7 +27,7 @@ Built in `/components/ui/` — Radix + CVA + tailwind-merge:
 - [x] Tooltip (Radix portal, animated fade-in per side)
 - [x] Skeleton (animate-pulse, muted bg)
 - [x] DropdownMenu (full Radix, checkbox/radio items, separators)
-- [ ] Toast (Radix Toast — queued for next iteration)
+- [x] Toast (Radix Toast — queued for next iteration)
 - [ ] Chart wrapper (DeFi data viz — queued)
 
 ## Design Tokens (GOO-319 ✅)
@@ -84,9 +84,9 @@ Built in `/components/ui/` — Radix + CVA + tailwind-merge:
 
 ### Actionable TODOs for GoodDollar
 
-- [ ] Add `active:scale-[0.97]` to Button default and CTA variants
-- [ ] Implement Framer Motion number counter for balance/price displays (useMotionValue + animate)
-- [ ] Add Toast component using Radix Toast primitive (GOO-318 follow-up)
-- [ ] Add error shake animation to swap inputs on validation failure
+- [x] Add `active:scale-[0.97]` to Button default and CTA variants
+- [x] Implement Framer Motion number counter for balance/price displays (useMotionValue + animate)
+- [x] Add Toast component using Radix Toast primitive (GOO-318 follow-up)
+- [x] Add error shake animation to swap inputs on validation failure
 - [ ] Replace spinner loading states with Skeleton components in all data-fetched lists
 - [ ] Add hover lift effect (`group-hover:translate-y-[-1px]`) to clickable cards in Explore/Markets

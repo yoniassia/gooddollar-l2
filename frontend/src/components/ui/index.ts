@@ -1,3 +1,4 @@
+export * from './animated-number'
 export * from './badge'
 export * from './button'
 export * from './card'
