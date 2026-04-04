@@ -154,9 +154,9 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Deploy with 7 protocols registered + seeded stats (GOO-226)
 - [x] Verify on Blockscout
 - [x] SDK: UBIRevenueTrackerABI + address exported
-- [ ] Frontend: /ubi-impact page — per-protocol fee breakdown, UBI flow visualization, historical charts
+- [x] Frontend: /ubi-impact page — per-protocol fee breakdown, UBI flow visualization, historical charts
 - [ ] Backend: revenue-tracker keeper — periodic on-chain fee reporting from each protocol
-- [ ] SDK: `sdk.ubi.getDashboard()` + `sdk.ubi.getProtocolBreakdown()` convenience methods
+- [x] SDK: `sdk.ubi.getDashboard()` + `sdk.ubi.getProtocolBreakdown()` convenience methods
 
 ## Principles
 1. **Fork the best, adapt for UBI** — Don't reinvent. Clone proven codebases, add UBI fee routing.
