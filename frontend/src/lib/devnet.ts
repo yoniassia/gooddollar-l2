@@ -103,6 +103,9 @@ export const CONTRACTS = {
   StableMockWETH:        '0x851356ae760d987e095750cceb3bc6014560891c' as `0x${string}`,
   StableMockUSDC:        '0xf5059a5d33d5853360d16c683c16e67980206f36' as `0x${string}`,
   StableMockGD:          '0x95401dc811bb5740090279ba06cfa8fcf6113778' as `0x${string}`,
+
+  // ── QA TestRegistry — deployed (chain 42069), 2026-04-03 ─────────────────
+  TestRegistry:          '0x12bcb546bc60ff39f1adfc7ce4605d5bd6a6a876' as `0x${string}`,
 } as const
 
 /**
@@ -134,4 +137,5 @@ export {
   GoodSwapRouterABI,
   VoteEscrowedGDABI,
   GoodDAOABI,
+  TestRegistryABI,
 } from './abi'

@@ -962,3 +962,95 @@ export const GoodDAOABI = [
   { anonymous: false, inputs: [{ indexed: true, name: 'id', type: 'uint256' }], name: 'ProposalExecuted', type: 'event' },
   { anonymous: false, inputs: [{ indexed: true, name: 'id', type: 'uint256' }], name: 'ProposalCanceled', type: 'event' },
 ] as const
+
+export const TestRegistryABI = [
+  {
+    type: 'function',
+    name: 'getResultCount',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getResult',
+    inputs: [{ name: 'resultId', type: 'uint256' }],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        components: [
+          { name: 'tester', type: 'address' },
+          { name: 'contractTested', type: 'address' },
+          { name: 'functionSelector', type: 'bytes4' },
+          { name: 'success', type: 'bool' },
+          { name: 'gasUsed', type: 'uint256' },
+          { name: 'timestamp', type: 'uint256' },
+          { name: 'note', type: 'string' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getResults',
+    inputs: [
+      { name: 'from', type: 'uint256' },
+      { name: 'to', type: 'uint256' },
+    ],
+    outputs: [
+      {
+        name: 'results',
+        type: 'tuple[]',
+        components: [
+          { name: 'tester', type: 'address' },
+          { name: 'contractTested', type: 'address' },
+          { name: 'functionSelector', type: 'bytes4' },
+          { name: 'success', type: 'bool' },
+          { name: 'gasUsed', type: 'uint256' },
+          { name: 'timestamp', type: 'uint256' },
+          { name: 'note', type: 'string' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getResultsByTester',
+    inputs: [{ name: 'tester', type: 'address' }],
+    outputs: [
+      {
+        name: 'matches',
+        type: 'tuple[]',
+        components: [
+          { name: 'tester', type: 'address' },
+          { name: 'contractTested', type: 'address' },
+          { name: 'functionSelector', type: 'bytes4' },
+          { name: 'success', type: 'bool' },
+          { name: 'gasUsed', type: 'uint256' },
+          { name: 'timestamp', type: 'uint256' },
+          { name: 'note', type: 'string' },
+        ],
+      },
+      { name: 'ids', type: 'uint256[]' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'event',
+    name: 'TestResultLogged',
+    inputs: [
+      { name: 'resultId', type: 'uint256', indexed: true },
+      { name: 'tester', type: 'address', indexed: true },
+      { name: 'contractTested', type: 'address', indexed: true },
+      { name: 'functionSelector', type: 'bytes4', indexed: false },
+      { name: 'success', type: 'bool', indexed: false },
+      { name: 'gasUsed', type: 'uint256', indexed: false },
+      { name: 'timestamp', type: 'uint256', indexed: false },
+      { name: 'note', type: 'string', indexed: false },
+    ],
+    anonymous: false,
+  },
+] as const

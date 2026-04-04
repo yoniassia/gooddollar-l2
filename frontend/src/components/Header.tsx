@@ -21,6 +21,7 @@ export function Header() {
   const isLend = pathname?.startsWith('/lend')
   const isGovernance = pathname?.startsWith('/governance')
   const isActivity = pathname?.startsWith('/activity')
+  const isTestDashboard = pathname?.startsWith('/test-dashboard')
   const isPortfolio = pathname === '/portfolio'
 
   useEffect(() => {
@@ -73,6 +74,7 @@ export function Header() {
               Activity
             </span>
           </Link>
+          <Link href="/test-dashboard" className={isTestDashboard ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Tests</Link>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -197,6 +199,13 @@ export function Header() {
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-goodgreen animate-pulse" />
                 Activity
               </span>
+            </Link>
+            <Link
+              href="/test-dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isTestDashboard ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
+            >
+              Tests
             </Link>
             <div className="border-t border-dark-50/50 my-1" />
             <Link
