@@ -388,7 +388,7 @@ export default function GovernancePage() {
       <InfoBanner
         title="GoodDAO Governance"
         description="Lock G$ → get veG$ → vote on protocol changes. Longer locks = more voting power (Curve-style). 33% of all protocol fees fund UBI."
-        icon="🏛️"
+        storageKey="governance-info-banner"
       />
 
       {!isConnected ? (
