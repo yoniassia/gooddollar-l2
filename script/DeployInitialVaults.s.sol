@@ -26,16 +26,16 @@ interface IMintable {
 }
 
 contract DeployInitialVaults is Script {
-    // ─── Existing addresses (from devnet) ───
-    address constant VAULT_FACTORY   = 0x0b27a79cb9C0B38eE06Ca3d94DAA68e0Ed17F953;
+    // ─── Existing addresses (updated after devnet reset — GOO-363) ───
+    address constant VAULT_FACTORY   = 0xD5ac451B0c50B9476107823Af206eD814a2e2580;
     address constant UBI_FEE         = 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512;
-    address constant GOOD_LEND_POOL  = 0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44;
-    address constant WETH            = 0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1;
-    address constant USDC            = 0x0B306BF915C4d645ff596e518fAf3F9669b97016;
-    address constant GD_TOKEN        = 0x6533158b042775e2FdFeF3cA1a782EFDbB8EB9b1;
-    address constant G_TOKEN_WETH    = 0x7a2088a1bFc9d81c55368AE168C2C02570cB814F;
-    address constant G_TOKEN_USDC    = 0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f;
-    address constant GUSD            = 0x0E801D84Fa97b50751Dbf25036d067dCf18858bF;
+    address constant GOOD_LEND_POOL  = 0x49fd2BE640DB2910c2fAb69bB8531Ab6E76127ff;
+    address constant WETH            = 0xfbC22278A96299D91d41C453234d97b4F5Eb9B2d;
+    address constant USDC            = 0x2B0d36FACD61B71CC05ab8F3D2355ec3631C0dd5;
+    address constant GD_TOKEN        = 0x36C02dA8a0983159322a80FFE9F24b1acfF8B570;
+    address constant G_TOKEN_WETH    = 0xA4899D35897033b927acFCf422bc745916139776;
+    address constant G_TOKEN_USDC    = 0x4631BCAbD6dF18D94796344963cB60d44a4136b6;
+    address constant GUSD            = 0xc351628EB244ec633d5f21fBD6621e1a683B1181;
 
     // We need mock stability pool and gToken for G$
     // For now, deploy simplified mock versions for the devnet demo
