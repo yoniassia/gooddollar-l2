@@ -13,6 +13,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Connect frontend to real on-chain swap execution — useGoodSwap hook + GoodPoolABI wired
 - [x] Li.Fi / bridge aggregator integration for cross-chain swaps — LiFiBridgeAggregator.sol with escrow + UBI fees + keeper completion
 - [x] Price feed integration (CoinGecko API → on-chain oracles) — SwapPriceOracle.sol + backend/swap-oracle keeper
+- [x] On-chain limit order book — LimitOrderBook.sol: place/cancel/fill with escrow, partial fills, keeper incentives, batch fill, expiry + 28 tests (GOO-377)
 **Research:** Study Uniswap V4 hooks, Li.Fi SDK, 1inch aggregator
 
 ### 2. GoodPerps — Perpetual Futures (PRIORITY: HIGH)
