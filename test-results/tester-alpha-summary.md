@@ -15,7 +15,8 @@
 - **Iteration 11:** 38 pass / 0 fail (100%) — LiFi full flow (initiate/expire), FastWithdrawalLP deposit/withdraw, UBIFeeHook full inspection, GOO-298/299 re-confirmed open
 - **Iteration 12:** 105 pass / 7 fail (93.8%) — 12 new contracts smoke-tested; GOO-298/299 still open; 2 new bugs found (GOO-308, GOO-309); VaultFactory TVL/DAO/Timelock/OptimisticResolver/MarketFactory/AgentRegistry all inspected
 - **Iteration 13:** 76 pass / 5 fail (93.8%) — CDP cycle, VaultFactory createVault, MarketFactory full cycle (100%), AgentRegistry writes, SwapPriceOracle adminSetPrice, VoteEscrowedGD lock; 2 new bugs filed (GOO-313, GOO-314)
-- **Last run:** 2026-04-04T14:22:22+00:00
+- **Iteration 14:** 51 pass / 9 fail (85%) — PSM round-trip swap ✓, StabilityPool deposit/withdraw ✓, GD+USDC ilk collateral ✓, CollateralRegistry all ilks ✓; GOO-308 FIXED; 2 new bugs filed (GOO-324, GOO-325); GOO-298/309/313/314 still open
+- **Last run:** 2026-04-04T15:01:08+00:00
 
 ## Contracts Covered (full coverage)
 - GoodLendPool: supply, borrow, repay, withdraw, flashLoan, liquidate, mintToTreasury, getUserAccountData, getReservesCount, getBorrowIndex, setBorrowingEnabled, setOracle, setTreasury, setAdmin, setReserveActive, setReserveFactor, getLiquidityIndex, getReserveData, interestRateModel (verified interest accrual per block)
@@ -256,6 +257,9 @@
 - GOO-309: VaultManager.feeSplitter = old UBIFeeSplitter (0xe7f1725E) — should be new splitter 0xc0bf43; revenue from CDP vaults will go to stale contract (OPEN — filed iter12)
 - GOO-313: VoteEscrowedGD.gd() returns OLD_GDT (0x5FbDB231) — not updated to new GDT (0x6533158b) after GOO-238 migration (OPEN — filed iter13)
 - GOO-314: VaultManager.oracle() = 0xD0141E (stocks PriceOracle, wrong interface) — CRITICAL: mintGUSD/repayGUSD/liquidate all revert; only no-debt collateral ops work; must redeploy VaultManager with oracle = MockPriceOracle 0x998abeb3 (OPEN — filed iter13)
+- GOO-308: SwapPriceOracle all prices stale/zero — FIXED in iter14: registeredTokenCount=5, price[0]=10000000 (non-zero). Keeper is updating prices. (FIXED — confirmed iter14)
+- GOO-324: CRIT: LendingStrategy (0xd977422c) deployed with vault=address(0) — all 4 GoodVaults fail deposit() with NotVault() error; all 4 vaults share same broken strategy; VaultFactory.totalTVL=0 (OPEN — filed iter14)
+- GOO-325: VaultManager withdrawCollateral USDC ilk fails with ReentrancySentryOOG on cold storage — eth_estimateGas underestimates; works with --gas-limit 300000; ~21k gas delta between warm/cold SLOAD (OPEN — filed iter14)
 
 ## Notes
 - MockUSDC: 6 decimals; MockWETH: 18 decimals
