@@ -241,15 +241,18 @@ contract GoodVault {
             uint256 totalFees = _ubiFee + _mgmtFee;
             if (totalFees > profit) totalFees = profit; // cap at profit
 
-            // Withdraw fees from strategy
+            // Withdraw fees from strategy; use actual amount returned to avoid over-distribution
             if (totalFees > 0) {
-                IStrategy(strategy).withdraw(totalFees);
-                totalDebt -= totalFees;
+                uint256 actualFees = IStrategy(strategy).withdraw(totalFees);
+                totalDebt -= actualFees;
+                totalFees = actualFees; // clamp to what was actually received
 
-                // Route to UBI
-                asset.approve(address(ubiFee), totalFees);
-                ubiFee.splitFeeToken(totalFees, address(this), address(asset));
-                totalUBIFunded += totalFees;
+                if (totalFees > 0) {
+                    // Route to UBI
+                    asset.approve(address(ubiFee), totalFees);
+                    ubiFee.splitFeeToken(totalFees, address(this), address(asset));
+                    totalUBIFunded += totalFees;
+                }
             }
 
             totalGainSinceInception += profit - totalFees;
