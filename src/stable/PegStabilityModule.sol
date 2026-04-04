@@ -12,7 +12,7 @@ pragma solidity ^0.8.20;
  *               scale factor = 1e12
  *
  * Fee routing:
- *   Fees collected in gUSD are forwarded to UBIFeeSplitter.splitFee()
+ *   Fees collected in gUSD are forwarded to UBIFeeSplitter.splitFeeToken()
  *   with this contract as dApp recipient (fees go back to PSM liquidity reserve).
  *
  * Capital model:
@@ -182,7 +182,7 @@ contract PegStabilityModule {
         if (fee > 0) {
             gusd.mint(address(this), fee);
             gusd.approve(address(feeSplitter), fee);
-            feeSplitter.splitFee(fee, address(this));
+            feeSplitter.splitFeeToken(fee, address(this), address(gusd));
             totalFeesCollected += fee;
         }
 
@@ -219,7 +219,7 @@ contract PegStabilityModule {
         // Route fee through UBIFeeSplitter
         if (fee > 0) {
             gusd.approve(address(feeSplitter), fee);
-            feeSplitter.splitFee(fee, address(this));
+            feeSplitter.splitFeeToken(fee, address(this), address(gusd));
             totalFeesCollected += fee;
         }
 
