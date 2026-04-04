@@ -55,6 +55,7 @@ export interface VaultState {
   actualDebtFloat: number
   healthFactor: number    // infinite when no debt
   isHealthy: boolean
+  hasPosition: boolean    // true when vault has collateral or debt
 }
 
 export function useVault(
@@ -108,6 +109,7 @@ export function useVault(
       actualDebtFloat,
       healthFactor,
       isHealthy: healthFactor >= 1,
+      hasPosition: collateral > BigInt(0) || normalizedDebt > BigInt(0),
     } satisfies VaultState,
     isLoading: false,
   }
@@ -182,7 +184,7 @@ export function useCollateralBalance(
 
 // ─── Write: vault actions ─────────────────────────────────────────────────────
 
-export type StableActionKind = 'deposit' | 'withdraw' | 'mint' | 'repay'
+export type StableActionKind = 'deposit' | 'withdraw' | 'mint' | 'repay' | 'close'
 
 export type StableTxPhase = 'idle' | 'approving' | 'submitting' | 'confirming' | 'done' | 'error'
 
@@ -207,6 +209,26 @@ export function useStableAction() {
     setError(undefined)
     setPhase('idle')
     try {
+      // Close vault: approve gUSD (for burnFrom) then close atomically
+      if (kind === 'close') {
+        setPhase('approving')
+        await writeContractAsync({
+          address: CONTRACTS.gUSD,
+          abi: ERC20ABI,
+          functionName: 'approve',
+          args: [VAULT_MGR, maxUint256],
+        })
+        setPhase('submitting')
+        const hash = await writeContractAsync({
+          address: VAULT_MGR,
+          abi: VaultManagerABI,
+          functionName: 'closeVault',
+          args: [ilk],
+        })
+        setTxHash(hash)
+        return
+      }
+
       const parsed = parseUnits(amount, kind === 'repay' ? 18 : tokenDecimals)
 
       // Deposit and repay need an ERC-20 approval first

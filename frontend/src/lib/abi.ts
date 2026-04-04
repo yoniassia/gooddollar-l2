@@ -675,6 +675,20 @@ export const VaultManagerABI = [
     type: 'function',
   },
   {
+    inputs: [{ name: 'ilk', type: 'bytes32' }, { name: 'owner', type: 'address' }],
+    name: 'vaultDebt',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'ilk', type: 'bytes32' }],
+    name: 'openVault',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
     inputs: [{ name: 'ilk', type: 'bytes32' }, { name: 'amount', type: 'uint256' }],
     name: 'depositCollateral',
     outputs: [],
@@ -698,6 +712,13 @@ export const VaultManagerABI = [
   {
     inputs: [{ name: 'ilk', type: 'bytes32' }, { name: 'amount', type: 'uint256' }],
     name: 'repayGUSD',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'ilk', type: 'bytes32' }],
+    name: 'closeVault',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',

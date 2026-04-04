@@ -17,7 +17,10 @@ import {
   maxMintable,
   type IlkKey,
   type StableActionKind,
+  type VaultState,
 } from '@/lib/useGoodStable'
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 // Approximate USD prices for collateral (devnet — no live oracle on frontend)
 const COLLATERAL_PRICES: Record<string, number> = {
@@ -27,14 +30,22 @@ const COLLATERAL_PRICES: Record<string, number> = {
 }
 
 const ILK_CONFIG = {
-  [ILK_ETH]:  { label: 'WETH', symbol: 'WETH',  ratio: '150%', fee: '~2% APY', color: 'text-blue-400',  icon: 'ETH' },
-  [ILK_GD]:   { label: 'G$',   symbol: 'G$',    ratio: '200%', fee: '~3% APY', color: 'text-goodgreen', icon: 'G$' },
-  [ILK_USDC]: { label: 'USDC', symbol: 'USDC',  ratio: '101%', fee: '~0.5% APY', color: 'text-emerald-400', icon: '$' },
+  [ILK_ETH]:  { label: 'WETH', symbol: 'WETH',  ratio: '150%', fee: '~2% APY',    color: 'text-blue-400',     icon: 'ETH', minRatio: 1.5 },
+  [ILK_GD]:   { label: 'G$',   symbol: 'G$',    ratio: '200%', fee: '~3% APY',    color: 'text-goodgreen',    icon: 'G$',  minRatio: 2.0 },
+  [ILK_USDC]: { label: 'USDC', symbol: 'USDC',  ratio: '101%', fee: '~0.5% APY',  color: 'text-emerald-400',  icon: '$',   minRatio: 1.01 },
 } as const
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(n: number, decimals = 4) {
   if (!isFinite(n) || isNaN(n)) return '0'
   return n.toFixed(decimals)
+}
+
+function fmtUSD(n: number) {
+  if (!isFinite(n) || isNaN(n) || n === 0) return '$0'
+  if (n >= 1000) return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 })
+  return '$' + n.toFixed(2)
 }
 
 function fmtHF(hf: number) {
@@ -50,7 +61,49 @@ function hfColor(hf: number) {
   return 'text-red-400'
 }
 
-// ─── Vault panel for one collateral type ─────────────────────────────────────
+function hfBarColor(hf: number) {
+  if (!isFinite(hf)) return 'bg-goodgreen'
+  if (hf >= 2.0) return 'bg-goodgreen'
+  if (hf >= 1.5) return 'bg-yellow-400'
+  if (hf >= 1.1) return 'bg-orange-400'
+  return 'bg-red-500'
+}
+
+/** Convert health factor to a 0–100 bar fill (clamped, logarithmic feel). */
+function hfToBarPct(hf: number, minRatio: number): number {
+  if (!isFinite(hf)) return 100
+  // liquidation at minRatio*1.0; healthy at minRatio*2.0+ → 100%
+  const safe = minRatio * 2
+  return Math.min(100, Math.max(2, ((hf - minRatio) / (safe - minRatio)) * 100))
+}
+
+// ─── Health Factor Bar ────────────────────────────────────────────────────────
+
+function HealthBar({ hf, minRatio }: { hf: number; minRatio: number }) {
+  const pct = hfToBarPct(hf, minRatio)
+  return (
+    <div className="mt-2">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-xs text-gray-500">Health Factor</span>
+        <span className={`text-xs font-semibold ${hfColor(hf)}`}>{fmtHF(hf)}</span>
+      </div>
+      <div className="h-1.5 bg-dark-50 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${hfBarColor(hf)}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <div className="flex justify-between mt-0.5">
+        <span className="text-[10px] text-red-400/60">Liq.</span>
+        <span className="text-[10px] text-goodgreen/60">Safe</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Vault panel ──────────────────────────────────────────────────────────────
+
+const ACTION_TABS: StableActionKind[] = ['deposit', 'withdraw', 'mint', 'repay', 'close']
 
 function VaultPanel({ ilkKey }: { ilkKey: IlkKey }) {
   const cfg = ILK_CONFIG[ilkKey]
@@ -73,9 +126,17 @@ function VaultPanel({ ilkKey }: { ilkKey: IlkKey }) {
   const [amount, setAmount] = useState('')
 
   const busy = phase !== 'idle' && phase !== 'done' && phase !== 'error'
+  const hasPosition = vault?.hasPosition ?? false
+  const collateralUSD = (vault?.collateralFloat ?? 0) * price
 
   const phaseLabel: Record<typeof phase, string> = {
-    idle:       tab === 'deposit' ? 'Deposit' : tab === 'withdraw' ? 'Withdraw' : tab === 'mint' ? 'Mint gUSD' : 'Repay gUSD',
+    idle: (
+      tab === 'deposit'  ? 'Deposit' :
+      tab === 'withdraw' ? 'Withdraw' :
+      tab === 'mint'     ? 'Mint gUSD' :
+      tab === 'repay'    ? 'Repay gUSD' :
+      /* close */          'Close Vault'
+    ),
     approving:  'Approving…',
     submitting: 'Submitting…',
     confirming: 'Confirming…',
@@ -83,17 +144,26 @@ function VaultPanel({ ilkKey }: { ilkKey: IlkKey }) {
     error:      'Try Again',
   }
 
-  const maxDeposit = collateralBalance
+  const maxDeposit  = collateralBalance
   const maxWithdraw = vault ? vault.collateralFloat : 0
-  const maxMint = vault ? maxMintable(vault.collateralFloat, price, liquidationRatio, vault.actualDebtFloat) : 0
-  const maxRepay = vault ? Math.min(vault.actualDebtFloat, gusdBalance) : 0
+  const maxMint     = vault ? maxMintable(vault.collateralFloat, price, liquidationRatio, vault.actualDebtFloat) : 0
+  const maxRepay    = vault ? Math.min(vault.actualDebtFloat, gusdBalance) : 0
 
   function handleMax() {
-    const maxVal = tab === 'deposit' ? maxDeposit : tab === 'withdraw' ? maxWithdraw : tab === 'mint' ? maxMint : maxRepay
+    const maxVal =
+      tab === 'deposit'  ? maxDeposit :
+      tab === 'withdraw' ? maxWithdraw :
+      tab === 'mint'     ? maxMint :
+      tab === 'repay'    ? maxRepay :
+      0
     setAmount(fmt(maxVal, 6))
   }
 
   function handleSubmit() {
+    if (tab === 'close') {
+      execute('close', ilkKey, '0', ilkMeta.tokenAddress, ilkMeta.decimals)
+      return
+    }
     if (!amount || !address) return
     execute(tab, ilkKey, amount, ilkMeta.tokenAddress, ilkMeta.decimals)
       .then(() => { if (phase === 'done') setAmount('') })
@@ -106,91 +176,121 @@ function VaultPanel({ ilkKey }: { ilkKey: IlkKey }) {
         <div className={`w-10 h-10 rounded-full bg-dark-50 flex items-center justify-center font-bold text-sm ${cfg.color}`}>
           {cfg.icon}
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <div className="text-white font-semibold">{cfg.label} Vault</div>
-          <div className="text-xs text-gray-400">Min. ratio {cfg.ratio} · Stability fee {cfg.fee}</div>
+          <div className="text-xs text-gray-400">Min. ratio {cfg.ratio} · {cfg.fee}</div>
         </div>
+        {hasPosition && (
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-goodgreen/10 text-goodgreen border border-goodgreen/20">Active</span>
+        )}
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 divide-x divide-dark-50/30 border-b border-dark-50/30">
-        <div className="px-4 py-3 text-center">
-          <div className="text-xs text-gray-400 mb-1">Collateral</div>
-          <div className="text-sm font-medium text-white">
-            {vaultLoading ? '…' : `${fmt(vault?.collateralFloat ?? 0, 4)} ${cfg.label}`}
+      <div className="px-5 pt-3 pb-2 border-b border-dark-50/30">
+        <div className="grid grid-cols-3 gap-2 mb-1">
+          <div className="text-center">
+            <div className="text-xs text-gray-400 mb-0.5">Collateral</div>
+            <div className="text-sm font-medium text-white">
+              {vaultLoading ? '…' : `${fmt(vault?.collateralFloat ?? 0, 4)} ${cfg.label}`}
+            </div>
+            {!vaultLoading && collateralUSD > 0 && (
+              <div className="text-[11px] text-gray-500">{fmtUSD(collateralUSD)}</div>
+            )}
+          </div>
+          <div className="text-center">
+            <div className="text-xs text-gray-400 mb-0.5">Debt</div>
+            <div className="text-sm font-medium text-white">
+              {vaultLoading ? '…' : `${fmt(vault?.actualDebtFloat ?? 0, 2)} gUSD`}
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-xs text-gray-400 mb-0.5">Ratio</div>
+            <div className={`text-sm font-medium ${hfColor(vault?.healthFactor ?? Infinity)}`}>
+              {vaultLoading ? '…' : (
+                isFinite(vault?.healthFactor ?? Infinity)
+                  ? `${((vault!.healthFactor) * 100).toFixed(0)}%`
+                  : '—'
+              )}
+            </div>
           </div>
         </div>
-        <div className="px-4 py-3 text-center">
-          <div className="text-xs text-gray-400 mb-1">Debt</div>
-          <div className="text-sm font-medium text-white">
-            {vaultLoading ? '…' : `${fmt(vault?.actualDebtFloat ?? 0, 2)} gUSD`}
-          </div>
-        </div>
-        <div className="px-4 py-3 text-center">
-          <div className="text-xs text-gray-400 mb-1">Health</div>
-          <div className={`text-sm font-medium ${hfColor(vault?.healthFactor ?? Infinity)}`}>
-            {vaultLoading ? '…' : fmtHF(vault?.healthFactor ?? Infinity)}
-          </div>
-        </div>
+        {!vaultLoading && hasPosition && (
+          <HealthBar hf={vault!.healthFactor} minRatio={liquidationRatio} />
+        )}
       </div>
 
       {/* Action tabs */}
       <div className="p-4">
-        <div className="flex gap-1 mb-4 bg-dark-50/30 rounded-xl p-1">
-          {(['deposit', 'withdraw', 'mint', 'repay'] as StableActionKind[]).map(t => (
+        <div className="flex gap-0.5 mb-4 bg-dark-50/30 rounded-xl p-1 overflow-x-auto">
+          {ACTION_TABS.filter(t => t !== 'close' || hasPosition).map(t => (
             <button
               key={t}
               onClick={() => { setTab(t); setAmount(''); reset() }}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${
-                tab === t ? 'bg-goodgreen text-white' : 'text-gray-400 hover:text-white'
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize whitespace-nowrap px-1 ${
+                tab === t
+                  ? t === 'close' ? 'bg-red-500/20 text-red-400' : 'bg-goodgreen text-white'
+                  : t === 'close' ? 'text-red-400/60 hover:text-red-400' : 'text-gray-400 hover:text-white'
               }`}
             >
-              {t === 'mint' ? 'Mint' : t === 'repay' ? 'Repay' : t === 'deposit' ? 'Deposit' : 'Withdraw'}
+              {t === 'mint' ? 'Mint' : t === 'repay' ? 'Repay' : t === 'deposit' ? 'Deposit' : t === 'withdraw' ? 'Withdraw' : 'Close'}
             </button>
           ))}
         </div>
 
-        {/* Amount input */}
-        <div className="relative mb-3">
-          <input
-            type="text"
-            inputMode="decimal"
-            placeholder="0.00"
-            value={amount}
-            onChange={e => setAmount(sanitizeNumericInput(e.target.value))}
-            className="w-full bg-dark-50/50 border border-dark-50 rounded-xl px-4 py-3 pr-20 text-white text-base placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-goodgreen/40"
-          />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-            <button
-              onClick={handleMax}
-              className="text-xs text-goodgreen hover:text-goodgreen/80 font-medium"
-            >
-              MAX
-            </button>
-            <span className="text-xs text-gray-400">
-              {tab === 'mint' || tab === 'repay' ? 'gUSD' : cfg.label}
-            </span>
+        {/* Close vault panel */}
+        {tab === 'close' ? (
+          <div className="mb-3 p-3 rounded-xl bg-red-500/5 border border-red-500/20 text-xs text-gray-400 space-y-1">
+            <p className="font-medium text-red-400">Close Vault</p>
+            <p>Repays all outstanding debt ({fmt(vault?.actualDebtFloat ?? 0, 2)} gUSD) and returns your collateral ({fmt(vault?.collateralFloat ?? 0, 4)} {cfg.label}) in a single transaction.</p>
+            <p className="text-gray-500">Requires sufficient gUSD balance. Current balance: {fmt(gusdBalance, 2)} gUSD.</p>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Amount input */}
+            <div className="relative mb-3">
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={amount}
+                onChange={e => setAmount(sanitizeNumericInput(e.target.value))}
+                className="w-full bg-dark-50/50 border border-dark-50 rounded-xl px-4 py-3 pr-20 text-white text-base placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-goodgreen/40"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <button
+                  onClick={handleMax}
+                  className="text-xs text-goodgreen hover:text-goodgreen/80 font-medium"
+                >
+                  MAX
+                </button>
+                <span className="text-xs text-gray-400">
+                  {tab === 'mint' || tab === 'repay' ? 'gUSD' : cfg.label}
+                </span>
+              </div>
+            </div>
 
-        {/* Helper text */}
-        <div className="text-xs text-gray-500 mb-3">
-          {tab === 'deposit' && `Wallet: ${fmt(maxDeposit, 4)} ${cfg.label}`}
-          {tab === 'withdraw' && `Max: ${fmt(maxWithdraw, 4)} ${cfg.label}`}
-          {tab === 'mint' && `Max safe: ${fmt(maxMint, 2)} gUSD`}
-          {tab === 'repay' && `Outstanding: ${fmt(maxRepay, 2)} gUSD`}
-        </div>
+            {/* Helper text */}
+            <div className="text-xs text-gray-500 mb-3">
+              {tab === 'deposit'  && `Wallet: ${fmt(maxDeposit, 4)} ${cfg.label}`}
+              {tab === 'withdraw' && `Max: ${fmt(maxWithdraw, 4)} ${cfg.label}`}
+              {tab === 'mint'     && `Max safe: ${fmt(maxMint, 2)} gUSD`}
+              {tab === 'repay'    && `Outstanding: ${fmt(maxRepay, 2)} gUSD`}
+            </div>
+          </>
+        )}
 
         {/* Submit */}
         {address ? (
           <button
             onClick={phase === 'done' || phase === 'error' ? reset : handleSubmit}
-            disabled={busy || (!amount && phase === 'idle')}
+            disabled={busy || (tab !== 'close' && !amount && phase === 'idle')}
             className={`w-full py-3 rounded-xl font-semibold text-sm transition-all active:scale-[0.99] ${
               phase === 'done'
                 ? 'bg-goodgreen/20 text-goodgreen border border-goodgreen/30'
                 : phase === 'error'
                 ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                : tab === 'close'
+                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed'
                 : 'bg-goodgreen text-white hover:bg-goodgreen/90 disabled:opacity-50 disabled:cursor-not-allowed'
             }`}
           >
@@ -210,6 +310,60 @@ function VaultPanel({ ilkKey }: { ilkKey: IlkKey }) {
   )
 }
 
+// ─── Position summary (all vaults) ───────────────────────────────────────────
+
+function PositionSummary({ address }: { address: `0x${string}` | undefined }) {
+  const ethVault = useVault(ILK_ETH,  address, 18, COLLATERAL_PRICES.WETH,  1.5)
+  const gdVault  = useVault(ILK_GD,   address, 18, COLLATERAL_PRICES['G$'], 2.0)
+  const udcVault = useVault(ILK_USDC, address, 6,  COLLATERAL_PRICES.USDC,  1.01)
+
+  const summary = useMemo(() => {
+    const vaults = [
+      { v: ethVault.data,  price: COLLATERAL_PRICES.WETH },
+      { v: gdVault.data,   price: COLLATERAL_PRICES['G$'] },
+      { v: udcVault.data,  price: COLLATERAL_PRICES.USDC },
+    ]
+    let totalCollateralUSD = 0
+    let totalDebt = 0
+    let hasAny = false
+
+    for (const { v, price } of vaults) {
+      if (!v) continue
+      totalCollateralUSD += v.collateralFloat * price
+      totalDebt += v.actualDebtFloat
+      if (v.hasPosition) hasAny = true
+    }
+
+    const cr = totalDebt > 0 ? (totalCollateralUSD / totalDebt) * 100 : null
+
+    return { totalCollateralUSD, totalDebt, cr, hasAny }
+  }, [ethVault.data, gdVault.data, udcVault.data])
+
+  if (!address || !summary.hasAny) return null
+
+  return (
+    <div className="rounded-xl bg-dark-100 border border-dark-50/50 px-5 py-4 mb-6">
+      <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Your Position</h2>
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <div className="text-xs text-gray-500 mb-0.5">Collateral Locked</div>
+          <div className="text-lg font-bold text-white">{fmtUSD(summary.totalCollateralUSD)}</div>
+        </div>
+        <div>
+          <div className="text-xs text-gray-500 mb-0.5">gUSD Minted</div>
+          <div className="text-lg font-bold text-white">{fmt(summary.totalDebt, 2)} gUSD</div>
+        </div>
+        <div>
+          <div className="text-xs text-gray-500 mb-0.5">Avg Coll. Ratio</div>
+          <div className={`text-lg font-bold ${summary.cr !== null ? (summary.cr >= 200 ? 'text-goodgreen' : summary.cr >= 150 ? 'text-yellow-400' : 'text-red-400') : 'text-gray-500'}`}>
+            {summary.cr !== null ? `${summary.cr.toFixed(0)}%` : '—'}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Protocol stats bar ───────────────────────────────────────────────────────
 
 function ProtocolStats() {
@@ -224,8 +378,8 @@ function ProtocolStats() {
     <div className="grid grid-cols-3 gap-3 mb-6">
       {[
         { label: 'Total gUSD Supply', value: supplyDisplay, sub: 'live from devnet' },
-        { label: 'UBI Fees Routed', value: '33%', sub: 'of stability fees' },
-        { label: 'Min. Ratio', value: '101–200%', sub: 'depends on collateral' },
+        { label: 'UBI Fees Routed',   value: '33%',         sub: 'of stability fees' },
+        { label: 'Min. Ratio',        value: '101–200%',    sub: 'depends on collateral' },
       ].map(s => (
         <div key={s.label} className="rounded-xl bg-dark-100 border border-dark-50/50 px-4 py-3 text-center">
           <div className="text-lg font-bold text-white">{s.value}</div>
@@ -240,6 +394,8 @@ function ProtocolStats() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function StablePage() {
+  const address = useConnectedAccount()
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       {/* Header */}
@@ -260,6 +416,7 @@ export default function StablePage() {
       </div>
 
       <ProtocolStats />
+      <PositionSummary address={address} />
 
       {/* Vault panels */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -277,6 +434,7 @@ export default function StablePage() {
           <li><span className="text-goodgreen font-medium">3.</span> Use gUSD anywhere — swap, lend, or bridge across chains.</li>
           <li><span className="text-goodgreen font-medium">4.</span> Repay gUSD + accrued stability fee to unlock your collateral.</li>
           <li><span className="text-goodgreen font-medium">5.</span> Keep your health factor above 1.0 to avoid liquidation.</li>
+          <li><span className="text-goodgreen font-medium">6.</span> Use <em>Close Vault</em> to repay all debt and withdraw all collateral in one step.</li>
         </ol>
       </div>
     </div>
