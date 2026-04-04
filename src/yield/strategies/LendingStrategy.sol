@@ -42,6 +42,7 @@ interface IGoodLendToken {
 
 contract LendingStrategy {
     address public immutable asset;
+    address public immutable deployer;
     address public vault;
     IGoodLendPool public lendPool;
     address public gToken; // The gToken for our asset
@@ -69,14 +70,17 @@ contract LendingStrategy {
         address _vault
     ) {
         asset = _asset;
+        deployer = msg.sender;
         lendPool = IGoodLendPool(_lendPool);
         gToken = _gToken;
         vault = _vault;
     }
 
-    /// @notice Wire the vault address after deployment (one-shot, only callable when vault == address(0)).
+    /// @notice Wire the vault address after deployment (one-shot, deployer-only).
     ///         Required when the strategy is deployed before the vault exists (chicken-and-egg).
+    ///         Restricted to deployer to prevent front-running on networks with a public mempool.
     function setVault(address _vault) external {
+        require(msg.sender == deployer, "LendingStrategy: not deployer");
         require(vault == address(0), "LendingStrategy: vault already set");
         require(_vault != address(0), "LendingStrategy: zero vault");
         vault = _vault;

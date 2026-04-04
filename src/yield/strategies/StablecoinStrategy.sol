@@ -24,6 +24,7 @@ interface IStabilityPool {
 
 contract StablecoinStrategy {
     address public immutable asset; // gUSD
+    address public immutable deployer;
     address public vault;
     IStabilityPool public stabilityPool;
     address public gainToken; // ETH/WETH gained from liquidations
@@ -51,13 +52,16 @@ contract StablecoinStrategy {
         address _vault
     ) {
         asset = _asset;
+        deployer = msg.sender;
         stabilityPool = IStabilityPool(_stabilityPool);
         gainToken = _gainToken;
         vault = _vault;
     }
 
-    /// @notice Wire the vault address after deployment (one-shot, only callable when vault == address(0)).
+    /// @notice Wire the vault address after deployment (one-shot, deployer-only).
+    ///         Restricted to deployer to prevent front-running on networks with a public mempool.
     function setVault(address _vault) external {
+        require(msg.sender == deployer, "StablecoinStrategy: not deployer");
         require(vault == address(0), "StablecoinStrategy: vault already set");
         require(_vault != address(0), "StablecoinStrategy: zero vault");
         vault = _vault;
