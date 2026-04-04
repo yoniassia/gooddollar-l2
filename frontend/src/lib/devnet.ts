@@ -98,14 +98,18 @@ export const CONTRACTS = {
   GoodDAO:               '0x5Ffe31E4676D3466268e28a75E51d1eFa4298620' as `0x${string}`,
   GoodTimelock:          '0xF66CfDf074D2FFD6A4037be3A669Ed04380Aef2B' as `0x${string}`,
 
-  // ── GoodStable — CDP vault system (chain 42069), redeployed 2026-04-03 ─────
-  gUSD:                  '0x0e801d84fa97b50751dbf25036d067dcf18858bf' as `0x${string}`,
-  VaultManager:          '0xe039608E695D21aB11675EBBA00261A0e750526c' as `0x${string}`,
-  CollateralRegistry:    '0x9d4454b023096f34b160d6b654540c56a1f81688' as `0x${string}`,
+  // ── GoodStable — CDP vault system (chain 42069), redeployed 2026-04-04 (GOO-298) ─
+  gUSD:                  '0x6B99600daD0a1998337357696827381D122825F3' as `0x${string}`,
+  VaultManager:          '0xcfbD78F3D57B620ddEff73F193dD5Bf595a730db' as `0x${string}`,
+  CollateralRegistry:    '0xca9507C5F707103e86B45DF4b35C37FE2700BB5B' as `0x${string}`,
+  StabilityPool:         '0x56cB5406C23d0fb16EaC535D6108CA72980c8072' as `0x${string}`,
+  PegStabilityModule:    '0xa2a0D69221829d6005E31Bb187A0A5DEBEaD8331' as `0x${string}`,
+  StablePriceOracle:     '0xB719422a0A484025c1A22a8dEEaFC67E81F43CfD' as `0x${string}`,
+  StableFeeSplitter:     '0xBA6BfBa894B5cAF04c3462A5C8556fFBa4de6782' as `0x${string}`,
   // GoodStable collateral tokens (separate from GoodLend mocks)
-  StableMockWETH:        '0x851356ae760d987e095750cceb3bc6014560891c' as `0x${string}`,
-  StableMockUSDC:        '0xf5059a5d33d5853360d16c683c16e67980206f36' as `0x${string}`,
-  StableMockGD:          '0x95401dc811bb5740090279ba06cfa8fcf6113778' as `0x${string}`,
+  StableMockWETH:        '0x7314AEeC874A25A1131F49dA9679D05f8d931175' as `0x${string}`,
+  StableMockUSDC:        '0xD604C06206f6DeDd82d42F90D1F5bB34a2E7c5dd' as `0x${string}`,
+  StableMockGD:          '0x132F7D9033b28B08cbc520e1cfD83c6dA3abfA36' as `0x${string}`,
 
   // ── UBI Analytics — deployed (chain 42069), 2026-04-03 (GOO-226) ──────────
   UBIRevenueTracker:     '0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d' as `0x${string}`,

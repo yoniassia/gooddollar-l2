@@ -274,4 +274,18 @@ contract MockUBIFeeSplitter {
         ubiReceived   += ubiShare;
         totalReceived += totalFee;
     }
+
+    function splitFeeToken(uint256 totalFee, address /*dAppRecipient*/, address _token)
+        external returns (uint256 ubiShare, uint256 protocolShare, uint256 dAppShare)
+    {
+        (bool ok,) = _token.call(
+            abi.encodeWithSignature("transferFrom(address,address,uint256)", msg.sender, address(this), totalFee)
+        );
+        require(ok, "fee pull failed");
+        ubiShare      = (totalFee * 3333) / 10000;
+        protocolShare = (totalFee * 1667) / 10000;
+        dAppShare     = totalFee - ubiShare - protocolShare;
+        ubiReceived   += ubiShare;
+        totalReceived += totalFee;
+    }
 }
