@@ -83,6 +83,7 @@ contract LimitOrderBook {
     error NotOrderOwner();
     error ZeroAmount();
     error ZeroAddress();
+    error ZeroPriceNotAllowed();
     error OrderNotActive();
     error PriceNotMet();
     error OrderExpiredErr();
@@ -138,6 +139,7 @@ contract LimitOrderBook {
     ) external returns (uint256 orderId) {
         if (amountIn == 0) revert ZeroAmount();
         if (tokenIn == address(0) || tokenOut == address(0)) revert ZeroAddress();
+        if (targetPrice == 0) revert ZeroPriceNotAllowed();
         if (expiry != 0 && expiry <= block.timestamp) revert OrderExpiredErr();
         if (userOrders[msg.sender].length >= MAX_ORDERS_PER_USER) revert TooManyOrders();
 

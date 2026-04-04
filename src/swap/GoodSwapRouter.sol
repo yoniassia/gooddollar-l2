@@ -61,6 +61,7 @@ contract GoodSwapRouter {
     error ExcessiveInputAmount();
     error Expired();
     error InvalidPath();
+    error TransferFailed();
 
     // ─── Modifiers ────────────────────────────────────────────────────────────
 
@@ -186,10 +187,10 @@ contract GoodSwapRouter {
         if (pool == address(0)) revert PoolNotFound(tokenIn, tokenOut);
 
         // Pull tokenIn from caller into router.
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        if (!IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn)) revert TransferFailed();
 
         // Approve pool to pull from router.
-        IERC20(tokenIn).approve(pool, amountIn);
+        if (!IERC20(tokenIn).approve(pool, amountIn)) revert TransferFailed();
 
         // Execute swap — output goes to router first.
         amountOut = IGoodPool(pool).swap(tokenIn, amountIn, amountOutMin);
@@ -197,7 +198,7 @@ contract GoodSwapRouter {
         if (amountOut < amountOutMin) revert InsufficientOutputAmount();
 
         // Forward output to recipient.
-        IERC20(tokenOut).transfer(to, amountOut);
+        if (!IERC20(tokenOut).transfer(to, amountOut)) revert TransferFailed();
 
         emit Swap(tokenIn, tokenOut, amountIn, amountOut, to);
     }
@@ -229,17 +230,17 @@ contract GoodSwapRouter {
         address pool = getPool(tokenIn, tokenOut);
 
         // Pull the computed amountIn from caller into router.
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        if (!IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn)) revert TransferFailed();
 
         // Approve pool to pull from router.
-        IERC20(tokenIn).approve(pool, amountIn);
+        if (!IERC20(tokenIn).approve(pool, amountIn)) revert TransferFailed();
 
         // Execute swap with exact output enforced by slippage guard.
         uint256 received = IGoodPool(pool).swap(tokenIn, amountIn, amountOut);
         if (received < amountOut) revert InsufficientOutputAmount();
 
         // Forward output to recipient.
-        IERC20(tokenOut).transfer(to, received);
+        if (!IERC20(tokenOut).transfer(to, received)) revert TransferFailed();
 
         emit Swap(tokenIn, tokenOut, amountIn, received, to);
     }

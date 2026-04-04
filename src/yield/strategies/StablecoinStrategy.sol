@@ -38,6 +38,7 @@ contract StablecoinStrategy {
 
     error NotVault();
     error IsPaused();
+    error TransferFailed();
 
     modifier onlyVault() {
         if (msg.sender != vault) revert NotVault();
@@ -72,8 +73,8 @@ contract StablecoinStrategy {
 
     function deposit(uint256 amount) external onlyVault {
         if (paused) revert IsPaused();
-        IERC20(asset).transferFrom(vault, address(this), amount);
-        IERC20(asset).approve(address(stabilityPool), amount);
+        if (!IERC20(asset).transferFrom(vault, address(this), amount)) revert TransferFailed();
+        if (!IERC20(asset).approve(address(stabilityPool), amount)) revert TransferFailed();
         stabilityPool.deposit(amount);
         totalDeposited += amount;
         emit Deposited(amount);
@@ -85,7 +86,7 @@ contract StablecoinStrategy {
         stabilityPool.withdraw(amount);
 
         // Transfer back to vault
-        IERC20(asset).transfer(vault, amount);
+        if (!IERC20(asset).transfer(vault, amount)) revert TransferFailed();
 
         if (amount > totalDeposited) {
             totalDeposited = 0;
@@ -121,7 +122,7 @@ contract StablecoinStrategy {
         uint256 bal = stabilityPool.deposits(address(this));
         if (bal > 0) {
             stabilityPool.withdraw(bal);
-            IERC20(asset).transfer(vault, bal);
+            if (!IERC20(asset).transfer(vault, bal)) revert TransferFailed();
         }
         totalDeposited = 0;
         return bal;
