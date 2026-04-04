@@ -9,12 +9,16 @@ import "../src/UBIRevenueTracker.sol";
  *         the old UBIFeeHook (0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9) instead
  *         of the current UBIFeeSplitter (0xC0BF43A4Ca27e0976195E6661b099742f10507e5).
  *
+ * NOTE: The tracker was redeployed after this fix was applied. Current address is
+ *       0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d (GOO-281). The old address
+ *       0x1D3EDBa... is superseded but kept here for historical reference.
+ *
  * Usage (devnet):
  *   forge script script/FixUBIRevenueTrackerSplitter.s.sol \
  *     --rpc-url $DEVNET_RPC --broadcast --legacy
  */
 contract FixUBIRevenueTrackerSplitter is Script {
-    address constant TRACKER      = 0x1D3EDBa836caB11C26A186873abf0fFeB8bbaE63;
+    address constant TRACKER      = 0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d;
     address constant FEE_SPLITTER = 0xC0BF43A4Ca27e0976195E6661b099742f10507e5;
 
     function run() external {

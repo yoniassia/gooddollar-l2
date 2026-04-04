@@ -35,7 +35,7 @@ const OPERATOR_KEY = process.env.OPERATOR_PRIVATE_KEY ??
 
 // UBIRevenueTracker contract
 const TRACKER_ADDRESS = process.env.UBI_REVENUE_TRACKER ??
-  '0x1D3EDBa836caB11C26A186873abf0fFeB8bbaE63';
+  '0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d';
 
 // Report interval — every 5 minutes for devnet, would be hourly in production
 const REPORT_INTERVAL_MS = parseInt(process.env.REPORT_INTERVAL_MS ?? '300000', 10);
