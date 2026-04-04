@@ -90,6 +90,7 @@ contract CollateralVault {
     error NotAdmin();
     error ZeroAddress();
     error ZeroAmount();
+    error DepositTooSmall(uint256 amount, uint256 minimum);
     error Paused();
     error AssetNotRegistered(bytes32 key);
     error InsufficientCollateral(uint256 have, uint256 need);
@@ -160,8 +161,13 @@ contract CollateralVault {
      * @param ticker Stock ticker
      * @param amount G$ amount (18 decimals)
      */
+    /// @dev Minimum 0.001 GDT (1e15 wei). Guards against accidental USDC-scaled deposits
+    ///      (e.g. passing 500_000_000 for "500 USDC" when vault expects 18-decimal GDT).
+    uint256 public constant MIN_DEPOSIT = 1e15;
+
     function depositCollateral(string calldata ticker, uint256 amount) external whenNotPaused {
         if (amount == 0) revert ZeroAmount();
+        if (amount < MIN_DEPOSIT) revert DepositTooSmall(amount, MIN_DEPOSIT);
         bytes32 key = _key(ticker);
         _depositCollateral(key, amount);
     }
