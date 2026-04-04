@@ -46,6 +46,11 @@ const securityHeaders = [
         'https://explorer-api.walletconnect.com',
         'https://rpc.gooddollar.org',
         'https://clapi.gooddollar.org',
+        'https://rpc.goodclaw.org',
+        'wss://rpc.goodclaw.org',
+        'https://pulse.walletconnect.org',
+        'wss://pulse.walletconnect.org',
+        'https://api.web3modal.org',
       ].join(' '),
       // Iframes: deny (no wallet iframes needed)
       "frame-src 'none'",
