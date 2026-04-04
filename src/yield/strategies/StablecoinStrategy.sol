@@ -19,6 +19,8 @@ interface IStabilityPool {
     function withdraw(uint256 amount) external;
     /// @dev Matches GoodStable StabilityPool public mapping getter.
     function deposits(address depositor) external view returns (uint256);
+    /// @dev Claim collateral gains from liquidations; transfers gain tokens to caller.
+    function claimGains() external returns (uint256);
 }
 
 contract StablecoinStrategy {
@@ -100,10 +102,15 @@ contract StablecoinStrategy {
     function harvest() external onlyVault returns (uint256 profit, uint256 loss) {
         uint256 currentBal = stabilityPool.deposits(address(this));
 
-        // Collateral-gain claiming requires per-ilk calls (claimCollateral(bytes32 ilk)).
-        // The StabilityPool does not expose a single-call claimAll; skip for now.
-        // Collateral gains accumulate in the SP and can be claimed off-band by the vault admin
-        // once ilk keys are wired to this strategy.
+        // Claim collateral gains (e.g. WETH from liquidations) and forward to vault.
+        if (gainToken != address(0)) {
+            stabilityPool.claimGains();
+            uint256 gained = IERC20(gainToken).balanceOf(address(this));
+            if (gained > 0) {
+                if (!IERC20(gainToken).transfer(vault, gained)) revert TransferFailed();
+                emit GainsClaimed(gained);
+            }
+        }
 
         // Report gUSD profit/loss
         if (currentBal > totalDeposited) {

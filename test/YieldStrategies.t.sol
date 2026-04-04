@@ -156,6 +156,11 @@ contract MockStabilityPool {
         return _depositorBal[who];
     }
 
+    /// @dev IStabilityPool interface: matches public mapping getter on real GoodStable SP
+    function deposits(address depositor) external view returns (uint256) {
+        return _depositorBal[depositor];
+    }
+
     function getDepositorGain(address who) external view returns (uint256) {
         return _depositorGain[who];
     }
