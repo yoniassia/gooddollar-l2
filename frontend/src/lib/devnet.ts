@@ -111,7 +111,7 @@ export const CONTRACTS = {
   UBIRevenueTracker:     '0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d' as `0x${string}`,
 
   // ── GoodYield — VaultFactory (chain 42069), deployed 2026-04-04 (GOO-240) ──
-  VaultFactory:          '0x0b27a79cb9c0b38ee06ca3d94daa68e0ed17f953' as `0x${string}`,
+  VaultFactory:          '0x77AD263Cd578045105FBFC88A477CAd808d39Cf6' as `0x${string}`,
 
   // ── GoodYield Initial Vaults — deployed 2026-04-04 (GOO-242) ──
   ETHLendingVault:       '0xa6AB86f760ae5D6fbF06056a7887b816610A4668' as `0x${string}`,
