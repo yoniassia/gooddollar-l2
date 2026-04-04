@@ -185,7 +185,7 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Navigation: Header desktop + mobile menu links
 - [x] Agent detail page (/agents/[address]) with per-protocol breakdown
 - [x] Integration with protocol contracts (auto-report activity from swaps/perps/etc.) — activity-reporter keeper: polls 5 protocols, 28 tests (GOO-245)
-- [ ] Agent registration frontend (connect wallet → register your bot)
+- [x] Agent registration frontend (connect wallet → register your bot) — /agents/register page with wallet connect, strategy presets, on-chain registration + 13 tests (GOO-246)
 
 ## Principles
 1. **Fork the best, adapt for UBI** — Don't reinvent. Clone proven codebases, add UBI fee routing.
