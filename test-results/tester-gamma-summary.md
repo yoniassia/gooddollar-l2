@@ -1144,3 +1144,181 @@ JSONL entries this iteration: 14 (total cumulative: 436)
 7. **UBIFeeHook**: Trigger a swap and verify afterSwap callback fires (totalSwapsProcessed=0 still)
 8. **UBIFeeSplitter.ubiRecipient()**: Investigate why function call reverts (selector mismatch?)
 9. **VaultManager**: Once GOO-278 fixed, open WETH18 vault and test mint/repay
+
+---
+
+# Tester Gamma — Iteration 10 (MILESTONE)
+
+Date: 2026-04-04T00:00:00Z
+Wallet: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
+Chain: GoodDollar L2 Devnet (Chain ID 42069, RPC http://localhost:8545)
+Block start: 55,236 | Block end: 55,505
+Nonce start: 160 | Nonce end: 210 (50 write transactions executed)
+
+**Iteration 10 Tests: 190 | Passed: 142 | Failed: 48**
+**Cumulative Total: 626 JSONL entries across 10 iterations**
+
+## Part A — Fix Verification
+
+### GOO-199: CollateralVault Decimal Mismatch
+
+| Test | Result | Evidence |
+|------|--------|----------|
+| MIN_COLLATERAL_RATIO() | PASS | MCR=15000 (150%) |
+| LIQUIDATION_RATIO() | PASS | LR=12000 (120%) |
+| LIQUIDATION_BONUS_BPS() | PASS | 1000 (10%) |
+| TRADE_FEE_BPS() | PASS | 30 (0.3%) |
+| MIN_DEPOSIT() | FAIL | Reverts — constant may have been removed |
+| depositCollateral(AAPL, 5e8 dust) | FAIL (expected) | Reverts — AAPL not registered |
+| depositCollateral(AAPL, 1e18) | FAIL | Also reverts — AAPL not registered |
+
+**Verdict**: GOO-199 NOT fully verifiable. AAPL not registered so all depositCollateral calls revert. Vault constants (MCR=150%, LR=120%) read correctly — these are reasonable values. Bug status inconclusive.
+
+### GOO-214: ConditionalTokens Address
+
+| Test | Result | Evidence |
+|------|--------|----------|
+| OLD MarketFactory tokens() | PASS | 0x8acd85898458400f7db866d53fcff6f0d49741ff |
+| NEW MarketFactory tokens() | FAIL (STILL MISMATCH) | 0x28f057dc79e3cb77b2bbf4358d7a690cfe21b2d5 |
+| NEW MarketFactory goodDollar() | PASS | Correctly points to GoodDollarToken |
+| NEW MarketFactory marketCount() | PASS | 12 markets |
+
+**Verdict**: GOO-214 NOT FIXED. New MarketFactory has a 3rd different ConditionalTokens address (0x28f057dc). Three addresses in play. GOO-304 filed.
+
+### GOO-245: UBIRevenueTracker feeSplitter — CONFIRMED FIXED
+
+| Test | Result | Evidence |
+|------|--------|----------|
+| feeSplitter() | PASS | 0xc0bf43a4ca27e0976195e6661b099742f10507e5 CONFIRMED |
+| protocolCount() | PASS | 7 protocols |
+| snapshotCount() | PASS | 1 snapshot |
+| totalFeesTracked() | PASS | 13,100.00 GD |
+| totalUBITracked() | PASS | 4,366.00 GD |
+
+### GOO-301: MockPriceOracle — STILL BROKEN
+
+| Test | Result | Evidence |
+|------|--------|----------|
+| getPrice(WETH18) | REVERTS | GOO-301 still open |
+| getPrice(GoodDollar) | REVERTS | All price reads fail |
+| VaultManager oracle() | SAME BROKEN | Still 0x998abeb3 |
+
+## Part B — New Contract Deep Dives
+
+### B1: New UBIFeeSplitter (0xc0bf43a4) Full Audit
+
+| Function | Value |
+|----------|-------|
+| totalFeesCollected() | 0.0000 GD (no fees yet) |
+| ubiBPS() | 3333 (33.3%) |
+| protocolBPS() | 1667 (16.7%) |
+| ubiRecipient() | 0x73c68f1f... (SET — non-zero) |
+| goodDollar() | **0x6533158b... (WRONG — points to UBIFeeHook.ubiPool, not GoodDollarToken)** |
+| dAppCount() | 0 |
+| protocolTreasury() | 0xf39fd6e5 (deployer) |
+| totalUBIFunded() | 0.0000 GD |
+| claimableBalance() | 0.0000 GD |
+
+**GOO-303 FILED**: goodDollar() returns UBIFeeHook.ubiPool address — fee collection broken.
+
+### B2: VaultManager
+
+oracle=0x998abeb3 (still broken), gusd=0x0e801d84, registry=0x9d4454b0, feeSplitter=0x8f86403a (yet another FeeSplitter address!), stabilityPool=0x36c02da8, RAY=1e27
+
+### B4: VoteEscrowedGD Lock State
+
+totalLocked=1,500 GD, totalVotingPower=7.19 veGD, MAX_LOCK=1460 days, MIN_LOCK=7 days, EARLY_UNLOCK_PENALTY=30%
+**Wallet lock**: 1,000 GD locked, expiring 2026-04-11 04:12:17 (7 days), votingPower=4.5039 veGD
+
+### B5: PerpEngine
+
+marketCount=6 (grown!), oracle=0x0165878a (PerpPriceOracle — NOT broken MockPriceOracle), vault=0x5fc8d326, MAINTENANCE_MARGIN=2%, TRADE_FEE=0.1%
+
+### B7: ValidatorStaking
+
+totalStaked=0 GD (unstaked), validatorCount=1, activeValidatorCount=0, MIN_STAKE=1,000,000 GD, UNBONDING_PERIOD=7 days
+**Unbonding request: 1,000,000 GD ready at 2026-04-11 02:10:31**
+
+### B8: GoodDAO
+
+proposalCount=1, VOTING_PERIOD=259,200 blocks, QUORUM=10%, THRESHOLD=1%, TIMELOCK=24h, veGD correctly linked
+
+## Part C — Stress Test (50 Write Transactions)
+
+| Batch | Description | Success |
+|-------|-------------|---------|
+| S1 (5x) | GDT self-transfers 1-5 GD | 5/5 — gas: 27,694 |
+| S2 (5x) | WETH18 mint 1-5 ETH | 5/5 — gas: 33,981 |
+| S3 (5x) | GDT approvals | 5/5 — gas: ~47,000 |
+| S4 (5x) | WETH18 approvals | 5/5 — gas: 29,137-46,249 |
+| S5 (5x) | GDT larger transfers 100-500 GD | 5/5 — gas: 27,706 |
+| S6 (5x) | VaultManager openVault | 1/5 — only 1 ILK registered |
+| S7 (5x) | VaultManager depositCollateral | 1/5 — same ILK issue |
+| S8 (5x) | PerpEngine createMarket | 0/5 — admin only |
+| S9 (5x) | GDT transfers to contracts | 5/5 — gas: 35,294-52,394 |
+| S10 (5x) | WETH18 self-transfers | 5/5 — gas: 26,741 |
+
+Total: 50 txs sent (nonce 160→210), 37/50 passed, blocks 55,455→55,505
+Final balances: GDT=8,992,680.30 GD, WETH18=29.0000 WETH
+
+## New Bugs — Iteration 10
+
+### GOO-303 (HIGH): New UBIFeeSplitter goodDollar() points to wrong contract
+- Contract: 0xc0bf43a4ca27e0976195e6661b099742f10507e5
+- Returns: 0x6533158b... (UBIFeeHook.ubiPool)
+- Expected: 0x5FbDB231... (GoodDollarToken)
+- Impact: All fee splits will interact with wrong token; system non-functional
+
+### GOO-304 (MEDIUM): MarketFactory CT address still wrong after redeploy
+- Contract: NEW MarketFactory 0xc7cdb7a2...
+- tokens() returns: 0x28f057dc... (unknown 3rd address)
+- Expected: 0xe7f17252... (ConditionalTokens)
+- Context: 3 different CT addresses exist across factories
+
+## Fix Verification Table
+
+| Bug ID | Iteration 10 Status |
+|--------|---------------------|
+| GOO-199 | INCONCLUSIVE — vault constants ok, AAPL not registered |
+| GOO-214 | STILL OPEN — new address mismatch (GOO-304) |
+| GOO-245 | CONFIRMED FIXED |
+| GOO-301 | STILL OPEN (iteration 10) |
+
+## Cumulative Milestone State
+
+| Component | Status |
+|-----------|--------|
+| GoodDollarToken | Operational: 1B supply, wallet=8.99M GD |
+| CollateralVault | Deployed, readable; no assets registered for testing |
+| VaultManager | Broken oracle (GOO-301) — no vaults since iter 5 |
+| UBIFeeSplitter 0xe7f1 | ubiRecipient=0 (GOO-196, 10 iterations!) |
+| UBIFeeSplitter 0xc0bf | goodDollar wrong (GOO-303); 0 fees |
+| UBIRevenueTracker | Operational: 7 protocols, 13,100 GD tracked |
+| PerpEngine | 6 markets, own oracle working |
+| VoteEscrowedGD | 1,500 GD locked; wallet expires 2026-04-11 |
+| ValidatorStaking | 1M GD unbonding, claimable 2026-04-11 |
+| GoodDAO | 1 proposal; governance params set |
+| GoodLendPool | 2 reserves, own oracle working |
+| MarketFactory (new) | 12 markets, CT address mismatch |
+| MockWETH18 | 120 ETH supply, wallet=29 WETH |
+
+## Open Bugs Priority
+
+| Bug ID | Age | Priority | Description |
+|--------|-----|----------|-------------|
+| GOO-196 | 10 iters | CRITICAL | UBIFeeSplitter ubiRecipient=0 (forever unfixed) |
+| GOO-301 | 5+ iters | HIGH | MockPriceOracle reverts all calls |
+| GOO-303 | NEW | HIGH | New UBIFeeSplitter goodDollar() wrong contract |
+| GOO-214/GOO-304 | 5+ iters | HIGH | MarketFactory CT address mismatch (3 addresses) |
+| GOO-302 | iter 9 | LOW | UBIFeeSplitter migration docs |
+
+## Next Iteration Priorities
+
+1. GOO-301: Fix MockPriceOracle (blocks all VaultManager operations)
+2. GOO-303: Fix new UBIFeeSplitter goodDollar() reference
+3. GOO-196: Call setUBIRecipient on 0xe7f1 UBIFeeSplitter (10 iterations open!)
+4. completeUnstake(): Execute after 2026-04-11 — 1M GD ready
+5. VoteEscrowedGD: Test extendLock or let expire and test withdraw()
+6. GoodLendPool: supply/borrow write flow
+7. PerpEngine: verify oracle has prices, attempt openPosition
+8. GOO-304: Verify 0x28f057dc identity or redeploy with correct CT

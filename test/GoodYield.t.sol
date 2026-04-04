@@ -268,6 +268,33 @@ contract GoodYieldTest is Test {
 
     // ─── Strategy Migration ───
 
+    function test_lendingStrategySetVault_onceOnly() public {
+        MockERC20 asset2 = new MockERC20("Test", "TST");
+        // Deploy with address(0) vault (chicken-and-egg scenario)
+        LendingStrategy ls = new LendingStrategy(
+            address(asset2),
+            address(0), // lendPool (mock — not exercised here)
+            address(0), // gToken
+            address(0)  // vault placeholder
+        );
+        assertEq(ls.vault(), address(0));
+
+        // First setVault call should succeed
+        ls.setVault(address(vault));
+        assertEq(ls.vault(), address(vault));
+
+        // Second setVault call must revert (already set)
+        vm.expectRevert("LendingStrategy: vault already set");
+        ls.setVault(address(vault));
+    }
+
+    function test_lendingStrategySetVault_rejectsZero() public {
+        MockERC20 asset2 = new MockERC20("Test", "TST");
+        LendingStrategy ls = new LendingStrategy(address(asset2), address(0), address(0), address(0));
+        vm.expectRevert("LendingStrategy: zero vault");
+        ls.setVault(address(0));
+    }
+
     function test_migrateStrategy() public {
         vm.prank(alice);
         vault.deposit(10 ether, alice);

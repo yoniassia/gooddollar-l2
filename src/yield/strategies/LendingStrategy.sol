@@ -74,6 +74,14 @@ contract LendingStrategy {
         vault = _vault;
     }
 
+    /// @notice Wire the vault address after deployment (one-shot, only callable when vault == address(0)).
+    ///         Required when the strategy is deployed before the vault exists (chicken-and-egg).
+    function setVault(address _vault) external {
+        require(vault == address(0), "LendingStrategy: vault already set");
+        require(_vault != address(0), "LendingStrategy: zero vault");
+        vault = _vault;
+    }
+
     /// @notice Total assets this strategy controls (principal + accrued interest)
     function totalAssets() external view returns (uint256) {
         return IGoodLendToken(gToken).balanceOf(address(this));

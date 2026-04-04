@@ -788,6 +788,67 @@ async function run() {
     await page.close();
   } catch (e) { totalTests++; failed++; logResult({ page: 'agents/[address]', check: 'detail_page_loads', passed: false, detail: e.message }); }
 
+  // ═══ TEST 33: Explore token detail page — ETH ═══
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/explore/ETH`, { waitUntil: 'networkidle', timeout: 30000 });
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      return { hasUI: /ETH|Ether|price|market|chart/i.test(t), hasBroken: /NaN|TypeError|\[object/.test(t), is404: /page not found/i.test(t), len: t.trim().length };
+    });
+    const ok = d.hasUI && !d.hasBroken && !d.is404;
+    logResult({ page: 'explore/ETH', check: 'token_detail_loads', passed: ok, detail: d.is404 ? 'Route 404' : d.hasUI ? `UI visible (${d.len} chars)` : 'No content' });
+    if (ok) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'explore/ETH', check: 'token_detail_loads', passed: false, detail: e.message }); }
+
+  // ═══ TEST 34: On-chain data health — stocks prices non-zero (BLOCKED: GOO-276) ═══
+  // This test will pass once GOO-276 (script-src CSP) is fixed and wagmi reads work.
+  // Verifies: StocksPriceOracle returns real prices → stocks page shows dollar values.
+  try {
+    const page = await context.newPage();
+    const rpcCalls = [];
+    page.on('request', req => { if (req.url().includes('rpc.goodclaw.org')) rpcCalls.push(1); });
+    await page.goto(`${FRONTEND_URL}/stocks`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.waitForTimeout(4000);
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      const prices = (t.match(/\$[\d,]+\.\d{2}/g) || []);
+      const tickers = (t.match(/AAPL|TSLA|NVDA|MSFT|AMZN|GOOGL|META|JPM|NFLX|AMD/g) || []);
+      return { priceCount: prices.length, tickerCount: tickers.length, samplePrices: prices.slice(0,3) };
+    });
+    const hasLiveData = rpcCalls.length > 0 && d.tickerCount >= 3 && d.priceCount >= 3;
+    const detail = rpcCalls.length === 0
+      ? `0 RPC calls — GOO-276 blocks hydration`
+      : d.tickerCount === 0
+        ? 'No tickers — oracle empty or GOO-308'
+        : `${d.tickerCount} tickers, ${d.priceCount} prices (${d.samplePrices.join(', ')})`;
+    logResult({ page: 'stocks', check: 'live_prices_from_oracle', passed: hasLiveData, detail });
+    if (hasLiveData) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'stocks', check: 'live_prices_from_oracle', passed: false, detail: e.message }); }
+
+  // ═══ TEST 35: Activity page shows real block number (BLOCKED: GOO-276) ═══
+  // This test verifies the full client-side data flow: React hydration → fetch → RPC → render.
+  try {
+    const page = await context.newPage();
+    await page.goto(`${FRONTEND_URL}/activity`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.waitForTimeout(4000);
+    totalTests++;
+    const d = await page.evaluate(() => {
+      const t = document.body.innerText;
+      const blockMatch = t.match(/Block #(\d+)/);
+      const blockNum = blockMatch ? parseInt(blockMatch[1]) : 0;
+      return { blockNum, hasTxHashes: /0x[a-f0-9]{40,}/i.test(t) };
+    });
+    const hasLiveData = d.blockNum > 1000;
+    logResult({ page: 'activity', check: 'live_block_data', passed: hasLiveData, detail: d.blockNum === 0 ? 'Block #0 — GOO-276 blocks hydration' : `Block #${d.blockNum}${d.hasTxHashes ? ' + tx hashes' : ''}` });
+    if (hasLiveData) passed++; else failed++;
+    await page.close();
+  } catch (e) { totalTests++; failed++; logResult({ page: 'activity', check: 'live_block_data', passed: false, detail: e.message }); }
+
   await browser.close();
 
   // Summary

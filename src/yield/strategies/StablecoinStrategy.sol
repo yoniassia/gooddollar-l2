@@ -56,6 +56,13 @@ contract StablecoinStrategy {
         vault = _vault;
     }
 
+    /// @notice Wire the vault address after deployment (one-shot, only callable when vault == address(0)).
+    function setVault(address _vault) external {
+        require(vault == address(0), "StablecoinStrategy: vault already set");
+        require(_vault != address(0), "StablecoinStrategy: zero vault");
+        vault = _vault;
+    }
+
     function totalAssets() external view returns (uint256) {
         return stabilityPool.getDepositorBalance(address(this));
     }

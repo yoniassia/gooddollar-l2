@@ -75,6 +75,9 @@ contract DeployInitialVaults is Script {
         );
         console.log("ETH-Lending Vault:", ethVault);
 
+        // Wire strategy → vault (chicken-and-egg fix: setVault is one-shot, only works when vault==address(0))
+        ethStrategy.setVault(ethVault);
+
         // ════════════════════════════════════════════════════════
         // 2. gUSD-Stability Vault — gUSD → StabilityPool
         // ════════════════════════════════════════════════════════
@@ -101,6 +104,8 @@ contract DeployInitialVaults is Script {
             1_000_000 ether // 1M gUSD cap
         );
         console.log("gUSD-Stability Vault:", gusdVault);
+
+        gusdStrategy.setVault(gusdVault);
 
         // ════════════════════════════════════════════════════════
         // 3. G$-Lending Vault — G$ → GoodLend
@@ -132,6 +137,8 @@ contract DeployInitialVaults is Script {
             10_000_000 ether // 10M G$ cap
         );
         console.log("G$-Lending Vault:", gdVault);
+
+        gdStrategy.setVault(gdVault);
 
         // ════════════════════════════════════════════════════════
         // Summary
