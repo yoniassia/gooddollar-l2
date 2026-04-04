@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { type Token } from '@/lib/tokens'
 import { SwapConfirmModal } from './SwapConfirmModal'
 import { useSwapExecute } from '@/lib/useOnChainSwap'
+import { toastPending, toastSuccess, toastError } from '@/components/ui/toast'
 
 type BalanceProps = {
   variant: 'balance'
@@ -90,6 +91,28 @@ function SwapButton({
 }) {
   const [showReview, setShowReview] = useState(false)
   const { swap, phase, error, reset, isConnected } = useSwapExecute()
+  const prevPhase = useRef(phase)
+
+  // Fire toasts on phase transitions
+  useEffect(() => {
+    const prev = prevPhase.current
+    prevPhase.current = phase
+    if (phase === prev) return
+    if (phase === 'approving') {
+      toastPending('Awaiting approval…', 'Please confirm the token approval in your wallet.')
+    } else if (phase === 'swapping') {
+      toastPending('Swap submitted', 'Waiting for transaction confirmation…')
+    } else if (phase === 'done') {
+      toastSuccess('Swap complete!', `${inputToken.symbol} → ${outputToken.symbol} transaction confirmed.`)
+    }
+  }, [phase, inputToken.symbol, outputToken.symbol])
+
+  // Fire error toast
+  useEffect(() => {
+    if (error) {
+      toastError('Swap failed', error)
+    }
+  }, [error])
 
   const handleSwapClick = useCallback(() => {
     setShowReview(true)
@@ -149,9 +172,7 @@ function SwapButton({
           >
             {buttonLabel()}
           </button>
-          {error && (
-            <p className="text-xs text-red-400 text-center mt-2">{error}</p>
-          )}
+          {/* errors are surfaced via the global Toast notification */}
         </>
       )}
 

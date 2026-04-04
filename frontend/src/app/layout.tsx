@@ -10,6 +10,7 @@ import { UBIBanner } from '@/components/UBIBanner'
 import { LandingFooter } from '@/components/LandingFooter'
 import { PageTransition } from '@/components/PageTransition'
 import { AxeDevTools } from '@/components/AxeDevTools'
+import { Toaster } from '@/components/ui/toast'
 
 export const metadata: Metadata = {
   title: 'GoodDollar — DeFi That Funds UBI',
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <PageTransition>{children}</PageTransition>
           </main>
           <LandingFooter />
+          <Toaster />
         </Providers>
         <Analytics />
         <SpeedInsights />
