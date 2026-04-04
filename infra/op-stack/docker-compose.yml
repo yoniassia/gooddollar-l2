@@ -22,6 +22,8 @@ x-logging: &logging
 
 services:
   # ─── L1: Simulated Ethereum ───────────────────────
+  # State is persisted to /data/state.json so restarts don't lose L1 history.
+  # anvil --dump-state also auto-loads state on startup when the file exists.
   l1-anvil:
     image: ghcr.io/foundry-rs/foundry:latest
     entrypoint: ["anvil"]
@@ -34,6 +36,9 @@ services:
       - --balance=10000
       - --gas-limit=30000000
       - --mnemonic=test test test test test test test test test test test junk
+      - --dump-state=/data/state.json
+    volumes:
+      - l1-anvil-data:/data
     ports:
       - "8545:8545"
     healthcheck:
@@ -153,3 +158,4 @@ services:
 
 volumes:
   op-geth-data:
+  l1-anvil-data:
