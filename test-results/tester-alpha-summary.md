@@ -1,7 +1,7 @@
 # Tester Alpha — Test Summary
 
 ## Stats
-- **Total tests run (lifetime):** 335
+- **Total tests run (lifetime):** 447
 - **Iteration 1:** 21 pass / 0 fail
 - **Iteration 2:** 20 pass / 0 fail
 - **Iteration 3:** 18 pass / 0 fail
@@ -11,15 +11,32 @@
 - **Iteration 7 (Tester Gamma):** 57 pass / 4 fail (GOO-224 regression, GOO-198 stale, IRM panic, stress)
 - **Iteration 8:** 17 pass / 6 fail → corrected to 5/8 key checks OK (GOO-243 fix verified, 2 new bugs filed)
 - **Iteration 9:** 30 pass / 7 fail (81.1%) — 5 test design issues, 2 real bugs filed (GOO-298, GOO-299)
-- **Last run:** 2026-04-04T13:00:00+00:00
+- **Iteration 10:** 31 pass / 4 fail (88.6%) — GOO-298/299 both confirmed still open, interest accrual verified, supply/borrow/repay cycle complete, new contracts smoke-tested
+- **Iteration 11:** 38 pass / 0 fail (100%) — LiFi full flow (initiate/expire), FastWithdrawalLP deposit/withdraw, UBIFeeHook full inspection, GOO-298/299 re-confirmed open
+- **Iteration 12:** 105 pass / 7 fail (93.8%) — 12 new contracts smoke-tested; GOO-298/299 still open; 2 new bugs found (GOO-308, GOO-309); VaultFactory TVL/DAO/Timelock/OptimisticResolver/MarketFactory/AgentRegistry all inspected
+- **Last run:** 2026-04-04T13:41:12+00:00
 
 ## Contracts Covered (full coverage)
-- GoodLendPool: supply, borrow, repay, withdraw, flashLoan, liquidate, mintToTreasury, getUserAccountData, getReservesCount, getBorrowIndex, setBorrowingEnabled, setOracle, setTreasury, setAdmin, setReserveActive, setReserveFactor
+- GoodLendPool: supply, borrow, repay, withdraw, flashLoan, liquidate, mintToTreasury, getUserAccountData, getReservesCount, getBorrowIndex, setBorrowingEnabled, setOracle, setTreasury, setAdmin, setReserveActive, setReserveFactor, getLiquidityIndex, getReserveData, interestRateModel (verified interest accrual per block)
 - MockWETH/MockUSDC: balanceOf, approve, mint, transfer
-- LiFiBridgeAggregator: initiateSwap, initiateSwapETH, completeSwap, refundSwap, expireSwap, setKeeper, setUBIFeeRate, setUBIFeeSplitter, setSupportedChain, setWhitelistedToken, batchWhitelistTokens, getUserSwaps, swapCount, getSwap
+- LiFiBridgeAggregator: initiateSwap (7-arg: srcToken,srcAmount,destChainId,destToken,destReceiver,minDestAmount,deadline), initiateSwapETH, completeSwap (keeper-only guard verified), refundSwap, expireSwap (deadline enforcement verified), setKeeper, setUBIFeeRate, setUBIFeeSplitter, setSupportedChain, setWhitelistedToken, batchWhitelistTokens, getUserSwaps, swapCount, getSwap, supportedChains
 - UBIFeeSplitter: ETH receive(), withdrawETH, claimableBalance, setFeeSplit, setTreasury, setUBIRecipient, registerDApp, splitFee, splitFeeToken, releaseToUBI, totalFeesCollected, totalUBIFunded
 - GoodDollarToken (new, 0x6533158b): fundUBIPool, ubiPool, dailyUBIAmount, totalVerifiedHumans, setMinter, mint, verifyHuman, isVerifiedHuman
-- UBIClaimV2 (0x73C68f1f): canClaim, currentEpoch, claim (FRESH4 received 1.0 G$), supplementPool (BLOCKED by GOO-243)
+- UBIClaimV2 (0x73C68f1f): canClaim, currentEpoch, claim (FRESH4 received 1.0 G$), supplementPool (BLOCKED by GOO-243), claimFor (NotAuthorizedRelayer — relayer whitelist enforced), batchClaim (same)
+- FastWithdrawalLP (0xefab0beb): admin, feeBps, depositLiquidity(USDC), depositETHLiquidity, withdrawLiquidity
+- StabilityPool (0x36c02da8): admin, poolSize=2000 gUSD (smoke; deposit requires gUSD, blocked by GOO-298)
+- UBIFeeHook (0xd7acb270): admin, poolManager, ubiPool, paused, ubiFeeShareBPS=3333, totalSwapsProcessed, calculateUBIFee, getUBIFeesForToken
+- gUSD (0x0e801d84): name, symbol, decimals, totalSupply=~110k, admin, isMinter/isBurner (PSM is minter+burner)
+- PegStabilityModule (0xb7278a61): gusd, usdc=MockUSDC6, admin, paused=false, swapCap=0, feeBPS=10, totalUSDCReserves=100.1k, previewGUSDForUSDC
+- SwapPriceOracle (0xde2bd2ff): admin, BPS=10000, PRICE_DECIMALS=8, maxDeviationBps=2500, defaultMaxAge=300s, registeredTokenCount=5, getAllTokens, getPriceUnsafe (all 0 — stale), getPrice (reverts when stale), tokenConfigs, prices
+- VoteEscrowedGD (0x4eab2999): name="Vote-Escrowed GoodDollar", symbol="veG$", gd=OLD_GDT, totalLocked=1000G$, admin, MAX_LOCK=4yr, MIN_LOCK=7days, EARLY_UNLOCK_PENALTY_BPS=3000, UBI_PENALTY_SHARE_BPS=3333, locks, getVotes
+- GoodDAO (0x5ffe31e4): QUORUM_BPS=1000, PROPOSAL_THRESHOLD_BPS=100, VOTING_DELAY=86400, VOTING_PERIOD=259200, EXECUTION_WINDOW=604800, TIMELOCK_DELAY=86400, guardian=deployer, proposalCount=1
+- GoodTimelock (0xf66cfd): admin=deployer, delay=86400s, MIN_DELAY=86400s, MAX_DELAY=30days, GRACE_PERIOD=14days, isProposer(deployer)=true, isExecutor(deployer)=false
+- VaultFactory (0x77ad263c): admin, vaultCount=0, totalTVL=0, defaultDepositCap=1M, totalUBIFunded=0
+- VaultManager (0xe039608e): admin, oracle=0xD0141E, gusd=correct, paused=false, dAppRecipient=deployer, feeSplitter=OLD_UBI_SPLITTER (GOO-309)
+- AgentRegistry (0xa9d0fb58): admin, getAgentCount=5, isRegistered, getDashboardStats
+- OptimisticResolver (0x30426d): admin, bondToken=new_GDT, bondAmount=1000G$
+- MarketFactory (0xc7cdb7): admin, marketCount=10
 
 ## Functions Tested (all iterations)
 - admin()
@@ -120,13 +137,75 @@
 - withdrawETH
 - withdrawETH(verify)
 
+- admin() [SwapPriceOracle, gUSD, PSM, VoteEscrowedGD, GoodDAO, GoodTimelock, VaultFactory, VaultManager, AgentRegistry, MarketFactory, OptimisticResolver]
+- BPS() [SwapPriceOracle]
+- EARLY_UNLOCK_PENALTY_BPS()
+- EXECUTION_WINDOW()
+- GRACE_PERIOD()
+- MAX_LOCK()
+- MAX_LEADERBOARD_COUNT()
+- MIN_DELAY()
+- MAX_DELAY()
+- MIN_LOCK()
+- PRICE_DECIMALS()
+- PROPOSAL_THRESHOLD_BPS()
+- QUORUM_BPS()
+- TIMELOCK_DELAY()
+- UBI_PENALTY_SHARE_BPS()
+- VOTING_DELAY()
+- VOTING_PERIOD()
+- bondAmount()
+- bondToken()
+- defaultMaxAge()
+- defaultDepositCap()
+- delay()
+- feeSplitter() [VaultManager]
+- getAllTokens()
+- getAgentCount()
+- getDashboardStats()
+- getVotes()
+- gusd() [PSM, VaultManager]
+- guardian()
+- isBurner(address)
+- isMinter(address)
+- isExecutor(address)
+- isProposer(address)
+- isRegistered(address)
+- locks(address)
+- marketCount()
+- maxDeviationBps()
+- oracle() [VaultManager]
+- paused() [PSM, VaultManager]
+- previewGUSDForUSDC(uint256)
+- proposalCount()
+- registeredTokenCount()
+- swapCap()
+- tokenConfigs(address)
+- totalLocked()
+- totalTVL()
+- totalUBIFunded() [VaultFactory]
+- totalUSDCReserves()
+- ubiFee() [VaultFactory]
+- usdc() [PSM]
+- vaultCount()
+
 ## Functions NOT YET Tested
 - GoodLendPool: initReserve (complex; tested indirectly via deployed pool)
-- UBIClaimV2: claimFor, batchClaim — deployed but not yet exercised
-- UBIClaimV2: supplementPool — unverified end-to-end (GOO-243 fix deployed, but supplementPool needs a funded UBIFeeSplitter to test)
+- UBIClaimV2: claimFor as authorized relayer (requires relayer whitelist grant), batchClaim as relayer
+- UBIClaimV2: supplementPool — blocked until GOO-298 fixed (PSM needs gUSD mintable for pool to fund)
 - UBIFeeHook: afterSwap via V4 pool (requires V4 pool liquidity setup)
 - GoodDollarToken: batchVerifyHumans (identity oracle dependent)
 - GoodSwap.sol: Uniswap V2 fork — not deployed (GOO-235, cancelled)
+- FastWithdrawalLP: claimFastWithdrawal, claimFastETHWithdrawal, settleWithdrawal (require active bridge flow with keeper)
+- StabilityPool: deposit, withdraw, claimCollateral (gUSD deployed but StabilityPool.depositToken() reverts — check contract version)
+- VoteEscrowedGD: lock(), increaseLock(), extendLock(), earlyUnlock() (requires GDT balance from verified human)
+- GoodDAO: propose(), castVote(), queue(), execute() (requires veGD voting power)
+- VaultManager: openVault(), depositCollateral(), mintGUSD(), repayGUSD(), closeVault() (full CDP cycle)
+- VaultFactory: createVault(), approveStrategy(), strategyList()
+- MarketFactory: createMarket() and market resolution flow
+- AgentRegistry: registerAgent(), recordActivity(), recordPnL() (requires reporter role)
+- SwapPriceOracle: updatePrice() (keeper-only), adminSetPrice() (admin-only)
+- PSM: swapUSDCForGUSD(), swapGUSDForUSDC() (blocked by GOO-298 — swapCap=0)
 
 ## Bugs Found
 - GOO-205: UBIFeeHook.poolManager=0x1 (FIXED via GOO-215 — new hook 0x325c8Df4 verified)
@@ -137,11 +216,32 @@
 - GOO-245: UBIRevenueTracker.feeSplitter = old UBIFeeHook (FIXED — redeployed at 0x021DBfF4, commit 35c9d59)
 - GOO-264: LiFiBridgeAggregator(new) missing USDC whitelist (FIXED — setWhitelistedToken called, USDC+WETH whitelisted)
 - GOO-265: VaultFactory.ubiFee = old UBIFeeSplitter (FIXED — redeployed at 0x77AD263C, commit 7af8f35)
-- GOO-298: PSM never redeployed with GOO-275/285/289 solvency fixes — psmMintedGUSD/psmBurnedGUSD absent from deployed bytecode, 100k USDC reserve unprotected (OPEN — assigned to PE)
-- GOO-299: GoodDollarToken.ubiPool()=0x0 — UBI distribution broken, setUBIPool() never called after GOO-243 redeploy (OPEN — assigned to PE)
+- GOO-298: PSM never redeployed with GOO-275/285/289 solvency fixes — psmMintedGUSD/psmBurnedGUSD absent from deployed bytecode, 100k USDC reserve unprotected (OPEN — assigned to PE, re-confirmed iter12)
+- GOO-299: GoodDollarToken.ubiPool()=0x0 — UBI distribution broken, setUBIPool() never called after GOO-243 redeploy (OPEN — assigned to PE, re-confirmed iter12)
+- GOO-308: SwapPriceOracle all prices 0/stale — 5 tokens registered, all getPriceUnsafe()=0, getPrice() reverts; no keeper updating prices on devnet (OPEN — filed iter12)
+- GOO-309: VaultManager.feeSplitter = old UBIFeeSplitter (0xe7f1725E) — should be new splitter 0xc0bf43; revenue from CDP vaults will go to stale contract (OPEN — filed iter12)
 
 ## Notes
 - MockUSDC: 6 decimals; MockWETH: 18 decimals
 - splitFee(G$): fundUBIPool is permissionless — works without UBIClaimV2
 - Liquidation tested by oracle price manipulation (WETH $2000→$100→$2000)
 - UBIClaimV2 smoke test deferred until GOO-234 resolved
+- GoodLendPool: supply() takes 2 args (not 4 like Aave V3 standard), getUserAccountData returns 3 values
+- UBIClaimV2.claimFor/batchClaim: revert with NotAuthorizedRelayer (0x17fb2066) — relayer whitelist enforced
+- StabilityPool deposit token = gUSD (not GDT) — blocked while PSM is stale (GOO-298)
+- Interest accrual: USDC borrow index ~1.0000469e27, WETH ~1.0000014e27 (after 373+ blocks from genesis)
+- LiFi initiateSwap = 7 args (srcToken, srcAmount, destChainId, destToken, destReceiver, minDestAmount, deadline)
+- LiFi completeSwap = 3 args (swapId, lifiTxHash, destAmount); keeper-only
+- UBIFeeHook.ubiFeeShareBPS = 3333 (33.33% of swap fee goes to UBI); getUBIFeesForToken=0 (V4 pool not active)
+- Flash loan receiver must implement IFlashLoanReceiver — EOA receivers correctly rejected
+- gUSD totalSupply=~110k (minted by PSM via USDC collateral), PSM.totalUSDCReserves=100.1k USDC6
+- PSM uses MockUSDC6 (0xf5059a5D, 6 dec) NOT MockUSDC (0x0B306BF, 6 dec) — different tokens
+- PSM.swapCap=0 (unlimited cap) AND PSM bytecode still old (GOO-298 open)
+- VoteEscrowedGD.gd() = OLD GDT (0x5FbDB231) — not updated to new GDT (0x6533158b) — possible issue
+- VoteEscrowedGD.totalLocked=1000G$ (deployer has staked veG$)
+- GoodDAO.proposalCount=1 (one on-chain proposal exists from deployer)
+- GoodTimelock: deployer is proposer but NOT executor (executors not set up)
+- MarketFactory: 10 prediction markets already created on devnet
+- AgentRegistry: 5 AI agents registered on-chain
+- SwapPriceOracle: active keeper tx stream (0x457972de = updatePrice selector) but all prices 0 on devnet — likely keeper needs RPC config
+- VaultManager.feeSplitter = 0xe7f1725E (old UBIFeeSplitter from before GOO-243 fix) — GOO-309
