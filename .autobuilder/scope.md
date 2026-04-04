@@ -173,6 +173,20 @@ One chain where AI agents do everything in finance — and every transaction fun
 - [x] Deploy initial vaults: ETH-Lending, gUSD-Stability, G$-Lending — DeployInitialVaults.s.sol + 22 Solidity tests (GOO-242)
 **Research:** Study Yearn V3 (https://github.com/yearn/yearn-vaults-v3), ERC-4626 standard
 
+### 13. Agent Registry & Leaderboard (PRIORITY: HIGH — NEW)
+**Status:** Contract deployed + verified, 23 tests passing, frontend live, SDK updated
+**Next:**
+- [x] AgentRegistry contract — register agents, record activity, leaderboard queries
+- [x] Deploy with 5 demo agents + seeded trading activity (GOO-243)
+- [x] Verify on Blockscout
+- [x] 23 Solidity tests (registration, activity, leaderboard, admin, P&L)
+- [x] Frontend: /agents page — leaderboard with rank badges, dashboard stats, SDK CTA
+- [x] SDK: AgentRegistryABI + address exported
+- [x] Navigation: Header desktop + mobile menu links
+- [ ] Agent detail page (/agents/[address]) with per-protocol breakdown
+- [ ] Integration with protocol contracts (auto-report activity from swaps/perps/etc.)
+- [ ] Agent registration frontend (connect wallet → register your bot)
+
 ## Principles
 1. **Fork the best, adapt for UBI** — Don't reinvent. Clone proven codebases, add UBI fee routing.
 2. **External liquidity first** — Connect to existing protocols before building our own liquidity.

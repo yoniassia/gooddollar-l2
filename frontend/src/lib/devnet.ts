@@ -116,6 +116,9 @@ export const CONTRACTS = {
   GUSDStabilityVault:    '0x6BdBEc8Be23eB0F4A1aeF4B4dDf85bdfF0BdbF97' as `0x${string}`,
   GDLendingVault:        '0xAD438cEf9a586FcCF01a521bce9465e500a4259E' as `0x${string}`,
 
+  // ── Agent Registry — deployed (chain 42069), 2026-04-04 (GOO-243) ────────
+  AgentRegistry:         '0xA9d0Fb5837f9c42c874e16da96094b14Af0e2784' as `0x${string}`,
+
   // ── QA TestRegistry — deployed (chain 42069), 2026-04-03 ─────────────────
   TestRegistry:          '0x12bcb546bc60ff39f1adfc7ce4605d5bd6a6a876' as `0x${string}`,
 } as const

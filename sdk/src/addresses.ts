@@ -39,6 +39,9 @@ export const ADDRESSES = {
   ETHLendingVault: '0xa6AB86f760ae5D6fbF06056a7887b816610A4668',
   GUSDStabilityVault: '0x6BdBEc8Be23eB0F4A1aeF4B4dDf85bdfF0BdbF97',
   GDLendingVault: '0xAD438cEf9a586FcCF01a521bce9465e500a4259E',
+
+  // Agent Registry (GOO-243)
+  AgentRegistry: '0xA9d0Fb5837f9c42c874e16da96094b14Af0e2784',
 } as const
 
 export type ContractName = keyof typeof ADDRESSES

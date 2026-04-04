@@ -22,6 +22,7 @@ export function Header() {
   const isYield = pathname?.startsWith('/yield')
   const isGovernance = pathname?.startsWith('/governance')
   const isUBIImpact = pathname?.startsWith('/ubi-impact')
+  const isAgents = pathname?.startsWith('/agents')
   const isActivity = pathname?.startsWith('/activity')
   const isTestDashboard = pathname?.startsWith('/test-dashboard')
   const isPortfolio = pathname === '/portfolio'
@@ -71,6 +72,7 @@ export function Header() {
           <Link href="/stable" className={isStable ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Stable</Link>
           <Link href="/yield" className={isYield ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Yield</Link>
           <Link href="/governance" className={isGovernance ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Govern</Link>
+          <Link href="/agents" className={isAgents ? 'text-white font-medium' : 'hover:text-white transition-colors'}>Agents</Link>
           <Link href="/ubi-impact" className={isUBIImpact ? 'text-green-400 font-medium' : 'text-green-400/60 hover:text-green-400 transition-colors'}>UBI</Link>
           <Link href="/activity" className={isActivity ? 'text-goodgreen font-medium' : 'text-goodgreen/60 hover:text-goodgreen transition-colors'}>
             <span className="flex items-center gap-1">
@@ -200,6 +202,13 @@ export function Header() {
               className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isGovernance ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
             >
               Govern
+            </Link>
+            <Link
+              href="/agents"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg ${isAgents ? 'text-white font-medium bg-dark-50/50' : 'text-gray-400 hover:text-white'}`}
+            >
+              🤖 Agents
             </Link>
             <Link
               href="/ubi-impact"
