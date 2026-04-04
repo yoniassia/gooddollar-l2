@@ -117,6 +117,18 @@ contract SwapPriceOracle {
 
     function removeToken(address token) external onlyAdmin {
         tokenConfigs[token].active = false;
+        delete prices[token];
+
+        // Remove from registeredTokens array (swap and pop)
+        uint256 len = registeredTokens.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (registeredTokens[i] == token) {
+                registeredTokens[i] = registeredTokens[len - 1];
+                registeredTokens.pop();
+                break;
+            }
+        }
+
         emit TokenRemoved(token);
     }
 

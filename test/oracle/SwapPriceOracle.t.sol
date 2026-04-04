@@ -141,17 +141,68 @@ contract SwapPriceOracleTest is Test {
     }
 
     function test_removeToken() public {
+        vm.prank(keeper);
+        oracle.updatePrice(eth, 350_000_000_000);
+
         vm.prank(admin);
         oracle.removeToken(eth);
 
+        // update should revert (token inactive)
         vm.prank(keeper);
         vm.expectRevert();
         oracle.updatePrice(eth, 350_000_000_000);
     }
 
+    function test_removeToken_zerosPrice() public {
+        vm.prank(keeper);
+        oracle.updatePrice(eth, 350_000_000_000);
+
+        vm.prank(admin);
+        oracle.removeToken(eth);
+
+        (uint256 price, uint256 timestamp) = oracle.getPriceUnsafe(eth);
+        assertEq(price, 0);
+        assertEq(timestamp, 0);
+    }
+
+    function test_removeToken_decreasesCount() public {
+        assertEq(oracle.registeredTokenCount(), 3);
+
+        vm.prank(admin);
+        oracle.removeToken(eth);
+
+        assertEq(oracle.registeredTokenCount(), 2);
+    }
+
+    function test_removeToken_removesFromArray() public {
+        vm.prank(admin);
+        oracle.removeToken(eth);
+
+        address[] memory tokens = oracle.getAllTokens();
+        assertEq(tokens.length, 2);
+        for (uint256 i = 0; i < tokens.length; i++) {
+            assertTrue(tokens[i] != eth, "eth should not be in array after removal");
+        }
+    }
+
+    function test_removeToken_canReregister() public {
+        vm.prank(admin);
+        oracle.removeToken(eth);
+
+        // Re-register and it should work cleanly
+        vm.prank(admin);
+        oracle.registerToken(eth, "ETH", 18, 300);
+        assertEq(oracle.registeredTokenCount(), 3);
+
+        vm.prank(keeper);
+        oracle.updatePrice(eth, 350_000_000_000);
+        assertEq(oracle.getPrice(eth), 350_000_000_000);
+    }
+
     function test_getAllTokens() public view {
         address[] memory tokens = oracle.getAllTokens();
         assertEq(tokens.length, 3);
+        // Order is insertion order (swap-and-pop only changes order on removal)
         assertEq(tokens[0], eth);
         assertEq(tokens[1], gdollar);
         assertEq(tokens[2], usdc);
