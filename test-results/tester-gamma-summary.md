@@ -1008,3 +1008,139 @@ JSONL entries: 37 (total cumulative: 422)
 7. GOO-NEW-004/005: Deploy GoodDollarBridgeL2 and MultiChainBridge on devnet
 8. VaultManager write flow: test openVault/depositCollateral/mintGUSD after oracle prices fixed
 9. GoodLendPool: supply/borrow flow test (2 reserves confirmed active)
+
+---
+
+# Tester Gamma - Iteration 9 Test Results
+
+Date: 2026-04-04T13:06:50Z
+Wallet: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
+Chain: GoodDollar L2 Devnet (Chain ID 42069, RPC http://localhost:8545)
+JSONL entries this iteration: 14 (total cumulative: 436)
+
+**Total Tests: 14 | Passed: 10 | Failed: 4 | New Bugs: 2**
+
+## Fix Verification Results (Part A)
+
+| Issue | Contract | Status | On-Chain Evidence |
+|-------|----------|--------|-------------------|
+| GOO-277 | SwapPriceOracle | **VERIFIED** | getPrice(GD)=1500000 (8 dec = $0.015), 5 tokens registered |
+| GOO-278 | MockPriceOracle WETH18 | **FAILED** | All calls including admin() revert — contract broken or wrong ABI |
+| GOO-279 | FastWithdrawalLP.ubiPool | **VERIFIED** | ubiPool=0xc0bf43a4... (not deployer EOA 0xf39f...) |
+| GOO-280 | UBIFeeHook afterSwap | **VERIFIED** | poolManager=0xac9f..., paused=false, ubiFeeShareBPS=3333, permissions non-zero |
+| GOO-281 | UBIRevenueTracker | **VERIFIED** | New addr 0x021d... responds: admin=deployer, totalFeesTracked=13100 GD, 7 protocols |
+| GOO-282 | LiFiBridgeAggregator | **VERIFIED** | 0x8bce54... has bytecode (11050 chars) |
+| GOO-283 | GoodLend AddressesProvider | **PARTIAL** | SimplePriceOracle deployed; GoodLendPool operational (2 reserves, oracle set) |
+| GOO-196 | UBIFeeSplitter ubiRecipient | **CONFIRMED OPEN** | slot 4 = 0x000...000 — still address(0), 9 iterations unfixed |
+
+## Part B: UBI Pipeline State
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| UBIFeeSplitter.totalFeesCollected() | ~5053 GD (5.05e21 wei) | Accumulating |
+| UBIFeeSplitter.ubiBPS | 3333 (33.33%) | Configured |
+| UBIFeeSplitter.protocolBPS | 1667 (16.67%) | Configured |
+| UBIFeeSplitter.goodDollar | 0x5fbdb2... (correct GD token) | OK |
+| UBIFeeHook.ubiPool | 0x6533158b... | NEW UNKNOWN ADDR |
+| FastLP.ubiPool | 0xc0bf43a4... | NEW UNKNOWN ADDR |
+| UBIRevenueTracker.feeSplitter | 0xc0bf43a4... | SAME NEW ADDR |
+
+**PIPELINE BLOCKER**: Three contracts reference 0xc0bf43a4 as the UBI destination. This does not match canonical UBIFeeSplitter (0xe7f1...). This is a new bug — see GOO-NEW below.
+
+## Part C: ValidatorStaking Unbonding
+
+| Metric | Value |
+|--------|-------|
+| Block timestamp | 1775308010 = 2026-04-04T13:06:50Z |
+| unbondAt | 1775873431 = 2026-04-11T02:10:31Z |
+| Unbonding amount | 1,000,000 GD (1e24 wei) |
+| Seconds remaining | 565,421 (~7 days) |
+| UNBONDING_PERIOD | 604,800 s (7 days) |
+| Can completeUnstake? | **NO** — must wait until 2026-04-11T02:10:31Z |
+| totalStaked() | 0 (stake moved to unbonding queue) |
+| pendingRewards | 0 |
+
+## Part D: VaultManager Oracle State
+
+| Check | Result |
+|-------|--------|
+| VaultManager.oracle() | 0x998abeb3... (MockPriceOracle — correct address) |
+| VaultManager.feeSplitter() | 0x8f86403a... |
+| VaultManager.gusd() | 0x0e801d84... |
+| VaultManager.paused() | false |
+| oracle.getAssetPrice(WETH18) | **REVERTS** — GOO-278 not fixed |
+| WETH18 vault openable? | **NO** — oracle broken |
+
+## Part E: Stress Test (20 reads)
+
+| Metric | Value |
+|--------|-------|
+| Passed | 17/20 = **85%** |
+| Failed | 3/20 = 15% |
+| Iteration 8 baseline | 46% |
+| Improvement | +39 percentage points |
+
+**Failures**:
+- MockOracle.getAssetPrice(WETH18) — GOO-278 not fixed
+- MockOracle.prices(WETH18) — GOO-278 not fixed
+- UBIFeeSplitter.ubiRecipient() — reverts (ABI mismatch or broken contract)
+
+## New Bugs Found This Iteration
+
+### GOO-NEW-A (HIGH): Multiple contracts use unknown UBIFeeSplitter address 0xc0bf43a4
+
+- **Contracts affected**: FastWithdrawalLP (ubiPool), UBIRevenueTracker (feeSplitter), and the address matches
+- **Expected**: Should point to canonical UBIFeeSplitter at 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+- **Actual**: FastLP.ubiPool = 0xc0bf43a4ca27e0976195e6661b099742f10507e5 (unrecognized)
+- **Note**: UBIFeeHook.ubiPool is DIFFERENT again: 0x6533158b042775e2fdfef3ca1a782efdbb8eb9b1
+- **Impact**: Fees from fast withdrawals and revenue tracking go to unverified address. The canonical UBIFeeSplitter (0xe7f1...) may be superseded by a new deployment not tracked in known addresses.
+- **Action needed**: Protocol Engineer to clarify which UBIFeeSplitter is canonical; update known addresses list.
+
+### GOO-278 REGRESSION (HIGH): MockPriceOracle still broken after fix attempt
+
+- **Contract**: MockPriceOracle at 0x998abeb3e57409262ae5b751f60747921b33613e
+- **Issue**: All calls including admin() revert — not just price reads. This indicates a fundamental contract issue (wrong ABI, wrong contract at that address, or broken deployment).
+- **Impact**: VaultManager oracle is broken; WETH18 vaults remain unopenable; GoodStable system non-functional.
+- **Action needed**: Redeploy MockPriceOracle and update VaultManager oracle reference, OR verify that 0x998abeb3 is actually a different contract type.
+
+## Regressions / Still Open
+
+| Bug ID | Status | Evidence |
+|--------|--------|----------|
+| GOO-196 | STILL OPEN (9 iterations) | UBIFeeSplitter slot4 = 0x0 |
+| GOO-199 | STILL OPEN | VaultManager oracle broken; cannot test vault math |
+| GOO-214 | NOT RETESTED | MarketFactory not tested this iteration |
+| GOO-245 | PARTIALLY OPEN | feeSplitter=0xc0bf43a4 (not 0xe7f1...) |
+| GOO-278 | REGRESSION | Fix attempted but MockPriceOracle still reverts on all calls |
+
+## Bugs Fixed This Iteration (Verified On-Chain)
+
+| Bug ID | Fix Evidence |
+|--------|-------------|
+| GOO-277 | SwapPriceOracle getPrice(GD) = 1500000 (non-zero, 8 dec) |
+| GOO-279 | FastWithdrawalLP.ubiPool = 0xc0bf43a4... (not deployer EOA) |
+| GOO-280 | UBIFeeHook: poolManager set, not paused, ubiFeeShareBPS=3333, permissions non-zero |
+| GOO-281 | UBIRevenueTracker new addr 0x021d... fully responds, 7 protocols, 1 snapshot |
+| GOO-282 | LiFiBridgeAggregator bytecode confirmed deployed |
+| GOO-283 | GoodLendPool operational: oracle set, 2 reserves, SimplePriceOracle deployed |
+
+## New Addresses Discovered
+
+| Contract | Address |
+|----------|---------|
+| UBIFeeHook (redeployed) | 0xd7acb2708f0d12efd9f02326c98fc56971dfcd9a |
+| UBIRevenueTracker (new) | 0x021dbff4a864aa25c51f0ad2cd73266fde66199d |
+| Unknown UBIFeeSplitter? | 0xc0bf43a4ca27e0976195e6661b099742f10507e5 |
+| UBIFeeHook.ubiPool | 0x6533158b042775e2fdfef3ca1a782efdbb8eb9b1 |
+
+## Next Iteration Priorities
+
+1. **GOO-278**: Redeploy MockPriceOracle properly OR identify what 0x998abeb3 actually is
+2. **GOO-196**: setUBIRecipient() on canonical UBIFeeSplitter — 9 iterations unfixed, critical
+3. **GOO-NEW-A**: Clarify canonical UBIFeeSplitter address — 0xe7f1 vs 0xc0bf43a4
+4. **ValidatorStaking**: completeUnstake() ready on 2026-04-11; test claim of 1M GD
+5. **GOO-214**: Test ConditionalTokens and MarketFactory — not retested since iter 7
+6. **GoodLendPool write flow**: supply/borrow with MockUSDC or MockWETH (2 reserves active)
+7. **UBIFeeHook**: Trigger a swap and verify afterSwap callback fires (totalSwapsProcessed=0 still)
+8. **UBIFeeSplitter.ubiRecipient()**: Investigate why function call reverts (selector mismatch?)
+9. **VaultManager**: Once GOO-278 fixed, open WETH18 vault and test mint/repay

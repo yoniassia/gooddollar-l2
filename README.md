@@ -6,6 +6,32 @@
 
 ---
 
+## 📦 Version Status
+
+
+| Component | Version | Status |
+|-----------|---------|--------|
+| **GoodDollar L2** (root) | `0.1.0` | 🟢 Active |
+| Frontend (GoodSwap) | `0.1.0` | 🟢 Live |
+| SDK | `0.1.0` | 🟢 Published |
+| Backend — Activity Reporter | `0.1.0` | 🟢 Running |
+| Backend — Bridge Keeper | `0.1.0` | 🟢 Running |
+| Backend — Harvest Keeper | `0.1.0` | 🟢 Running |
+| Backend — Indexer | `0.1.0` | 🟢 Running |
+| Backend — Liquidator | `0.1.0` | 🟢 Running |
+| Backend — Monitor | `0.1.0` | 🟢 Running |
+| Backend — Perps | `0.1.0` | 🟢 Running |
+| Backend — Predict | `0.1.0` | 🟢 Running |
+| Backend — Revenue Tracker | `0.1.0` | 🟢 Running |
+| Backend — Rpc Balancer | `0.1.0` | 🟢 Running |
+| Backend — Stocks Keeper | `1.0.0` | 🟢 Running |
+| Backend — Swap Oracle | `1.0.0` | 🟢 Running |
+
+
+> *Auto-updated by DevOps Engineer agent. Last sync: 2026-04-04*
+
+---
+
 ## What Is This?
 
 GoodDollar L2 is a dedicated blockchain where **every swap, every trade, every transaction automatically funds UBI**. Built on OP Stack (Optimism rollup), with G$ as the native gas token.

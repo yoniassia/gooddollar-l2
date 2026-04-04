@@ -1,7 +1,7 @@
 # Tester Alpha — Test Summary
 
 ## Stats
-- **Total tests run (lifetime):** 298
+- **Total tests run (lifetime):** 335
 - **Iteration 1:** 21 pass / 0 fail
 - **Iteration 2:** 20 pass / 0 fail
 - **Iteration 3:** 18 pass / 0 fail
@@ -10,7 +10,8 @@
 - **Iteration 6:** 19 pass / 6 fail (5 EOA→setMinter guard; 1 supplementPool — GOO-243)
 - **Iteration 7 (Tester Gamma):** 57 pass / 4 fail (GOO-224 regression, GOO-198 stale, IRM panic, stress)
 - **Iteration 8:** 17 pass / 6 fail → corrected to 5/8 key checks OK (GOO-243 fix verified, 2 new bugs filed)
-- **Last run:** 2026-04-04T12:30:00+00:00
+- **Iteration 9:** 30 pass / 7 fail (81.1%) — 5 test design issues, 2 real bugs filed (GOO-298, GOO-299)
+- **Last run:** 2026-04-04T13:00:00+00:00
 
 ## Contracts Covered (full coverage)
 - GoodLendPool: supply, borrow, repay, withdraw, flashLoan, liquidate, mintToTreasury, getUserAccountData, getReservesCount, getBorrowIndex, setBorrowingEnabled, setOracle, setTreasury, setAdmin, setReserveActive, setReserveFactor
@@ -136,6 +137,8 @@
 - GOO-245: UBIRevenueTracker.feeSplitter = old UBIFeeHook (FIXED — redeployed at 0x021DBfF4, commit 35c9d59)
 - GOO-264: LiFiBridgeAggregator(new) missing USDC whitelist (FIXED — setWhitelistedToken called, USDC+WETH whitelisted)
 - GOO-265: VaultFactory.ubiFee = old UBIFeeSplitter (FIXED — redeployed at 0x77AD263C, commit 7af8f35)
+- GOO-298: PSM never redeployed with GOO-275/285/289 solvency fixes — psmMintedGUSD/psmBurnedGUSD absent from deployed bytecode, 100k USDC reserve unprotected (OPEN — assigned to PE)
+- GOO-299: GoodDollarToken.ubiPool()=0x0 — UBI distribution broken, setUBIPool() never called after GOO-243 redeploy (OPEN — assigned to PE)
 
 ## Notes
 - MockUSDC: 6 decimals; MockWETH: 18 decimals
