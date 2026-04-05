@@ -1,6 +1,6 @@
 {
   "name": "@gooddollar/agent-sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TypeScript SDK for AI agents to interact with all GoodDollar L2 protocols",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
